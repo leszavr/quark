@@ -1,0 +1,291 @@
+ 
+### **"Создай и настрой микросервис blog-service на FastAPI для Quark"**
+
+```text
+Ты — senior Python-разработчик и архитектор. Твоя задача — создать микросервис `blog-service` на **FastAPI**, который станет ядром блоговой платформы Quark.
+
+Цель: реализовать полный цикл управления контентом — от черновика до публикации, с поддержкой мультисайтовости, SEO и AI-интеграции.
+
+Работай в каталоге: `/var/www/quark/services/blog-service`
+
+---
+
+### 📁 Шаг 1: Инициализация проекта
+
+1. Перейди в каталог:
+   ```bash
+   cd /var/www/quark/services
+   mkdir blog-service && cd blog-service
+   ```
+
+2. Создай виртуальное окружение:
+   ```bash
+   python3.11 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Установи зависимости:
+   ```bash
+   pip install "fastapi[all]" uvicorn sqlalchemy asyncpg python-multipart jinja2 weasyprint
+   ```
+
+---
+
+### 🗂️ Шаг 2: Структура проекта
+
+```
+blog-service/
+├── src/
+│   ├── main.py
+│   ├── routers/
+│   │   ├── blogs.py
+│   │   ├── posts.py
+│   │   ├── comments.py
+│   │   └── ai.py
+│   ├── models/
+│   │   ├── blog.py
+│   │   ├── post.py
+│   │   └── comment.py
+│   ├── schemas/
+│   │   ├── blog.py
+│   │   ├── post.py
+│   │   └── comment.py
+│   ├── database.py
+│   ├── templates/
+│   │   └── post.html  (для SSR)
+│   ├── utils/
+│   │   ├── slugify.py
+│   │   └── html_renderer.py
+│   ├── dependencies.py
+│   └── ai_client.py  (для связи с ai-orchestrator)
+├── static/
+│   └── css/  (базовые стили для SSR)
+├── Dockerfile
+├── requirements.txt
+├── .env
+├── .env.example
+└── README.md
+```
+
+---
+
+### 📄 Шаг 3: Реализация ключевых компонентов
+
+#### 1. `models/blog.py`
+```python
+class Blog:
+  id: UUID (PK)
+  user_id: UUID (FK → auth-service)
+  title: str
+  description: str
+  subdomain: str  # alex.blog.quark.ai
+  custom_domain: str  # myblog.com (опционально)
+  theme: JSON  # цвета, шрифты, макет
+  is_active: bool
+  created_at: datetime
+```
+
+#### 2. `models/post.py`
+```python
+class Post:
+  id: UUID (PK)
+  blog_id: UUID (FK)
+  title: str
+  slug: str (уникальный, на основе title)
+  content: JSONB  # блоки: {type: 'paragraph', text: '...'}, {type: 'image', src: '...'}
+  status: ENUM('draft', 'published', 'archived')
+  published_at: datetime
+  tags: List[str]
+  language: str (например, 'en', 'ru')
+  ai_generated: bool
+  ai_model: str
+  word_count: int
+  read_time: int
+```
+
+#### 3. `models/comment.py`
+```python
+class Comment:
+  id: UUID (PK)
+  post_id: UUID (FK)
+  user_id: UUID (FK)
+  content: str
+  parent_id: UUID (для вложенности)
+  created_at: datetime
+```
+
+---
+
+### 🌐 Шаг 4: Эндпоинты (routers)
+
+#### `blogs.py`
+- `GET /blogs/{username}` → информация о блоге
+- `GET /blogs/{username}/posts` → список постов
+- `PUT /blogs/me` → обновление блога (требует JWT)
+
+#### `posts.py`
+- `GET /posts/{slug}` → пост (публичный)
+- `GET /posts` → список (с фильтрами: tag, author, date)
+- `POST /posts` → создание (черновик или публикация)
+- `PUT /posts/{id}` → редактирование
+- `DELETE /posts/{id}` → удаление
+- `GET /posts/{slug}/html` → SSR-рендеринг (для SEO)
+
+#### `comments.py`
+- `GET /posts/{post_id}/comments`
+- `POST /posts/{post_id}/comments`
+- `DELETE /comments/{id}`
+
+#### `ai.py` (опционально)
+- `POST /ai/draft` → запрос к `ai-orchestrator` на генерацию черновика
+- `POST /ai/summarize` → краткое содержание
+
+---
+
+### 🎨 Шаг 5: Блоковый контент (WYSIWYG)
+
+- Используй **JSON-структуру блоков** (аналог Notion):
+  ```json
+  [
+    { "type": "heading", "level": 1, "text": "Заголовок" },
+    { "type": "paragraph", "text": "Текст..." },
+    { "type": "image", "src": "https://media.quark.ai/abc.webp", "caption": "Фото" },
+    { "type": "quote", "text": "Цитата..." }
+  ]
+  ```
+- Валидируй через Pydantic с Union-типов
+
+---
+
+### 🌍 Шаг 6: Мультисайтовость
+
+1. Поддержка:
+   - `/user/alex` → резолвится в `blog-service`
+   - `alex.blog.quark.ai` → DNS → API Gateway → blog-service
+2. API Gateway направляет по `Host`-заголовку
+3. Сервис определяет `username` из пути или поддомена
+
+---
+
+### 🖼️ Шаг 7: Интеграция с media-service
+
+- При создании поста: URL изображения должен быть из `media-service`
+- Валидация: проверка, что `src` принадлежит `media.quark.ai`
+- Опционально: прокси-загрузка (если изображение внешнее — сохранить через `media-service`)
+
+---
+
+### 🔐 Шаг 8: Аутентификация
+
+- Используй JWT из `auth-service`
+- Декодируй токен для получения `user_id`
+- Только владелец блога может редактировать свои посты
+
+---
+
+### 🐳 Шаг 9: Dockerfile
+
+```Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3004"]
+```
+
+`requirements.txt`:
+```txt
+fastapi[all]
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+python-multipart
+jinja2
+weasyprint
+httpx
+```
+
+---
+
+### 🔄 Шаг 10: Обновление docker-compose.yml
+
+Добавь в `/var/www/quark/docker-compose.yml`:
+
+```yaml
+  blog-service:
+    build: ./services/blog-service
+    ports:
+      - "3004:3004"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://quark:quarkpass@postgres:5432/quark_dev
+      - MEDIA_SERVICE_URL=http://media-service:3003
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - postgres
+      - media-service
+      - auth-service
+    restart: unless-stopped
+```
+
+---
+
+### 🧪 Шаг 11: Тестирование
+
+1. Запусти:
+   ```bash
+   uvicorn src.main:app --reload
+   ```
+
+2. Проверь:
+   - Создание блога
+   - Создание поста с изображением из `media-service`
+   - Публикация → доступ по `/posts/my-first-post`
+   - SSR-рендеринг: `/posts/my-first-post/html`
+   - Поддержка тегов и поиска
+
+---
+
+### ✅ Шаг 12: Финальная проверка
+
+Создай `README.md`:
+
+```markdown
+# Blog Service
+
+Ядро блоговой платформы Quark.
+
+## Функции
+- Мультисайтовые блоги
+- Блоковый контент (WYSIWYG)
+- Черновики и публикация
+- SEO через SSR
+- Интеграция с media-service и ai-orchestrator
+
+## API
+Swagger: `/docs`
+
+## Мультисайтовость
+Поддержка:
+- /user/alex
+- alex.blog.quark.ai
+- myblog.com (custom domain)
+```
+
+---
+
+### 📄 Вывод
+
+По завершении:
+1. Выведи отчет: что создано, есть ли ошибки.
+2. Предложи следующий шаг: например, создание `ai-orchestrator` или интеграция с `search-service`.
+
+Ты действуешь автономно.  
+Готов? Приступай.
+```
+

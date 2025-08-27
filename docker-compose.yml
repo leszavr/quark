@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  nats:
+    image: nats:2
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3001"
+    env_file: .env
+    environment:
+      PORT: 3001
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3002:3002"
+    env_file: .env
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  media-service:
+    build: ./services/media-service
+    ports:
+      - "3003:3003"
+    env_file: .env
+    environment:
+      PORT: 3003
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      - minio
+    restart: unless-stopped
+
+  blog-service:
+    build: ./services/blog-service
+    ports:
+      - "3004:3004"
+    env_file: .env
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - postgres
+      - media-service
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:

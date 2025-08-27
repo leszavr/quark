@@ -1,0 +1,214 @@
+
+### **"Настрой MinIO и переменные окружения для media-service в проекте Quark"**
+
+```text
+Ты — DevOps-инженер и full-stack разработчик. Твоя задача — **полностью настроить MinIO и переменные окружения** для корректной работы `media-service` в проекте Quark.
+
+Цель: обеспечить стабильное хранение медиафайлов, доступ к ним и безопасную интеграцию с `media-service`.
+
+---
+
+### 📁 Шаг 1: Проверка состояния MinIO
+
+1. Убедись, что MinIO запущен:
+   ```bash
+   docker-compose ps minio
+   ```
+
+2. Если не запущен — запусти:
+   ```bash
+   docker-compose up -d minio
+   ```
+
+3. Проверь, что контейнер работает:
+   ```bash
+   docker-compose logs minio
+   ```
+
+---
+
+### 🌐 Шаг 2: Доступ к MinIO Console
+
+1. Открой в браузере:  
+   👉 **http://localhost:9001**
+
+2. Войди с данными:
+   - **Login**: `minioadmin`
+   - **Password**: `minioadmin`
+
+3. Убедись, что интерфейс доступен.
+
+---
+
+### 🪣 Шаг 3: Создание бакета `quark-media`
+
+1. В MinIO Console:
+   - Нажми **"Create Bucket"**
+   - Имя: `quark-media`
+   - Region: `local`
+   - ACL: `private` (по умолчанию)
+
+2. Или через CLI:
+   ```bash
+   docker-compose exec minio /bin/sh
+   # Внутри контейнера:
+   mc alias set local http://localhost:9000 minioadmin minioadmin
+   mc mb local/quark-media
+   mc policy set public local/quark-media  # или 'none' для приватного доступа
+   exit
+   ```
+
+---
+
+### 🔐 Шаг 4: Настройка переменных окружения для `media-service`
+
+Создай файл `.env` в `/var/www/quark/services/media-service/.env`:
+
+```env
+# MinIO Configuration
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=quark-media
+
+# Service Configuration
+PORT=3003
+
+# JWT Configuration (для защиты загрузки)
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRES_IN=3600
+
+# CORS (опционально)
+CORS_ORIGINS=http://localhost:8080,http://localhost:3000
+```
+
+Создай также `.env.example` (без секретов):
+
+```env
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=quark-media
+PORT=3003
+JWT_SECRET=your-secret-here
+```
+
+---
+
+### 🔄 Шаг 5: Обновление docker-compose.yml
+
+Убедись, что сервис `media-service` в `/var/www/quark/docker-compose.yml` содержит:
+
+```yaml
+  media-service:
+    build: ./services/media-service
+    ports:
+      - "3003:3003"
+    environment:
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-quark-media}
+      - PORT=3003
+      - JWT_SECRET=${JWT_SECRET}
+    env_file:
+      - ./services/media-service/.env
+    depends_on:
+      - minio
+      - auth-service
+    restart: unless-stopped
+```
+
+> ⚠️ Убедись, что `.env` файл **находится на месте**, иначе переменные не подхватятся.
+
+---
+
+### 🧪 Шаг 6: Тестирование media-service
+
+1. Перезапусти сервис:
+   ```bash
+   docker-compose up -d --build media-service
+   ```
+
+2. Проверь логи:
+   ```bash
+   docker-compose logs media-service
+   ```
+   Убедись, что нет ошибок подключения к MinIO.
+
+3. Протестируй загрузку:
+   ```bash
+   curl -X POST http://localhost:3003/media/upload \
+     -H "Authorization: Bearer <valid-jwt>" \
+     -F "file=@/path/to/photo.jpg"
+   ```
+
+4. Проверь в MinIO Console:
+   - Файл появился в бакете `quark-media`
+   - Миниатюра создана (если реализовано)
+
+---
+
+### 🔁 Шаг 7: Автоматизация проверки при старте
+
+Добавь в `main.ts` или `bootstrap` сервиса проверку подключения к MinIO:
+
+```ts
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Проверка MinIO
+  const minioService = app.get(MinioService);
+  try {
+    await minioService.checkBucket(); // метод, который проверяет существование бакета
+    console.log('✅ MinIO: подключение установлено, бакет quark-media доступен');
+  } catch (error) {
+    console.error('❌ MinIO: ошибка подключения', error);
+    process.exit(1);
+  }
+
+  await app.listen(3003);
+}
+```
+
+---
+
+### ✅ Шаг 8: Финальная проверка
+
+Создай файл `/var/www/quark/services/media-service/SETUP_SUCCESS`:
+
+```text
+MinIO и media-service успешно настроены.
+
+Проверено:
+- [x] MinIO запущен на порту 9000 и 9001
+- [x] Бакет quark-media создан
+- [x] Переменные окружения загружены
+- [x] media-service подключён к MinIO
+- [x] Загрузка файла работает
+- [x] CORS и JWT настроены
+
+Следующий шаг: разработка blog-service с интеграцией media-service.
+```
+
+---
+
+### 📄 Вывод
+
+По завершении:
+1. Выведи отчет: что настроено, есть ли ошибки.
+2. Предложи следующий шаг: начать разработку `blog-service`, используя `media-service` для изображений.
+3. Напомни, что `blog-service` должен:
+   - Вызывать `media-service` для загрузки изображений
+   - Валидировать URL из `quark-media`
+   - Поддерживать блоки с изображениями
+
+Ты действуешь автономно.  
+Готов? Приступай.
+```

@@ -1,0 +1,285 @@
+### **"Создай и настрой микросервис auth-service на NestJS для Quark"**
+
+```text
+Ты — senior full-stack разработчик и архитектор. Твоя задача — создать полноценный микросервис `auth-service` на **NestJS (TypeScript)** в рамках проекта Quark.
+
+Цель: реализовать надежную систему аутентификации и регистрации с поддержкой JWT, OAuth2 (Google, GitHub), валидации и документации.
+
+Работай в каталоге: `/var/www/quark/services/auth-service`
+
+---
+
+### 📁 Шаг 1: Инициализация проекта
+
+1. Перейди в каталог:
+   ```bash
+   cd /var/www/quark/services
+   mkdir auth-service && cd auth-service
+   ```
+
+2. Инициализируй NestJS проект:
+   ```bash
+   npm create nest@latest . --package-manager=npm --strict=false --skip-git
+   ```
+   При запросе:
+   - ? What name would you like to use? → `auth-service`
+   - ? Which bundler would you like to use? → `webpack`
+   - ? Which package manager would you like to use? → `npm`
+   - ? Would you like to generate a Dockerfile? → `Yes`
+   - ? Would you like to generate a README? → `Yes`
+
+3. Убедись, что структура создана:
+   - `src/`, `test/`, `package.json`, `nest-cli.json`, `Dockerfile`
+
+---
+
+### 📦 Шаг 2: Установка зависимостей
+
+Установи необходимые пакеты:
+```bash
+npm install \
+  @nestjs/jwt \
+  @nestjs/passport \
+  @nestjs/typeorm \
+  typeorm \
+  pg \
+  passport \
+  passport-jwt \
+  passport-google-oauth20 \
+  passport-github2 \
+  bcrypt \
+  class-validator \
+  class-transformer \
+  joi \
+  @types/bcrypt \
+  @types/passport-jwt \
+  @types/passport-google-oauth20 \
+  @types/passport-github2 \
+  --save
+
+npm install \
+  @nestjs/swagger \
+  swagger-ui-express \
+  --save
+```
+
+---
+
+### 🗂️ Шаг 3: Структура проекта
+
+Создай следующую структуру:
+
+```
+src/
+├── auth/
+│   ├── auth.controller.ts
+│   ├── auth.service.ts
+│   ├── auth.module.ts
+│   └── strategies/
+│       ├── jwt.strategy.ts
+│       ├── google.strategy.ts
+│       └── github.strategy.ts
+├── users/
+│   ├── user.entity.ts
+│   ├── user.repository.ts (опционально, если не через TypeORM репозиторий)
+├── common/
+│   ├── decorators/
+│   │   └── current-user.decorator.ts
+│   └── guards/
+│       └── jwt-auth.guard.ts
+├── config/
+│   └── auth.config.ts
+├── dto/
+│   ├── register.dto.ts
+│   ├── login.dto.ts
+│   └── token.dto.ts
+├── validators/
+│   └── password.validator.ts
+└── main.ts (уже есть)
+```
+
+---
+
+### 📄 Шаг 4: Реализация ключевых компонентов
+
+#### 1. `user.entity.ts`
+Создай сущность пользователя:
+- `id`, `email` (unique), `passwordHash`, `username` (unique), `createdAt`, `updatedAt`
+- Используй `@Entity`, `@PrimaryGeneratedColumn`, `@Column`
+
+#### 2. `register.dto.ts`
+```ts
+class RegisterDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(3)
+  username: string;
+
+  @IsString()
+  @MinLength(8)
+  @Validate(PasswordValidator)
+  password: string;
+}
+```
+
+#### 3. `auth.service.ts`
+Методы:
+- `register(registerDto)` → хэширует пароль, сохраняет пользователя
+- `validateUser(email, password)` → проверяет пароль
+- `login(user)` → возвращает `{ access_token }` (JWT)
+- `googleLogin(req)` → обрабатывает OAuth2 Google
+- `githubLogin(req)` → обрабатывает OAuth2 GitHub
+
+#### 4. `jwt.strategy.ts`
+- Извлекает токен из `Authorization: Bearer <token>`
+- Проверяет подпись JWT
+- Возвращает пользователя по `sub` (user.id)
+
+#### 5. `auth.controller.ts`
+Эндпоинты:
+- `POST /auth/register` → регистрация
+- `POST /auth/login` → вход
+- `POST /auth/refresh` → обновление токена
+- `GET /auth/google` → redirect to Google
+- `GET /auth/google/callback` → обработка ответа
+- `GET /auth/github` → redirect to GitHub
+- `GET /auth/github/callback` → обработка ответа
+- `GET /auth/profile` → защищенный маршрут (требует JWT)
+
+#### 6. `main.ts`
+- Включи CORS
+- Настрой Swagger:
+  ```ts
+  const config = new DocumentBuilder()
+    .setTitle('Auth Service')
+    .setDescription('API for authentication and user management')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+  ```
+
+---
+
+### 🔐 Шаг 5: Конфигурация безопасности
+
+Создай `.env` в `/var/www/quark/services/auth-service`:
+```env
+PORT=3001
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRES_IN=3600
+
+# OAuth2
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
+
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_CALLBACK_URL=http://localhost:3001/auth/github/callback
+
+# Database
+DATABASE_HOST=postgres
+DATABASE_PORT=5432
+DATABASE_USER=quark
+DATABASE_PASSWORD=quarkpass
+DATABASE_NAME=quark_dev
+```
+
+Создай `.env.example` с теми же ключами, но без значений.
+
+---
+
+### 🐳 Шаг 6: Настройка Dockerfile
+
+Убедись, что сгенерированный `Dockerfile`:
+- Использует multi-stage build
+- Копирует `package.json` и устанавливает зависимости
+- Запускается на порту 3001
+- Копирует `.env` (в продакшене — через секреты)
+
+Добавь в `docker-compose.yml` сервис:
+
+```yaml
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_USER=quark
+      - DATABASE_PASSWORD=quarkpass
+      - DATABASE_NAME=quark_dev
+      - JWT_SECRET=${JWT_SECRET:-default-super-secret}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+```
+
+---
+
+### 🧪 Шаг 7: Тестирование
+
+1. Запусти сервис:
+   ```bash
+   cd /var/www/quark/services/auth-service
+   npm run start
+   ```
+
+2. Открой Swagger: `http://localhost:3001/api`
+3. Протестируй:
+   - Регистрация нового пользователя
+   - Вход → получение JWT
+   - Доступ к `/auth/profile` с токеном
+   - Попытка доступа без токена → 401
+
+4. Проверь, что пользователь сохраняется в PostgreSQL.
+
+---
+
+### ✅ Шаг 8: Финальная проверка
+
+Создай файл `README.md` в `auth-service/`:
+
+```markdown
+# Auth Service
+
+Микросервис аутентификации для Quark.
+
+## Функции
+- Регистрация и вход
+- JWT аутентификация
+- OAuth2: Google, GitHub
+- Валидация данных
+- Swagger API
+
+## Запуск
+```bash
+npm run start
+```
+
+## API
+Доступно по `/api` (Swagger)
+
+## Переменные окружения
+См. `.env.example`
+```
+
+---
+
+### 📄 Вывод
+
+По завершении:
+1. Выведи отчет: что создано, есть ли ошибки.
+2. Предложи следующий шаг: например, создание `user-service` или подключение к API Gateway.
+
+Ты действуешь автономно.  
+Готов? Приступай.
+```
+
+

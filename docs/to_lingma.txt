@@ -1,0 +1,10 @@
+Просмотри каталог проекта /var/www/quark. Я установил некоторые сервисы по данным инструкциям:
+
+/var/www/quark/docs/auth-service.txt
+/var/www/quark/docs/media-service.txt
+/var/www/quark/docs/minio.txt
+/var/www/quark/docs/playground.txt
+/var/www/quark/docs/user-service.txt
+надо проверить, все ли корректно выполнено, все ли сервисы установлены и нармально запускаются/функционируют.
+Надо протестировать регистрацию, авторизацию, открытие профиля, загрузку изображений, отображение зарегистрированных пользователей, сначала через api, а потом в дашборде: http://localhost:8080/,
+swagger настроен: http://localhost:3001/api

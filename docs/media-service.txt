@@ -1,0 +1,249 @@
+
+### **"Создай и настрой микросервис media-service на NestJS для Quark"**
+
+```text
+Ты — senior full-stack разработчик. Твоя задача — создать микросервис `media-service` на **NestJS (TypeScript)**, отвечающий за загрузку, обработку и хранение медиафайлов.
+
+Цель: предоставить централизованное, безопасное и масштабируемое решение для работы с изображениями в системе Quark.
+
+Работай в каталоге: `/var/www/quark/services/media-service`
+
+---
+
+### 📁 Шаг 1: Инициализация проекта
+
+1. Перейди в каталог:
+   ```bash
+   cd /var/www/quark/services
+   mkdir media-service && cd media-service
+   ```
+
+2. Инициализируй NestJS:
+   ```bash
+   npm create nest@latest . --package-manager=npm --strict=false --skip-git
+   ```
+   - Bundler: `webpack`
+   - Package manager: `npm`
+   - Dockerfile: `Yes`
+   - README: `Yes`
+
+---
+
+### 📦 Шаг 2: Установка зависимостей
+
+```bash
+npm install \
+  @nestjs/minio \
+  @nestjs/serve-static \
+  multer \
+  @types/multer \
+  sharp \
+  minio \
+  uuid \
+  mime \
+  --save
+
+npm install \
+  @types/sharp \
+  --save-dev
+```
+
+---
+
+### 🗂️ Шаг 3: Структура проекта
+
+```
+src/
+├── media/
+│   ├── media.controller.ts
+│   ├── media.service.ts
+│   └── media.module.ts
+├── config/
+│   ├── minio.config.ts
+│   └── media.config.ts
+├── dto/
+│   └── upload.dto.ts
+├── interfaces/
+│   └── media-file.interface.ts
+├── utils/
+│   └── image.processor.ts
+├── main.ts
+└── health.controller.ts (опционально)
+```
+
+---
+
+### 🖼️ Шаг 4: Реализация ключевых компонентов
+
+#### 1. `image.processor.ts`
+Функция `processImage(buffer: Buffer, options: { width?: number, format?: 'webp'|'jpeg' })`
+- Использует `sharp` для:
+  - Изменения размера (макс. 1200px по ширине)
+  - Конвертации в WebP (при поддержке)
+  - Оптимизации качества (80%)
+- Возвращает `Buffer` и `info` (формат, размер, dimensions)
+
+#### 2. `media.service.ts`
+Методы:
+- `uploadFile(file: Express.Multer.File, userId: string, type: 'avatar'|'cover'|'post')`
+  - Генерирует уникальный ID (UUID)
+  - Обрабатывает изображение через `image.processor`
+  - Загружает в MinIO бакет `quark-media`
+  - Возвращает объект:
+    ```ts
+    {
+      id: 'uuid',
+      url: 'https://minio/quark-media/abc.webp',
+      thumbnailUrl: '...',
+      originalName: 'photo.jpg',
+      mimeType: 'image/webp',
+      size: 12345,
+      uploadedAt: '2025-04-05T12:00:00Z'
+    }
+    ```
+
+#### 3. `media.controller.ts`
+Эндпоинты:
+- `POST /upload` → загрузка файла (с JWT)
+  - Принимает `multipart/form-data`
+  - Поле: `file`
+  - Заголовок: `Authorization: Bearer <token>`
+- `GET /:id` → получение файла (публичный URL)
+- `GET /:id/thumbnail` → миниатюра 320x
+- `DELETE /:id` → удаление (только владелец или админ)
+
+> Все маршруты требуют JWT (кроме GET публичных URL)
+
+---
+
+### ☁️ Шаг 5: Интеграция с MinIO
+
+#### `minio.config.ts`
+```ts
+export const minioConfig = {
+  endPoint: 'minio',
+  port: 9000,
+  useSSL: false,
+  accessKey: 'minioadmin',
+  secretKey: 'minioadmin',
+  bucket: 'quark-media',
+};
+```
+
+Используй `@nestjs/minio` или прямое подключение через `minio-js`.
+
+#### При старте сервиса:
+- Проверь, существует ли бакет `quark-media`
+- Если нет — создай
+
+---
+
+### 🔐 Шаг 6: Аутентификация
+
+Используй JWT Guard из `auth-service`:
+- В `main.ts` добавь `app.useGlobalGuards(new AuthGuard('jwt'))`
+- Или реализуй через `@nestjs/jwt` и проверку токена
+
+> Для production: можно использовать shared JWT secret или вызов `auth-service/validate`
+
+---
+
+### 🐳 Шаг 7: Dockerfile
+
+Убедись, что Dockerfile:
+- Устанавливает `libvips` (для sharp):
+  ```Dockerfile
+  RUN apt-get update && apt-get install -y libvips-dev
+  ```
+- Копирует `package.json`, устанавливает зависимости
+- Запускается на порту 3003
+
+---
+
+### 🧪 Шаг 8: Тестирование
+
+1. Запусти:
+   ```bash
+   npm run start
+   ```
+
+2. Отправь POST-запрос:
+   ```bash
+   curl -X POST http://localhost:3003/upload \
+     -H "Authorization: Bearer <valid-jwt>" \
+     -F "file=@photo.jpg"
+   ```
+
+3. Проверь:
+   - Файл появился в MinIO (`http://localhost:9001`)
+   - Возвращён URL
+   - Миниатюра доступна
+
+---
+
+### 🔄 Шаг 9: Обновление docker-compose.yml
+
+Добавь в `/var/www/quark/docker-compose.yml`:
+
+```yaml
+  media-service:
+    build: ./services/media-service
+    ports:
+      - "3003:3003"
+    environment:
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=quark-media
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - minio
+      - auth-service
+    restart: unless-stopped
+```
+
+---
+
+### ✅ Шаг 10: Финальная проверка
+
+Создай `README.md`:
+
+```markdown
+# Media Service
+
+Центральное хранилище медиафайлов для Quark.
+
+## Функции
+- Загрузка изображений
+- Автоматическая обработка (WebP, resize)
+- Миниатюры
+- Хранение в MinIO/S3
+- Защита через JWT
+
+## API
+- POST /upload → загрузка
+- GET /:id → файл
+- DELETE /:id → удаление
+
+## Поддерживаемые форматы
+- JPEG, PNG, GIF, WebP
+
+## Требования
+- MinIO должен быть запущен
+- JWT для загрузки/удаления
+```
+
+---
+
+### 📄 Вывод
+
+По завершении:
+1. Выведи отчет: что создано, есть ли ошибки.
+2. Предложи следующий шаг: например, интеграция с `user-service` (для аватаров) или создание `blog-service`.
+
+Ты действуешь автономно.  
+Готов? Приступай.
+```
+
+---
