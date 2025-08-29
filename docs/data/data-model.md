@@ -2,7 +2,9 @@
 
 ```mermaid
 erDiagram
-    USER ||--o{ BLOG : "создаёт"
-    BLOG ||--o{ POST : "содержит"
-    POST ||--o{ COMMENT : "имеет"
+    USER ||--o{ BLOG : has
+    USER ||--o{ POST : writes
+    POST ||--o{ COMMENT : has
+    POST ||--o{ MEDIA : contains
+    USER ||--o{ MESSAGE : sends
 ```
