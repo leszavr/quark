@@ -1,0 +1,27 @@
+# CI/CD Pipeline
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build application
+        run: |
+          echo "Building the application..."
+
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+
+      - name: Deploy to Kubernetes
+        run: |
+          echo "Deploying to Kubernetes..."
