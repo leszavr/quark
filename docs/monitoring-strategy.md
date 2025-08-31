@@ -1,12 +1,24 @@
 # Monitoring Strategy
 
-## Инструменты мониторинга
-- OpenTelemetry
-- Grafana
+## 1. Инструменты
+- OpenTelemetry — сбор трейсов, метрик, логов
+- Grafana — визуализация
+- Tempo — трейсы
+- Mimir — метрики
+- Loki — логи
+- Sentry — отслеживание ошибок
 
-## Метрики
-- RED (Rate, Error, Duration)
-- SLO: 99.9% uptime, < 500 мс
+## 2. Ключевые метрики (RED)
+- **Rate**: запросов в секунду
+- **Error**: процент ошибок (5xx)
+- **Duration**: время ответа
 
-## Алертинг
-- Telegram при ошибках и инцидентах
+## 3. SLO
+- Доступность: 99.9%
+- Latency: 95% запросов < 500 мс
+- Error Budget: 0.1% ошибок в месяц
+
+## 4. Алертинг
+- При latency > 1s — уведомление в Telegram
+- При 5xx > 1% — алерт в Grafana
+- При отказе сервиса — перезапуск через Kubernetes

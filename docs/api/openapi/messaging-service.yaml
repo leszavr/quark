@@ -1,0 +1,171 @@
+﻿openapi: 3.0.0
+info:
+  title: Messaging Service API
+  version: v1
+  description: Управление диалогами и сообщениями
+
+servers:
+  - url: http://localhost:3005
+    description: Development Server
+  - url: https://api.quark.com
+    description: Production
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        sender_id:
+          type: string
+        receiver_id:
+          type: string
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        is_read:
+          type: boolean
+          default: false
+
+    SendMessageRequest:
+      type: object
+      required:
+        - receiver_id
+        - content
+      properties:
+        receiver_id:
+          type: string
+        content:
+          type: string
+          maxLength: 5000
+
+    Conversation:
+      type: object
+      properties:
+        user_id:
+          type: string
+        last_message:
+          $ref: '#/components/schemas/Message'
+        unread_count:
+          type: integer
+          minimum: 0
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/v1/messages:
+    get:
+      summary: Получить список диалогов (последние сообщения)
+      tags:
+        - Messaging
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Список диалогов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+
+    post:
+      summary: Отправить сообщение
+      tags:
+        - Messaging
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Сообщение отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Ошибка валидации
+        '404':
+          description: Получатель не найден
+
+  /api/v1/messages/{user_id}:
+    get:
+      summary: Получить сообщения с пользователем
+      tags:
+        - Messaging
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Список сообщений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+
+  /api/v1/messages/{id}/read:
+    post:
+      summary: Отметить сообщение как прочитанное
+      tags:
+        - Messaging
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Сообщение отмечено как прочитанное
+        '403':
+          description: Нет прав
+        '404':
+          description: Сообщение не найдено
+
+  /ws:
+    get:
+      summary: WebSocket для реального времени
+      description: |
+        Подключение к WebSocket для получения сообщений в реальном времени.
+        Аутентификация через JWT в URL: `?token=...`
+      tags:
+        - Real-time
+      responses:
+        '101':
+          description: Переключение протоколов
