@@ -1,8 +1,0 @@
-fastapi[all]
-uvicorn
-sqlalchemy[asyncio]
-asyncpg
-python-multipart
-jinja2
-weasyprint
-httpx
