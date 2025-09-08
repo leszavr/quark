@@ -1,0 +1,40 @@
+# Единый источник конфигурации сервисов
+services:
+  auth-service:
+    name: auth-service
+    port: 3001
+    image: quark/auth:v1
+    replicas: 2
+    env:
+      JWT_SECRET: ${JWT_SECRET}
+      DB_URL: ${DB_URL}
+
+  user-service:
+    name: user-service
+    port: 3002
+    image: quark/user:v1
+    replicas: 2
+
+  blog-service:
+    name: blog-service
+    port: 3004
+    image: quark/blog:v1
+    replicas: 2
+
+  media-service:
+    name: media-service
+    port: 3003
+    image: quark/media:v1
+    replicas: 2
+
+  messaging-service:
+    name: messaging-service
+    port: 3005
+    image: quark/messaging:v1
+    replicas: 2
+
+  ai-orchestrator:
+    name: ai-orchestrator
+    port: 3006
+    image: quark/ai-orchestrator:v1
+    replicas: 2

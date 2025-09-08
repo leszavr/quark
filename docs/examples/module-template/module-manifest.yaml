@@ -1,0 +1,9 @@
+﻿name: seo-analyzer
+version: 1.0.0
+requires:
+  - event_bus: nats
+  - auth: jwt
+exposes:
+  - events: seo.analysis.completed
+  - api: /api/v1/seo
+health_check: /health

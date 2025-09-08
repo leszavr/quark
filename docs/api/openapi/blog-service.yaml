@@ -1,0 +1,217 @@
+﻿openapi: 3.0.0
+info:
+  title: Blog Service API
+  version: v1
+  description: Управление постами, блогами и комментариями
+
+servers:
+  - url: http://localhost:3004
+    description: Development Server
+  - url: https://api.quark.com
+    description: Production
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    BlogPost:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        author_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+
+    CreatePostRequest:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          maxLength: 150
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 150
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/v1/posts:
+    get:
+      summary: Получить список постов
+      tags:
+        - Posts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published]
+      responses:
+        '200':
+          description: Список постов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlogPost'
+
+    post:
+      summary: Создать новый пост
+      tags:
+        - Posts
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Пост создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Неавторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/posts/{id}:
+    get:
+      summary: Получить пост по ID
+      tags:
+        - Posts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Пост найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '404':
+          description: Пост не найден
+
+    put:
+      summary: Обновить пост
+      tags:
+        - Posts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Пост обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '403':
+          description: Нет прав на редактирование
+        '404':
+          description: Пост не найден
+
+    delete:
+      summary: Удалить пост
+      tags:
+        - Posts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Пост удалён
+        '403':
+          description: Нет прав
+        '404':
+          description: Пост не найден

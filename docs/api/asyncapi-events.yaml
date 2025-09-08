@@ -1,0 +1,13 @@
+﻿asyncapi: 2.6.0
+info:
+  title: Quark Events
+  version: 1.0.0
+channels:
+  user.created:
+    publish:
+      message:
+        payload:
+          type: object
+          properties:
+            id: { type: string }
+            email: { type: string }

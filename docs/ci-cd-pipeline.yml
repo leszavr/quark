@@ -1,0 +1,19 @@
+name: CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t quark/auth-service .
+      - run: npm test
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/docker-login@v1
+      - run: docker push quark/auth-service:latest
+      - run: kubectl apply -f k8s/auth-deployment.yaml

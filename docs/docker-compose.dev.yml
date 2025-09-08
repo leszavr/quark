@@ -1,0 +1,91 @@
+﻿# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  api-gateway:
+    image: traefik:v2.9
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  auth-service:
+    image: ${SERVICES_AUTH_IMAGE:-quark/auth:v1}
+    build: ./services/auth-service
+    ports:
+      - "${SERVICES_AUTH_PORT:-3001}:3001"
+    environment:
+      - JWT_SECRET
+      - DB_URL
+    depends_on:
+      - postgres
+
+  blog-service:
+    build: ./services/blog-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres
+
+  media-service:
+    build: ./services/media-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - minio
+
+  messaging-service:
+    build: ./services/messaging-service
+    ports:
+      - "3005:3005"
+
+  ai-orchestrator:
+    build: ./services/ai-orchestrator
+    ports:
+      - "3006:3006"
+
+  nats:
+    image: nats:2.9-alpine
+    command: nats-server --jetstream
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: quark
+      POSTGRES_USER: quark
+      POSTGRES_PASSWORD: quark
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    command: server /data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: quark
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  minio_data:
+  grafana_data:
