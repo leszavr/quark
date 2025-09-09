@@ -1,93 +1,216 @@
-# Quark-light
+# 🚀 Quark-Light — легковесная модульная платформа для самовыражения
 
+> **Quark-Light** — это минимальная, но полнофункциональная версия платформы Quark, созданная для быстрого прототипирования, обучения и экспериментов.  
+> Сохраняет **ядро концепции**: блог + мессенджер + модульность + человек в цикле.  
+> Реализована на **Python (FastAPI)**, с поддержкой **HTMX/React**, **SQLite**, и **динамических модулей**.  
+> Запускается одной командой: `python main.py`
 
+---
 
-## Getting started
+## 🎯 Цель проекта
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Создать **действующий прототип Quark**, который:
+- ✅ Полностью соответствует архитектурной концепции Quark
+- ✅ Поддерживает модульность по принципу "МКС" (Международная космическая станция)
+- ✅ Позволяет сторонним разработчикам легко создавать и подключать модули
+- ✅ Легко развивается в enterprise-версию
+- ❌ Без избыточной сложности: Kubernetes, NATS, gRPC, Vault — пока не нужны
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+> 💡 **Quark-Light — это не упрощение, а ускорение.**  
+> Это путь от идеи к работающей системе за **7 дней**.
 
-## Add your files
+---
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 🧩 Функционал
+
+| Модуль | Описание |
+|-------|--------|
+| **`core`** | Ядро: аутентификация, событийная шина, загрузка модулей, маршрутизация |
+| **`user-management`** | Регистрация, вход, профиль, аватар, восстановление пароля |
+| **`blog`** | Персональный блог (`/user/username/blog`), визуальный редактор, медиа, комментарии |
+| **`messaging`** | Веб-мессенджер (аналог Telegram), WebSocket, уведомления |
+| **`admin-panel`** | Управление пользователями, контентом, настройками, безопасностью |
+| **`module-hub`** | Центр управления модулями: установка, удаление, обновление |
+
+---
+
+## 📦 Архитектура (упрощённая)
 
 ```
-cd existing_repo
-git remote add origin http://192.168.1.109/root/quarklight.git
-git branch -M main
-git push -uf origin main
+quark-light/
+├── main.py                 # Запуск приложения (FastAPI + ASGI)
+├── core/                   # Ядро: auth, events, plugin_loader
+├── modules/                # Папка для модулей (автозагрузка)
+│   ├── user_management/    # Управление пользователями
+│   ├── blog/               # Сервис блогов
+│   ├── messaging/          # Мессенджер
+│   └── admin_panel/        # Админ-панель
+├── db/                     # SQLite + миграции (Aerich)
+├── templates/              # Jinja2 + HTMX (или React)
+├── static/                 # CSS, JS, изображения
+├── cli.py                  # CLI: `quark install blog`, `quark run`
+└── config.py               # Настройки
 ```
 
-## Integrate with your tools
+---
 
-- [ ] [Set up project integrations](http://192.168.1.109/root/quarklight/-/settings/integrations)
+## 🔗 Ключевые принципы
 
-## Collaborate with your team
+- **Человек в цикле**: ИИ может предлагать, но решение всегда за пользователем.
+- **Модульность по МКС**: каждый модуль — автономный блок, стыкуемый через события.
+- **Event-Driven**: все взаимодействия — через события (`post.published`, `user.created`).
+- **Легковесность**: один процесс, одна БД, одна команда для запуска.
+- **Эволюционируемость**: архитектура позволяет плавно перейти к enterprise-версии.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+---
 
-## Test and Deploy
+## 🚀 Быстрый старт
 
-Use the built-in continuous integration in GitLab.
+### 1. Установка
+```bash
+git clone https://github.com/quark/quark-light.git
+cd quark-light
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### 2. Запуск
+```bash
+python main.py
+```
 
-***
+> ✅ Сервер запущен: [http://localhost:8000](http://localhost:8000)
 
-# Editing this README
+### 3. Регистрация
+- Перейдите на `http://localhost:8000/auth/register`
+- Создайте аккаунт
+- После регистрации: личная страница, блог, доступ к мессенджеру
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
+## 🔌 Модульность
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Как работает?
+- Модули — это папки в `modules/`
+- Каждый модуль имеет `__init__.py` с функцией `register(app)`
+- Ядро автоматически загружает и регистрирует модули
 
-## Name
-Choose a self-explaining name for your project.
+### Пример модуля
+```python
+# modules/seo_analyzer/__init__.py
+def register(app):
+    @app.on_event("post.published")
+    async def analyze_seo(data):
+        score = seo_score(data["content"])
+        await app.event_bus.publish("seo.analysis.completed", {"post_id": data["id"], "score": score})
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Установка модуля
+```bash
+quark module:install seo-analyzer
+# или вручную: скопировать папку в modules/
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+---
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## 🛠️ CLI
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+quark run                 # Запустить сервер
+quark create blog         # Создать шаблон модуля
+quark module:list         # Показать подключённые модули
+quark module:install      # Установить модуль из локальной папки
+quark db:migrate          # Применить миграции
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+---
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## 🧪 Тестирование
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Юнит-тесты
+```bash
+pytest
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### E2E-тесты (Playwright)
+```bash
+npx playwright install
+npx playwright test
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Нагрузочные тесты
+```bash
+k6 run load-tests/read-posts.js
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+---
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## 📊 Мониторинг (базовый)
 
-## License
-For open source projects, say how it is licensed.
+- Логи: консоль + файл
+- Health-check: `GET /health`
+- Позже: интеграция с OpenTelemetry (в enterprise-версии)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+---
+
+## 🔄 Эволюция в Quark (Enterprise)
+
+Quark-Light — это **первый шаг** к full-scale Quark.  
+Когда потребуется масштаб:
+
+| Компонент | Quark-Light | Quark (Enterprise) |
+|---------|-------------|--------------------|
+| **Язык** | Python | Python + TypeScript |
+| **Event Bus** | `asyncio.Queue` | NATS JetStream |
+| **Модули** | Python-плагины | Docker + WASM |
+| **БД** | SQLite | PostgreSQL + Redis + MinIO |
+| **API** | REST (FastAPI) | REST + gRPC |
+| **Развёртывание** | `python main.py` | Docker + Kubernetes |
+| **Фронтенд** | HTMX / React | React + Next.js |
+
+> ✅ Все события, DTO, манифесты и интерфейсы совместимы.
+
+---
+
+## 📄 Документация
+
+Полная документация находится в каталоге `docs/`:
+- [`docs/onboarding.md`](docs/onboarding.md) — как начать
+- [`docs/architecture/`](docs/architecture/) — диаграммы C4, ADR
+- [`docs/modules/`](docs/modules/) — руководство по созданию модулей
+- [`docs/testing/`](docs/testing/) — стратегия тестирования
+- [`docs/security/`](docs/security/) — безопасность и соответствие
+
+---
+
+## 🛡️ Безопасность
+
+- Пароли: хеширование через `bcrypt`
+- Сессии: защищённые JWT-токены
+- Валидация: Pydantic
+- Rate limiting: `slowapi`
+- Загрузка файлов: проверка MIME-типов, размер < 5 МБ
+- Готовность к GDPR и ФЗ-152
+
+---
+
+## 🤝 Участие
+
+- **Архитектор/Постановщик задач**: Человек
+- **Разработчик**: Qwen, Claude, Grok (с участием ИИ)
+- **Цель**: эксперимент, обучение, демонстрация возможностей
+
+> ✅ Все решения документируются.  
+> ✅ ИИ предлагает — человек одобряет.
+
+---
+
+## 📚 Лицензия
+
+MIT License — свободное использование, модификация, распространение.
+
+---
+
+> 💡 **Quark-Light — это не просто прототип. Это семя будущей платформы.**  
+> Посади его сегодня — собери урожай завтра.
