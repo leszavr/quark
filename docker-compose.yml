@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  # API Gateway - точка входа для всех запросов
+  traefik:
+    image: traefik:v3.0
+    container_name: quark-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=admin@quark.dev"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # PostgreSQL - основная база данных
+  postgres:
+    image: postgres:16
+    container_name: quark-postgres
+    environment:
+      POSTGRES_DB: quark_dev
+      POSTGRES_USER: quark
+      POSTGRES_PASSWORD: quarkpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # Redis - кэширование и сессии
+  redis:
+    image: redis:7
+    container_name: quark-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # MinIO - объектное хранилище для медиа
+  minio:
+    image: minio/minio
+    container_name: quark-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # NATS - Event Bus для межсервисного взаимодействия
+  nats:
+    image: nats:latest
+    container_name: quark-nats
+    ports:
+      - "4222:4222"  # клиенты
+      - "6222:6222"  # кластер
+      - "8222:8222"  # мониторинг
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # HashiCorp Vault - управление секретами
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: quark-vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: myroot
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # Plugin Hub - центральный узел управления модулями
+  plugin-hub:
+    build: ./services/plugin-hub
+    container_name: quark-plugin-hub
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - VAULT_URL=http://vault:8200
+      - VAULT_TOKEN=myroot
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plugin-hub.rule=Host(`api.quark.local`) && PathPrefix(`/hub`)"
+      - "traefik.http.services.plugin-hub.loadbalancer.server.port=3000"
+    depends_on:
+      - redis
+      - nats
+      - vault
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+  # Monitoring Dashboard - простая панель мониторинга
+  monitoring:
+    build: ./services/monitoring
+    container_name: quark-monitoring
+    environment:
+      - NODE_ENV=development
+      - PORT=3900
+      - PLUGIN_HUB_URL=http://plugin-hub:3000
+    ports:
+      - "3900:3900"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring.rule=Host(`monitor.quark.local`)"
+      - "traefik.http.services.monitoring.loadbalancer.server.port=3900"
+    depends_on:
+      - plugin-hub
+    restart: unless-stopped
+    networks:
+      - quark-network
+
+networks:
+  quark-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  nats_data:
