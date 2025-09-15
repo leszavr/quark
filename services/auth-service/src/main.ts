@@ -18,7 +18,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = parseInt(process.env.PORT) || 3003;
+  const port = parseInt(process.env.PORT) || 3001;
   await app.listen(port);
   
   console.log('🔐 Quark Auth Service started on port', port);
@@ -30,27 +30,56 @@ async function bootstrap() {
 }
 
 async function registerWithPluginHub(port: number) {
+  const pluginHubUrl = process.env.PLUGIN_HUB_URL || 'http://plugin-hub:3000';
+  const serviceUrl = process.env.SERVICE_URL || `http://auth-service:${port}`;
+  
+  const serviceData = {
+    id: 'auth-service',
+    name: 'Auth Service',
+    type: 'authentication',
+    version: '1.0.0',
+    url: serviceUrl,
+    healthEndpoint: `${serviceUrl}/auth/health`,
+    metadata: {
+      description: 'JWT Authentication and User Management Service',
+      tags: ['auth', 'jwt', 'users', 'security'],
+      endpoints: ['/auth/login', '/auth/register', '/auth/profile', '/users'],
+      dependencies: ['postgresql', 'plugin-hub']
+    }
+  };
+
+  // Функция для отправки heartbeat
+  async function sendHeartbeat() {
+    try {
+      const response = await fetch(`${pluginHubUrl}/api/services/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(serviceData)
+      });
+      
+      if (response.ok) {
+        console.log('💗 Heartbeat sent to Plugin Hub');
+      } else {
+        console.log('⚠️ Heartbeat failed:', response.statusText);
+      }
+    } catch (error) {
+      console.log('⚠️ Heartbeat error:', error.message);
+    }
+  }
+
+  // Первоначальная регистрация
   try {
-    const response = await fetch('http://localhost:3000/register', {
+    const response = await fetch(`${pluginHubUrl}/api/services/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: 'auth-service',
-        name: 'Auth Service',
-        version: '1.0.0',
-        url: `http://localhost:${port}`,
-        healthEndpoint: `http://localhost:${port}/health`,
-        metadata: {
-          description: 'JWT Authentication and User Management Service',
-          tags: ['auth', 'jwt', 'users', 'security'],
-          endpoints: ['/auth/login', '/auth/register', '/auth/profile', '/users'],
-          dependencies: ['postgresql', 'plugin-hub']
-        }
-      })
+      body: JSON.stringify(serviceData)
     });
     
     if (response.ok) {
       console.log('✅ Successfully registered with Plugin Hub');
+      
+      // Запускаем периодический heartbeat каждые 30 секунд
+      setInterval(sendHeartbeat, 30000);
     } else {
       console.log('⚠️ Failed to register with Plugin Hub:', response.statusText);
     }

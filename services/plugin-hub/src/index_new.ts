@@ -73,21 +73,12 @@ class PluginHub {
 
   constructor() {
     this.app = express();
-    
-    // Redis connection - используем REDIS_URL или отдельные параметры
-    if (process.env.REDIS_URL) {
-      this.redis = new Redis(process.env.REDIS_URL, {
-        maxRetriesPerRequest: 3,
-        lazyConnect: true
-      });
-    } else {
-      this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'redis',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        maxRetriesPerRequest: 3,
-        lazyConnect: true
-      });
-    }
+    this.redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      maxRetriesPerRequest: 3,
+      lazyConnect: true
+    });
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -492,7 +483,7 @@ class PluginHub {
 
       try {
         this.natsConnection = await connect({ 
-          servers: (process.env.NATS_SERVERS || process.env.NATS_URL || 'nats://localhost:4222').split(',') 
+          servers: (process.env.NATS_SERVERS || 'nats://localhost:4222').split(',') 
         });
         console.log('✅ Connected to NATS');
       } catch (error) {

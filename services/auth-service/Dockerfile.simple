@@ -1,0 +1,43 @@
+# Simple Node.js 20 build
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S quark -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# Build the application
+RUN npm run build
+
+# Change ownership
+RUN chown -R quark:nodejs /app
+
+# Switch to non-root user
+USER quark
+
+# Expose port
+EXPOSE 3001
+
+# Environment
+ENV NODE_ENV=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+# Start the application
+CMD ["node", "dist/main.js"]

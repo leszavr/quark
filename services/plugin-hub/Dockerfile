@@ -9,8 +9,8 @@ RUN npm ci --only=production
 
 # Копируем исходный код и конфигурацию
 COPY tsconfig.json ./
-# Копируем простую версию
-COPY src/simple-index.ts ./src/index.ts
+# Копируем полную версию index.ts
+COPY src/index.ts ./src/index.ts
 
 # Устанавливаем dev зависимости для сборки
 RUN npm ci
