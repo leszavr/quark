@@ -13,7 +13,26 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=admin@quark.dev"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.storage=/tmp/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ros:
+  # API Gateway - точка входа для всех запросов
+  traefik:
+    image: traefik:v3.0
+    container_name: quark-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=admin@quark.dev"
+      - "--certificatesresolvers.myresolver.acme.storage=/tmp/acme.json"
     ports:
       - "80:80"
       - "443:443"
@@ -98,7 +117,7 @@ services:
 
   # Plugin Hub - центральный узел управления модулями
   plugin-hub:
-    build: ./services/plugin-hub
+    build: ./infra/plugin-hub
     container_name: quark-plugin-hub
     environment:
       - NODE_ENV=development
@@ -121,9 +140,42 @@ services:
     networks:
       - quark-network
 
+  # Auth Service - JWT Authentication with Vault Integration
+  auth-service:
+    build: ./services/auth-service
+    container_name: quark-auth
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=quark
+      - DB_PASSWORD=quarkpass
+      - DB_NAME=quark_auth
+      - REDIS_URL=redis://redis:6379
+      - VAULT_URL=http://vault:8200
+      - VAULT_TOKEN=myroot
+      - PLUGIN_HUB_URL=http://plugin-hub:3000
+      - SERVICE_URL=http://auth-service:3001
+      - CORS_ORIGIN=*
+    ports:
+      - "3001:3001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`api.quark.local`) && PathPrefix(`/auth`)"
+      - "traefik.http.services.auth.loadbalancer.server.port=3001"
+    depends_on:
+      - postgres
+      - redis
+      - vault
+      - plugin-hub
+    restart: unless-stopped
+    networks:
+      - quark-network
+
   # Monitoring Dashboard - простая панель мониторинга
   monitoring:
-    build: ./services/monitoring
+    build: ./infra/monitoring
     container_name: quark-monitoring
     environment:
       - NODE_ENV=development
@@ -140,6 +192,37 @@ services:
     restart: unless-stopped
     networks:
       - quark-network
+
+  # Quark Platform UI - модульный административный интерфейс
+  quark-ui:
+    build: 
+      context: ./infra/quark-ui
+      dockerfile: Dockerfile
+    container_name: quark-ui
+    environment:
+      - NODE_ENV=production
+      - VITE_AUTH_SERVICE_URL=http://auth-service:3001
+      - VITE_PLUGIN_HUB_URL=http://plugin-hub:3000
+      - VITE_MONITORING_URL=http://monitoring:3900
+    ports:
+      - "3100:3100"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.quark-ui.rule=Host(`admin.quark.local`) || Host(`localhost`)"
+      - "traefik.http.services.quark-ui.loadbalancer.server.port=3100"
+    depends_on:
+      - auth-service
+      - plugin-hub
+      - monitoring
+    restart: unless-stopped
+    networks:
+      - quark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
 
 networks:
   quark-network:

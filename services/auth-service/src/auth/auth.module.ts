@@ -4,11 +4,14 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { DynamicJwtService } from './dynamic-jwt.service';
 import { UsersModule } from '../users/users.module';
+import { VaultModule } from '../vault/vault.module';
 
 @Module({
   imports: [
     UsersModule,
+    VaultModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
@@ -16,7 +19,7 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, DynamicJwtService],
+  exports: [AuthService, DynamicJwtService],
 })
 export class AuthModule {}

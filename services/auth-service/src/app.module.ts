@@ -2,13 +2,18 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from './config/config.module';
+import { VaultModule } from './vault/vault.module';
+import { JwtConfigService } from './config/jwt.config';
 
 @Module({
   imports: [
     ConfigModule,
+    VaultModule,
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -21,14 +26,14 @@ import { ConfigModule } from './config/config.module';
       logging: process.env.NODE_ENV === 'development',
     }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      imports: [VaultModule],
+      useClass: JwtConfigService,
     }),
     AuthModule,
     UsersModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [JwtConfigService],
 })
 export class AppModule {}
