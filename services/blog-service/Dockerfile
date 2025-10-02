@@ -42,5 +42,5 @@ EXPOSE 3004
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3004/api/health || exit 1
 
-# Запускаем приложение
-CMD ["node", "server/index.js"]
+# Запускаем приложение  
+CMD ["node", "dist/index.prod.js"]

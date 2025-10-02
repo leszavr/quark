@@ -1,25 +1,31 @@
 # Multi-stage build для оптимизации размера образа
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
+RUN npm install -g npm@11.6.1
+
 # Копируем package files
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Копируем исходный код и конфигурацию
 COPY tsconfig.json ./
-# Копируем полную версию index.ts
-COPY src/index.ts ./src/index.ts
+# Копируем весь исходный код включая middleware
+COPY src/ ./src/
 
 # Устанавливаем dev зависимости для сборки
 RUN npm ci
 RUN npm run build
 
 # Production образ
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
+
+# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
+RUN npm install -g npm@11.6.1
 
 # Создаем пользователя для безопасности
 RUN addgroup -g 1001 -S nodejs
@@ -27,7 +33,7 @@ RUN adduser -S quark -u 1001
 
 # Копируем package files и устанавливаем только production зависимости
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Копируем собранное приложение
 COPY --from=builder /app/dist ./dist

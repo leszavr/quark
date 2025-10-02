@@ -1,11 +1,45 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { serveStatic, log } from "./vite";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Simple logging function for production
+export function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+// Serve static files in production
+function serveStatic(app: express.Express) {
+  const publicPath = path.join(__dirname, "../dist/public");
+  
+  // Serve static assets
+  app.use(express.static(publicPath));
+  
+  // SPA fallback - serve index.html for all non-API routes
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+    
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -47,26 +81,18 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "development") {
-    const { setupVite } = await import("./vite");
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+  // Serve static files for production
+  serveStatic(app);
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 3004 for Quark integration.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Use port from environment (3004 for Quark integration)
   const port = parseInt(process.env.PORT || '3004', 10);
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 Blog Service (Interface) запущен на порту ${port}`);
+    log(`📊 Environment: ${process.env.NODE_ENV || 'production'}`);
+    log(`🌐 Interface доступен на http://localhost:${port}`);
   });
 })();

@@ -74,7 +74,7 @@ export class HealthMonitor {
       };
     }
 
-    await this.serviceRegistry.updateServiceHealth(healthCheck);
+    await this.serviceRegistry.updateServiceHealth(serviceId, healthCheck);
     return healthCheck;
   }
 

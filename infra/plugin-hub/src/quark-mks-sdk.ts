@@ -253,7 +253,7 @@ export class QuarkModule {
     return modules.find(m => m.id === id) || null;
   }
 
-  async publishEvent(event: Partial<QuarkEvent>): Promise<void> {
+  async publishEvent(event: { type: string; data: any } & Partial<QuarkEvent>): Promise<void> {
     const fullEvent: QuarkEvent = {
       id: this.generateEventId(),
       source: this.manifest.id,

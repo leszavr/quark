@@ -98,6 +98,15 @@ export class ServiceRegistry {
 
     return staleServices.length;
   }
+
+  // Методы для совместимости с HealthMonitor и PluginController
+  async getServiceHealth(serviceId: string): Promise<any> {
+    return this.getHealthCheck(serviceId);
+  }
+
+  async updateServiceHealth(serviceId: string, health: HealthCheck): Promise<void> {
+    return this.updateHealthCheck(serviceId, health);
+  }
 }
 
 export default ServiceRegistry;

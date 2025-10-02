@@ -6,6 +6,17 @@ import { insertMessageSchema, insertBlogPostSchema, insertCommentSchema } from "
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
+  // Health check endpoint for Quark Platform integration
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "healthy",
+      service: "blog-service",
+      interface: "ready",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0"
+    });
+  });
+
   // Channels API
   app.get("/api/channels", async (req, res) => {
     try {

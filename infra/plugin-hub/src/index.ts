@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import Redis from 'ioredis';
 import { connect, StringCodec } from 'nats';
 import axios from 'axios';
+import { EnterpriseJWTMiddleware, EnterpriseJWTConfig } from './middleware/EnterpriseJWTMiddleware';
 
 // Universal Docking Interface Types
 interface ModuleManifest {
@@ -70,6 +71,7 @@ class PluginHub {
   private server: any = null;
   private sc = StringCodec();
   private healthCheckIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private jwtMiddleware!: EnterpriseJWTMiddleware;
 
   constructor() {
     this.app = express();
@@ -89,9 +91,46 @@ class PluginHub {
       });
     }
 
+    this.initializeJWTMiddleware();
     this.setupMiddleware();
     this.setupRoutes();
     console.log('PluginHub initialized');
+  }
+
+  private initializeJWTMiddleware(): void {
+    const jwtConfig: EnterpriseJWTConfig = {
+      authServiceUrl: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+      vaultConfig: {
+        endpoint: process.env.VAULT_URL || 'http://vault:8200',
+        token: process.env.VAULT_TOKEN || 'myroot'
+      },
+      redis: {
+        url: process.env.REDIS_URL || 'redis://redis:6379',
+        keyPrefix: 'quark:jwt:'
+      },
+      cache: {
+        memoryTTL: 300,      // 5 minutes
+        redisTTL: 900,       // 15 minutes  
+        maxMemoryEntries: 1000
+      },
+      circuitBreaker: {
+        failureThreshold: 5,
+        resetTimeoutMs: 60000,     // 1 minute
+        monitoringPeriodMs: 30000  // 30 seconds
+      },
+      rateLimiting: {
+        windowMs: 60000,           // 1 minute
+        maxRequests: 100,          // 100 requests per minute per user
+        skipSuccessfulRequests: false
+      },
+      mtls: {
+        enabled: process.env.MTLS_ENABLED === 'true',
+        pkiPath: 'pki',
+        roleName: 'quark-service'
+      }
+    };
+
+    this.jwtMiddleware = new EnterpriseJWTMiddleware(jwtConfig);
   }
 
   private setupMiddleware(): void {
@@ -124,8 +163,8 @@ class PluginHub {
       });
     });
 
-    // Universal Module Registration (UDI compliant)
-    this.app.post('/modules/register', async (req, res) => {
+    // Universal Module Registration (UDI compliant) - Protected
+    this.app.post('/modules/register', this.jwtMiddleware.authenticate, async (req, res) => {
       try {
         const { manifest, timestamp, registrationToken } = req.body;
         

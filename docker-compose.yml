@@ -211,7 +211,7 @@ services:
   blog-service:
     build:
       context: ./services/blog-service
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
     container_name: quark-blog-service
     environment:
       - NODE_ENV=production
