@@ -27,6 +27,18 @@ export class LoginDto {
 
   @IsString()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  deviceFingerprint?: string;
+
+  @IsOptional()
+  @IsString()
+  userAgent?: string;
+
+  @IsOptional()
+  @IsString()
+  twoFactorToken?: string;
 }
 
 export class AuthResponseDto {

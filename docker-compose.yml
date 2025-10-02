@@ -19,25 +19,6 @@ services:
       - "443:443"
       - "8080:8080" # Traefik dashboard
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ros:
-  # API Gateway - точка входа для всех запросов
-  traefik:
-    image: traefik:v3.0
-    container_name: quark-traefik
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=admin@quark.dev"
-      - "--certificatesresolvers.myresolver.acme.storage=/tmp/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080" # Traefik dashboard
-    volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
     restart: unless-stopped
@@ -173,6 +154,8 @@ services:
     networks:
       - quark-network
 
+
+
   # Monitoring Dashboard - простая панель мониторинга
   monitoring:
     build: ./infra/monitoring
@@ -223,6 +206,44 @@ services:
       timeout: 3s
       start_period: 10s
       retries: 3
+
+  # Blog Service - Interface Integration (Blog + Messaging)
+  blog-service:
+    build:
+      context: ./services/blog-service
+      dockerfile: Dockerfile.simple
+    container_name: quark-blog-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_URL=postgresql://quark:quarkpass@postgres:5432/quark_dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PLUGIN_HUB_URL=http://plugin-hub:3000
+      - NATS_URL=nats://nats:4222
+    ports:
+      - "3004:3004"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.blog-service.rule=Host(`blog.quark.local`) || Host(`localhost:3004`)"
+      - "traefik.http.services.blog-service.loadbalancer.server.port=3004"
+    depends_on:
+      - postgres
+      - auth-service
+      - plugin-hub
+      - nats
+    restart: unless-stopped
+    networks:
+      - quark-network
+    volumes:
+      - ./services/blog-service/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/api/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 15s
+      retries: 3
+
+
 
 networks:
   quark-network:

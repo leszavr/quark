@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -35,6 +35,27 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
+  // Настройки профиля
+  @Column({ type: 'json', nullable: true })
+  profileSettings: {
+    isPublic?: boolean;
+    showEmail?: boolean;
+    showPhone?: boolean;
+    allowMessages?: boolean;
+    timezone?: string;
+    language?: string;
+  };
+
+  // 2FA настройки  
+  @Column({ default: false })
+  twoFactorEnabled: boolean;
+
+  @Column({ nullable: true })
+  twoFactorSecret: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  backupCodes: string[];
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -43,4 +64,11 @@ export class User {
 
   @Column({ nullable: true })
   lastLoginAt: Date;
+
+  // Связи
+  @OneToMany('Device', 'user')
+  devices: any[];
+
+  @OneToMany('UserSession', 'user')
+  sessions: any[];
 }

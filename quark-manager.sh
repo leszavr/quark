@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Quark МКС Service Manager v1.0
+# Quark МКС Service Manager v2.0
 # Унифицированный скрипт управления всеми микросервисами платформы Quark
 # Автор: Quark Development Team
-# Дата: 15 сентября 2025
+# Дата: 2 октября 2025
 
 set -e
 
@@ -57,14 +57,14 @@ declare -A SERVICES=(
     
     # Микросервисы (порты 3000-3020)
     ["plugin-hub"]="Plugin Hub - МКС Command Module (port 3000)"
-    ["auth-service"]="Auth Service - JWT Authentication (port 3001)"
+    ["auth-service"]="Auth Service - JWT Authentication & User Management (port 3001)"
+    ["blog-service"]="Blog Service - Interface Integration (Blog + Messaging) (port 3004)"
     ["monitoring"]="Monitoring Dashboard (port 3900)"
     ["quark-ui"]="Quark Platform UI - Admin Console (port 3100)"
     
     # Планируемые микросервисы
     # ["user"]="User Service (port 3002)"
     # ["media"]="Media Service (port 3003)"
-    # ["blog"]="Blog Service (port 3004)"
     # ["messaging"]="Messaging Service (port 3005)"
 )
 
@@ -78,18 +78,19 @@ STARTUP_ORDER=(
     "minio"
     "plugin-hub"
     "auth-service"
+    "blog-service"
     "monitoring"
     "quark-ui"
 )
 
 # Функция отображения логотипа
 show_logo() {
-    print_log "$CYAN" "INFO" ""
-    print_log "$CYAN" "INFO" "🚀 ═══════════════════════════════════════════════════════════════"
-    print_log "$CYAN" "INFO" "   ░▒▓█ QUARK МКС SERVICE MANAGER █▓▒░"
-    print_log "$CYAN" "INFO" "   Модульная Космическая Станция - Управление Микросервисами"
-    print_log "$CYAN" "INFO" "═══════════════════════════════════════════════════════════════"
-    print_log "$CYAN" "INFO" ""
+    echo ""
+    echo -e "${CYAN}🚀 ═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}   ░▒▓█ QUARK МКС SERVICE MANAGER v2.0 █▓▒░${NC}"
+    echo -e "${CYAN}   Модульная Космическая Станция - Управление Микросервисами${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
 }
 
 # Функция отображения помощи

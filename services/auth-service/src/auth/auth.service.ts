@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { TwoFactorService } from '../users/two-factor.service';
+import { DeviceService } from '../users/device.service';
 import { LoginDto, RegisterDto, AuthResponseDto } from '../common/dto/auth.dto';
 import { CreateTokenDto, TokenResponseDto, TokenType, UserTokenPayload, ServiceTokenPayload, HubTokenPayload } from '../common/dto/token.dto';
 import { User } from '../users/user.entity';
@@ -10,6 +12,8 @@ import { DynamicJwtService } from './dynamic-jwt.service';
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private twoFactorService: TwoFactorService,
+    private deviceService: DeviceService,
     private jwtService: JwtService,
     private dynamicJwtService: DynamicJwtService,
   ) {}
@@ -19,7 +23,7 @@ export class AuthService {
     return this.generateAuthResponse(user);
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto, deviceFingerprint?: string, ipAddress?: string): Promise<AuthResponseDto | { requiresTwoFactor: boolean; tempToken: string }> {
     const { email, password } = loginDto;
     
     const user = await this.usersService.findByEmail(email);
@@ -36,8 +40,81 @@ export class AuthService {
       throw new UnauthorizedException('Account is deactivated');
     }
 
+    // Проверяем, нужна ли 2FA
+    if (user.twoFactorEnabled) {
+      // Проверяем, является ли устройство доверенным
+      const isTrustedDevice = deviceFingerprint ? 
+        await this.deviceService.isDeviceTrusted(user.id, deviceFingerprint) : false;
+
+      if (!isTrustedDevice) {
+        // Создаем временный токен для 2FA
+        const tempPayload = {
+          sub: user.id,
+          type: 'temp_2fa',
+          exp: Math.floor(Date.now() / 1000) + (5 * 60), // 5 минут
+        };
+        const tempToken = await this.dynamicJwtService.sign(tempPayload, { expiresIn: '5m' });
+
+        return {
+          requiresTwoFactor: true,
+          tempToken,
+        };
+      }
+    }
+
+    // Регистрируем устройство при входе
+    if (deviceFingerprint) {
+      await this.deviceService.registerDevice(user.id, {
+        name: this.getDeviceNameFromUserAgent(loginDto.userAgent),
+        type: this.getDeviceTypeFromUserAgent(loginDto.userAgent),
+        deviceFingerprint,
+        userAgent: loginDto.userAgent,
+      }, ipAddress);
+    }
+
     // Update last login
     await this.usersService.updateLastLogin(user.id);
+
+    return this.generateAuthResponse(user);
+  }
+
+  async complete2FALogin(tempToken: string, twoFactorToken: string, deviceFingerprint?: string, userAgent?: string, ipAddress?: string): Promise<AuthResponseDto> {
+    // Проверяем временный токен
+    let tempPayload;
+    try {
+      tempPayload = await this.dynamicJwtService.verify(tempToken);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired temporary token');
+    }
+
+    if (tempPayload.type !== 'temp_2fa') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const userId = tempPayload.sub;
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Проверяем 2FA токен
+    const is2FAValid = await this.twoFactorService.verifyTwoFactorToken(userId, twoFactorToken);
+    if (!is2FAValid) {
+      throw new UnauthorizedException('Invalid 2FA token');
+    }
+
+    // Регистрируем устройство при успешной аутентификации
+    if (deviceFingerprint) {
+      await this.deviceService.registerDevice(userId, {
+        name: this.getDeviceNameFromUserAgent(userAgent),
+        type: this.getDeviceTypeFromUserAgent(userAgent),
+        deviceFingerprint,
+        userAgent,
+      }, ipAddress);
+    }
+
+    // Обновляем время последнего входа
+    await this.usersService.updateLastLogin(userId);
 
     return this.generateAuthResponse(user);
   }
@@ -180,5 +257,37 @@ export class AuthService {
     });
 
     return Array.from(permissions);
+  }
+
+  /**
+   * Определение типа устройства по User-Agent
+   */
+  private getDeviceTypeFromUserAgent(userAgent?: string): any {
+    if (!userAgent) return 'web';
+    
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('mobile') || ua.includes('android')) return 'mobile_android';
+    if (ua.includes('iphone') || ua.includes('ios')) return 'mobile_ios';
+    if (ua.includes('electron')) return 'desktop';
+    return 'web';
+  }
+
+  /**
+   * Определение имени устройства по User-Agent
+   */
+  private getDeviceNameFromUserAgent(userAgent?: string): string {
+    if (!userAgent) return 'Unknown Device';
+    
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('chrome')) return 'Chrome Browser';
+    if (ua.includes('firefox')) return 'Firefox Browser';
+    if (ua.includes('safari')) return 'Safari Browser';
+    if (ua.includes('edge')) return 'Edge Browser';
+    if (ua.includes('android')) return 'Android Device';
+    if (ua.includes('iphone')) return 'iPhone';
+    if (ua.includes('ipad')) return 'iPad';
+    if (ua.includes('electron')) return 'Desktop App';
+    
+    return 'Unknown Device';
   }
 }

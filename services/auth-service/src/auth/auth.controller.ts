@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, ForbiddenException, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, AuthResponseDto } from '../common/dto/auth.dto';
+import { Complete2FALoginDto } from '../common/dto/2fa.dto';
 import { CreateTokenDto, TokenResponseDto } from '../common/dto/token.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
@@ -16,8 +17,22 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Request() req): Promise<AuthResponseDto | { requiresTwoFactor: boolean; tempToken: string }> {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.authService.login(loginDto, loginDto.deviceFingerprint, ipAddress);
+  }
+
+  @Post('login/2fa')
+  @HttpCode(HttpStatus.OK)
+  async complete2FALogin(@Body() complete2FADto: Complete2FALoginDto, @Request() req): Promise<AuthResponseDto> {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.authService.complete2FALogin(
+      complete2FADto.tempToken,
+      complete2FADto.twoFactorToken,
+      complete2FADto.deviceFingerprint,
+      complete2FADto.userAgent,
+      ipAddress
+    );
   }
 
   @Get('profile')

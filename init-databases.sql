@@ -1,11 +1,18 @@
 -- Создание отдельных баз данных для каждого микросервиса
 -- Согласно концепции МКС - каждый модуль обособлен
 
+-- Создание пользователей для сервисов
+CREATE USER quark_user WITH PASSWORD 'quark_password';
+
 -- Auth Service Database
 CREATE DATABASE quark_auth;
 GRANT ALL PRIVILEGES ON DATABASE quark_auth TO quark;
 
--- User Service Database  
+-- User Service Database с отдельным пользователем
+CREATE DATABASE quark_user_service;
+GRANT ALL PRIVILEGES ON DATABASE quark_user_service TO quark_user;
+
+-- User Service Database (legacy) 
 CREATE DATABASE quark_users;
 GRANT ALL PRIVILEGES ON DATABASE quark_users TO quark;
 
