@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Multi-stage build для оптимизации размера образа
 FROM node:20-alpine AS builder
 
@@ -33,7 +34,7 @@ RUN adduser -S quark -u 1001
 
 # Копируем package files и устанавливаем только production зависимости
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev
 
 # Копируем собранное приложение
 COPY --from=builder /app/dist ./dist

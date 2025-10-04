@@ -1,6 +1,18 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic, log } from "./vite";
+import PluginHubClient from "./pluginHubClient";
+
+// Plugin Hub интеграция
+const pluginHubClient = new PluginHubClient({
+  hubUrl: process.env.PLUGIN_HUB_URL || 'http://localhost:3000',
+  moduleId: 'blog-service',
+  moduleName: 'Blog Service',
+  manifestPath: './module-manifest.yaml',
+  heartbeatInterval: 30,
+  retryAttempts: 3,
+  retryDelay: 5
+});
 
 const app = express();
 app.use(express.json());
@@ -66,7 +78,36 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
+    
+    // Автоматическая регистрация в Plugin Hub после успешного запуска
+    setTimeout(async () => {
+      try {
+        await pluginHubClient.register();
+        log('✅ Successfully integrated with Plugin Hub МКС Command Module');
+      } catch (error) {
+        log(`⚠️ Plugin Hub registration failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, 2000); // Даем время серверу полностью запуститься
+  });
+
+  // Graceful shutdown - ЗОЛОТОЕ ПРАВИЛО
+  process.on('SIGINT', async () => {
+    log('🛑 Received SIGINT, shutting down gracefully...');
+    await pluginHubClient.shutdown();
+    server.close(() => {
+      log('✅ Server closed');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGTERM', async () => {
+    log('🛑 Received SIGTERM, shutting down gracefully...');
+    await pluginHubClient.shutdown();
+    server.close(() => {
+      log('✅ Server closed');
+      process.exit(0);
+    });
   });
 })();

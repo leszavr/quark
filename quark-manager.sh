@@ -109,6 +109,7 @@ show_help() {
     echo -e "    ${GREEN}health${NC}      Проверить health всех API сервисов"
     echo -e "    ${GREEN}logs${NC}        Показать логи сервисов"
     echo -e "    ${GREEN}clean${NC}       Очистить все контейнеры и образы"
+    echo -e "    ${RED}hard-reboot${NC}  Полная перезагрузка системы (ОСТОРОЖНО!)"
     echo -e "    ${GREEN}menu${NC}        Интерактивное меню"
     echo -e "    ${GREEN}list${NC}        Показать все доступные сервисы"
     echo ""
@@ -132,6 +133,7 @@ show_help() {
     echo -e "    ${CYAN}./quark-manager.sh status${NC}                   # Статус всех сервисов"
     echo -e "    ${CYAN}./quark-manager.sh health${NC}                   # Health check API сервисов"
     echo -e "    ${CYAN}./quark-manager.sh logs plugin-hub${NC}          # Логи Plugin Hub"
+    echo -e "    ${CYAN}./quark-manager.sh hard-reboot${NC}              # Полная перезагрузка с очисткой"
     echo -e "    ${CYAN}./quark-manager.sh ui:dev${NC}                   # Запустить UI для разработки"
     echo -e "    ${CYAN}./quark-manager.sh ui:open${NC}                  # Открыть UI в браузере"
     echo ""
@@ -160,6 +162,73 @@ check_requirements() {
     if [[ ! -f "$COMPOSE_FILE" ]]; then
         print_log "$RED" "ERROR" "❌ Файл docker-compose.yml не найден: $COMPOSE_FILE"
         exit 1
+    fi
+}
+
+# Функция проверки пакетов на устаревшие версии
+check_outdated_packages() {
+    # Пропускаем проверку если установлена переменная окружения
+    if [[ "$SKIP_PACKAGE_CHECK" == "true" ]]; then
+        print_log "$YELLOW" "WARN" "⚠️  Проверка пакетов пропущена (SKIP_PACKAGE_CHECK=true)"
+        return 0
+    fi
+    
+    print_log "$BLUE" "INFO" "🔍 Проверка пакетов на устаревшие версии..."
+    
+    local has_outdated=false
+    local services_with_packages=("plugin-hub" "auth-service" "blog-service" "quark-ui" "monitoring")
+    
+    for service in "${services_with_packages[@]}"; do
+        local service_path="$SCRIPT_DIR"
+        
+        # Определяем путь к сервису
+        case $service in
+            "plugin-hub"|"monitoring"|"quark-ui")
+                service_path="$SCRIPT_DIR/infra/$service"
+                ;;
+            "auth-service"|"blog-service")
+                service_path="$SCRIPT_DIR/services/$service"
+                ;;
+        esac
+        
+        if [[ -f "$service_path/package.json" ]]; then
+            print_log "$BLUE" "INFO" "📦 Проверка $service..."
+            
+            # Переходим в директорию сервиса и проверяем устаревшие пакеты
+            if (cd "$service_path" && npm outdated --depth=0 2>/dev/null | grep -q .); then
+                print_log "$YELLOW" "WARN" "⚠️  В $service найдены устаревшие пакеты:"
+                (cd "$service_path" && npm outdated --depth=0 2>/dev/null || true)
+                has_outdated=true
+            else
+                print_log "$GREEN" "SUCCESS" "✅ $service - все пакеты актуальны"
+            fi
+        else
+            print_log "$YELLOW" "WARN" "⚠️  package.json не найден в $service_path"
+        fi
+    done
+    
+    if [[ "$has_outdated" == true ]]; then
+        echo ""
+        print_log "$RED" "ERROR" "❌ ВНИМАНИЕ: Обнаружены устаревшие пакеты!"
+        print_log "$YELLOW" "WARN" "📋 Для обновления пакетов выполните в каждом сервисе:"
+        print_log "$CYAN" "INFO" "   cd services/[service-name] && npm update"
+        print_log "$CYAN" "INFO" "   Или используйте: npm install package@latest"
+        echo ""
+        
+        # Предлагаем пользователю выбор
+        echo -e "${WHITE}Продолжить запуск с устаревшими пакетами? [y/N]:${NC}"
+        read -r choice
+        case $choice in
+            [Yy]|[Yy][Ee][Ss])
+                print_log "$YELLOW" "WARN" "⚠️  Продолжаем с устаревшими пакетами..."
+                ;;
+            *)
+                print_log "$RED" "ERROR" "❌ Остановка для обновления пакетов. Обновите пакеты и повторите запуск."
+                exit 1
+                ;;
+        esac
+    else
+        print_log "$GREEN" "SUCCESS" "✅ Все пакеты актуальны!"
     fi
 }
 
@@ -241,6 +310,9 @@ start_services() {
         print_log "$GREEN" "INFO" "🚀 Запуск выбранных сервисов: ${services[*]}"
     fi
     
+    # Проверяем пакеты на устаревшие версии (ЗОЛОТОЕ ПРАВИЛО)
+    check_outdated_packages
+    
     # Проверяем корректность имен сервисов
     for service in "${services[@]}"; do
         validate_service "$service" || exit 1
@@ -293,11 +365,14 @@ rebuild_services() {
     local services=("$@")
     
     if [[ ${#services[@]} -eq 0 ]]; then
-        services=("plugin-hub" "auth-service" "monitoring")  # Только наши микросервисы
+        services=("plugin-hub" "auth-service" "blog-service" "monitoring")  # Только наши микросервисы
         print_log "$PURPLE" "INFO" "🔨 Пересборка всех микросервисов..."
     else
         print_log "$PURPLE" "INFO" "🔨 Пересборка сервисов: ${services[*]}"
     fi
+    
+    # Проверяем пакеты на устаревшие версии (ЗОЛОТОЕ ПРАВИЛО)
+    check_outdated_packages
     
     for service in "${services[@]}"; do
         validate_service "$service" || exit 1
@@ -432,6 +507,71 @@ ui_open() {
     print_log "$GREEN" "SUCCESS" "✅ UI открыт по адресу: $url"
 }
 
+# Функция полной перезагрузки системы
+hard_reboot() {
+    print_log "$RED" "WARN" "🚨 HARD REBOOT - Полная перезагрузка системы Quark МКС"
+    echo ""
+    echo -e "${RED}⚠️  ВНИМАНИЕ! Данная операция выполнит:${NC}"
+    echo -e "${YELLOW}   • Остановку всех контейнеров${NC}"
+    echo -e "${YELLOW}   • Удаление всех Docker образов проекта${NC}"
+    echo -e "${YELLOW}   • Удаление всех Docker томов${NC}"
+    echo -e "${YELLOW}   • Удаление сетей и неиспользуемых объектов${NC}"
+    echo -e "${YELLOW}   • Освобождение всех портов${NC}"
+    echo -e "${YELLOW}   • Проверку актуальности всех пакетов${NC}"
+    echo -e "${YELLOW}   • Полную пересборку всех сервисов${NC}"
+    echo ""
+    echo -e "${RED}⚠️  ВСЕ ДАННЫЕ В КОНТЕЙНЕРАХ БУДУТ ПОТЕРЯНЫ!${NC}"
+    echo ""
+    
+    # Запрос подтверждения
+    read -p "Вы уверены что хотите продолжить? Введите 'YES' для подтверждения: " confirm
+    
+    if [[ "$confirm" != "YES" ]]; then
+        print_log "$GREEN" "INFO" "❌ Операция отменена пользователем"
+        return 0
+    fi
+    
+    print_log "$RED" "WARN" "🔥 Начинаем полную перезагрузку системы..."
+    
+    # Шаг 1: Остановка всех контейнеров
+    print_log "$YELLOW" "INFO" "1️⃣  Остановка всех контейнеров..."
+    docker-compose down --remove-orphans || true
+    
+    # Шаг 2: Удаление всех образов проекта
+    print_log "$YELLOW" "INFO" "2️⃣  Удаление всех образов проекта..."
+    docker images | grep -E "(quark|plugin-hub|auth-service|blog-service|monitoring)" | awk '{print $3}' | xargs -r docker rmi -f || true
+    
+    # Шаг 3: Полная очистка Docker
+    print_log "$YELLOW" "INFO" "3️⃣  Полная очистка Docker системы..."
+    docker system prune -af --volumes || true
+    
+    # Шаг 4: Освобождение портов
+    print_log "$YELLOW" "INFO" "4️⃣  Проверка освобождения портов..."
+    local ports=(80 443 8080 3000 3001 5432 6379 8086 8088 3100 3003 9090 9093)
+    for port in "${ports[@]}"; do
+        local pid=$(lsof -ti:$port 2>/dev/null || true)
+        if [[ -n "$pid" ]]; then
+            print_log "$YELLOW" "WARN" "   Освобождение порта $port (PID: $pid)"
+            kill -9 $pid 2>/dev/null || true
+        fi
+    done
+    
+    # Шаг 5: Проверка пакетов
+    print_log "$YELLOW" "INFO" "5️⃣  Проверка актуальности пакетов в сервисах..."
+    SKIP_PACKAGE_CHECK=false check_outdated_packages
+    
+    # Шаг 6: Полная пересборка
+    print_log "$YELLOW" "INFO" "6️⃣  Полная пересборка всех сервисов..."
+    DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose up --build -d
+    
+    # Шаг 7: Проверка статуса
+    sleep 10
+    print_log "$GREEN" "INFO" "7️⃣  Проверка статуса сервисов..."
+    show_status
+    
+    print_log "$GREEN" "SUCCESS" "🎉 Hard reboot завершён! Все сервисы перезапущены с чистого листа."
+}
+
 # Основная функция
 main() {
     show_logo
@@ -446,7 +586,7 @@ main() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            start|stop|restart|build|rebuild|status|health|logs|clean|menu|list|ui:dev|ui:build|ui:start|ui:open)
+            start|stop|restart|build|rebuild|status|health|logs|clean|hard-reboot|menu|list|ui:dev|ui:build|ui:start|ui:open)
                 command="$1"
                 shift
                 ;;
@@ -520,6 +660,9 @@ main() {
             docker-compose down --rmi all --volumes --remove-orphans
             docker system prune -f
             print_log "$RED" "SUCCESS" "✅ Очистка завершена!"
+            ;;
+        hard-reboot)
+            hard_reboot
             ;;
         list)
             echo ""

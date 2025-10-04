@@ -15,15 +15,13 @@ export class DynamicJwtService {
   /**
    * Подписывает JWT токен с актуальным секретом из Vault
    */
-  async sign(payload: object, options?: { expiresIn?: string }): Promise<string> {
+  async sign(payload: object): Promise<string> {
     try {
       const secret = await this.vaultService.getJWTSecret();
       
       return jwt.sign(payload, secret, {
-        expiresIn: options?.expiresIn || '1h',
         algorithm: 'HS256',
-        issuer: 'quark-auth-service',
-      });
+      } as jwt.SignOptions);
     } catch (error) {
       this.logger.error('❌ Error signing JWT:', error.message);
       throw error;

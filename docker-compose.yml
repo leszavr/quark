@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API Gateway - точка входа для всех запросов
   traefik:
@@ -7,6 +5,7 @@ services:
     container_name: quark-traefik
     command:
       - "--api.insecure=true"
+      - "--log.level=DEBUG"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
@@ -111,7 +110,11 @@ services:
       - "3000:3000"
     labels:
       - "traefik.enable=true"
+      # Plugin Hub management routes (protected)
       - "traefik.http.routers.plugin-hub.rule=Host(`api.quark.local`) && PathPrefix(`/hub`)"
+      - "traefik.http.routers.plugin-hub.entrypoints=web"
+      - "traefik.http.routers.plugin-hub.middlewares=plugin-hub-stripprefix,auth-jwt"
+      - "traefik.http.middlewares.plugin-hub-stripprefix.stripprefix.prefixes=/hub"
       - "traefik.http.services.plugin-hub.loadbalancer.server.port=3000"
     depends_on:
       - redis
@@ -143,8 +146,20 @@ services:
       - "3001:3001"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`api.quark.local`) && PathPrefix(`/auth`)"
-      - "traefik.http.services.auth.loadbalancer.server.port=3001"
+      # Public routes (login, register, health)
+      - "traefik.http.routers.auth-public.rule=Host(`api.quark.local`) && (PathPrefix(`/auth/login`) || PathPrefix(`/auth/register`) || PathPrefix(`/auth/health`))"
+      - "traefik.http.routers.auth-public.entrypoints=web"
+      - "traefik.http.routers.auth-public.service=auth-service"
+      # Internal route for token validation (used by ForwardAuth middleware)
+      - "traefik.http.routers.auth-validate.rule=Host(`api.quark.local`) && PathPrefix(`/auth/validate`)"
+      - "traefik.http.routers.auth-validate.entrypoints=web"
+      - "traefik.http.routers.auth-validate.service=auth-service"
+      # Service definition
+      - "traefik.http.services.auth-service.loadbalancer.server.port=3001"
+      # JWT ForwardAuth middleware
+      - "traefik.http.middlewares.auth-jwt.forwardauth.address=http://quark-auth:3001/auth/validate"
+      - "traefik.http.middlewares.auth-jwt.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.auth-jwt.forwardauth.authResponseHeaders=X-User-Id,X-Subject,X-User-Roles,X-Token-Type,X-User-Permissions,X-Service-Id,X-Service-Name"
     depends_on:
       - postgres
       - redis
@@ -224,8 +239,12 @@ services:
       - "3004:3004"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.blog-service.rule=Host(`blog.quark.local`) || Host(`localhost:3004`)"
-      - "traefik.http.services.blog-service.loadbalancer.server.port=3004"
+      # Blog service routes through API gateway
+      - "traefik.http.routers.blog.rule=Host(`api.quark.local`) && PathPrefix(`/blog`)"
+      - "traefik.http.routers.blog.entrypoints=web"
+      - "traefik.http.routers.blog.middlewares=blog-stripprefix,auth-jwt"
+      - "traefik.http.middlewares.blog-stripprefix.stripprefix.prefixes=/blog"
+      - "traefik.http.services.blog.loadbalancer.server.port=3004"
     depends_on:
       - postgres
       - auth-service
@@ -237,11 +256,39 @@ services:
     volumes:
       - ./services/blog-service/uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3004/api/health"]
       interval: 30s
       timeout: 3s
-      start_period: 15s
+      start_period: 10s
       retries: 3
+
+  # Swagger UI - интерактивная документация API
+  swagger-ui:
+    build: 
+      context: ./infra/swagger-ui
+      dockerfile: Dockerfile
+    container_name: quark-swagger-ui
+    environment:
+      - SWAGGER_JSON=/swagger.yaml
+      - TRY_IT_OUT_ENABLED=true
+      - DEEP_LINKING=true
+      - DISPLAY_OPERATION_ID=true
+      - DISPLAY_REQUEST_DURATION=true
+      - DOC_EXPANSION=list
+      - FILTER=true
+    ports:
+      - "8081:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.swagger-ui.rule=Host(`docs.quark.local`)"
+      - "traefik.http.routers.swagger-ui.entrypoints=web"
+      - "traefik.http.services.swagger-ui.loadbalancer.server.port=8080"
+    restart: unless-stopped
+    networks:
+      - quark-network
+    volumes:
+      - ./infra/swagger.yaml:/usr/share/nginx/html/swagger.yaml:ro
+
 
 
 

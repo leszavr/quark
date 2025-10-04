@@ -53,7 +53,7 @@ export class AuthService {
           type: 'temp_2fa',
           exp: Math.floor(Date.now() / 1000) + (5 * 60), // 5 минут
         };
-        const tempToken = await this.dynamicJwtService.sign(tempPayload, { expiresIn: '5m' });
+        const tempToken = await this.dynamicJwtService.sign(tempPayload);
 
         return {
           requiresTwoFactor: true,
@@ -124,18 +124,19 @@ export class AuthService {
   }
 
   private async generateAuthResponse(user: User): Promise<AuthResponseDto> {
+    const now = Math.floor(Date.now() / 1000);
     const payload: UserTokenPayload = { 
       sub: user.id,
       user_id: user.id,
       roles: user.roles,
       permissions: this.getUserPermissions(user.roles),
-      exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
+      exp: now + (24 * 60 * 60), // 24 hours
       iss: 'quark-auth-service',
       aud: ['blog-service', 'messaging-service', 'user-service'],
       token_type: TokenType.USER,
     };
     
-    const access_token = await this.dynamicJwtService.sign(payload, { expiresIn: '24h' });
+    const access_token = await this.dynamicJwtService.sign(payload);
 
     return {
       access_token,
@@ -173,7 +174,7 @@ export class AuthService {
       token_type: TokenType.SERVICE,
     };
 
-    const access_token = await this.dynamicJwtService.sign(payload, { expiresIn: '24h' });
+    const access_token = await this.dynamicJwtService.sign(payload);
 
     return {
       access_token,
@@ -205,7 +206,7 @@ export class AuthService {
       token_type: TokenType.HUB,
     };
 
-    const access_token = await this.dynamicJwtService.sign(payload, { expiresIn: '48h' });
+    const access_token = await this.dynamicJwtService.sign(payload);
 
     return {
       access_token,

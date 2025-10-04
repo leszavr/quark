@@ -1,12 +1,16 @@
+# syntax=docker/dockerfile:1.4
 # Multi-stage build for production
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
+RUN npm install -g npm@11.6.1
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies for production first
 RUN npm ci --omit=dev
 
 # Копируем исходный код
@@ -24,6 +28,9 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
+# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
+RUN npm install -g npm@11.6.1
+
 # Создаем пользователя для безопасности
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S quark -u 1001
@@ -32,7 +39,7 @@ RUN adduser -S quark -u 1001
 COPY package*.json ./
 
 # Устанавливаем только production зависимости
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev
 
 # Копируем собранное приложение
 COPY --from=builder /app/dist ./dist

@@ -138,7 +138,7 @@ export default function FullscreenChat({ isOpen, onClose }: FullscreenChatProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] p-0">
+      <DialogContent className="max-w-6xl h-[90vh] p-0 bg-white !opacity-100 text-gray-900">
         <div className="flex h-full">
           {/* Left sidebar - Contacts/Channels */}
           {isAuthenticated ? (

@@ -29,9 +29,9 @@ export default function ThemeModal({ isOpen, onClose }: ThemeModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white !opacity-100 text-gray-900">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
             <Palette className="h-5 w-5" />
             Выбор цветовой темы
           </DialogTitle>

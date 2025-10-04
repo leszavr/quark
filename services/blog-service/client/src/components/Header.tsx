@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageCircle, Palette, User, LogOut, UserPlus, LogIn } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import TestModal from './TestModal';
 
 interface HeaderProps {
   onThemeModalOpen: () => void;
@@ -12,7 +13,7 @@ interface HeaderProps {
 
 export default function Header({ onThemeModalOpen, onProfileModalOpen }: HeaderProps) {
   const { theme } = useTheme();
-  const { user, isAuthenticated, toggleDemoMode } = useAuth() as any; // todo: remove mock functionality
+  const { user, isAuthenticated, logout, toggleDemoMode } = useAuth() as any;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -65,16 +66,43 @@ export default function Header({ onThemeModalOpen, onProfileModalOpen }: HeaderP
               </Button>
             </div>
           ) : (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={toggleDemoMode}
-              data-testid="button-login"
-              className="gap-2"
-            >
-              <LogIn className="h-4 w-4" />
-              Вход/Регистрация
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Демо режим для тестирования */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleDemoMode}
+                data-testid="button-demo"
+                className="gap-2"
+              >
+                <User className="h-4 w-4" />
+                Демо
+              </Button>
+              
+              {/* Реальная аутентификация */}
+              <TestModal>
+                <Button
+                  variant="default"
+                  size="sm"
+                  data-testid="button-login"
+                  className="gap-2"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Тест Модал
+                </Button>
+              </TestModal>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="button-register"
+                className="gap-2"
+                onClick={() => alert('Старая кнопка для сравнения')}
+              >
+                <UserPlus className="h-4 w-4" />
+                Старая кнопка
+              </Button>
+            </div>
           )}
         </div>
       </div>

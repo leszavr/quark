@@ -99,6 +99,52 @@ export class AuthController {
     };
   }
 
+  /**
+   * Валидация токена для Traefik ForwardAuth
+   * Читает токен из Authorization заголовка и возвращает user context в заголовках
+   */
+  @Get('validate')
+  @HttpCode(HttpStatus.OK)
+  async validateTokenForTraefik(@Request() req) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new ForbiddenException('Missing or invalid authorization header');
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    try {
+      const payload = await this.authService.validateToken(token);
+      
+      // Устанавливаем заголовки для передачи в целевой сервис
+      if (payload.token_type === 'user') {
+        const userPayload = payload as any; // UserTokenPayload
+        req.res.setHeader('X-User-Id', userPayload.user_id);
+        req.res.setHeader('X-Subject', payload.sub);
+      } else if (payload.token_type === 'service') {
+        const servicePayload = payload as any; // ServiceTokenPayload
+        req.res.setHeader('X-Service-Id', servicePayload.service_id);
+        req.res.setHeader('X-Service-Name', servicePayload.service_name);
+      } else if (payload.token_type === 'hub') {
+        const hubPayload = payload as any; // HubTokenPayload
+        req.res.setHeader('X-Service-Id', hubPayload.service_id);
+      }
+      
+      req.res.setHeader('X-User-Roles', JSON.stringify(payload.roles || []));
+      req.res.setHeader('X-Token-Type', payload.token_type);
+      req.res.setHeader('X-User-Permissions', JSON.stringify(payload.permissions || []));
+
+      return {
+        valid: true,
+        subject: payload.sub,
+        roles: payload.roles,
+        permissions: payload.permissions,
+        tokenType: payload.token_type
+      };
+    } catch (error) {
+      throw new ForbiddenException('Invalid token');
+    }
+  }
+
   @Get('health')
   getHealth() {
     return {

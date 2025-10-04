@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Multi-stage build для Quark UI
 FROM node:20-alpine AS builder
 

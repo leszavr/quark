@@ -52,9 +52,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-white !opacity-100 text-gray-900">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
             <User className="h-5 w-5" />
             Профиль пользователя
           </DialogTitle>

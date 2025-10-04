@@ -1,0 +1,532 @@
+openapi: 3.0.0
+info:
+  title: Quark Platform API
+  version: 1.0.0
+  description: |
+    Централизованная документация всех API endpoints платформы Quark MKS.
+    
+    ## Аутентификация
+    Большинство endpoints требуют JWT токен в заголовке Authorization:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Базовые URL
+    - **API Gateway**: `http://api.quark.local` (через Traefik)
+    - **Monitoring**: `http://monitor.quark.local`
+    - **Admin UI**: `http://admin.quark.local`
+    
+  contact:
+    name: Quark Platform Team
+    email: support@quark.local
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://api.quark.local
+    description: Production API Gateway (через Traefik)
+  - url: http://localhost
+    description: Local development
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен, полученный через /auth/login
+
+  schemas:
+    # User schemas
+    UserRegistration:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 6
+          example: SecurePass123!
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "+1234567890"
+
+    UserLogin:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          example: SecurePass123!
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 8e2eb370-69d2-42f7-919c-8f15cb1d794d
+        email:
+          type: string
+          example: user@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["user", "admin"]
+        isEmailVerified:
+          type: boolean
+          example: true
+
+    # Blog schemas
+    BlogPost:
+      type: object
+      properties:
+        id:
+          type: string
+          example: post-123
+        title:
+          type: string
+          example: "Добро пожаловать в Quark Platform"
+        content:
+          type: string
+          example: "Содержание поста..."
+        status:
+          type: string
+          enum: [draft, published]
+          example: published
+        authorId:
+          type: string
+          example: 8e2eb370-69d2-42f7-919c-8f15cb1d794d
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBlogPost:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          maxLength: 150
+          example: "Мой новый пост"
+        content:
+          type: string
+          example: "Содержание поста..."
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+          example: published
+
+    # Generic schemas
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          example: 1234.56
+        service:
+          type: string
+          example: auth-service
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        message:
+          type: string
+          example: "Invalid input data"
+        statusCode:
+          type: integer
+          example: 400
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Auth Service endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Регистрация нового пользователя
+      description: Создание нового пользователя в системе
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Пользователь уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Авторизация пользователя
+      description: Получение JWT токена для доступа к защищенным endpoints
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Получить профиль текущего пользователя
+      description: Информация о текущем аутентифицированном пользователе
+      responses:
+        '200':
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Не аутентифицирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/health:
+    get:
+      tags:
+        - Health Checks
+      summary: Health check Auth Service
+      security: []
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+  # Blog Service endpoints
+  /blog/api/posts:
+    get:
+      tags:
+        - Blog
+      summary: Получить список постов
+      description: Список всех опубликованных постов
+      parameters:
+        - name: published
+          in: query
+          schema:
+            type: boolean
+          description: Фильтр по статусу публикации
+      responses:
+        '200':
+          description: Список постов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlogPost'
+        '403':
+          description: Доступ запрещен (проблема с middleware)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Blog
+      summary: Создать новый пост
+      description: Создание нового поста в блоге
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBlogPost'
+      responses:
+        '201':
+          description: Пост успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Требуется аутентификация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав (требуется blog.write)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /blog/api/posts/{id}:
+    get:
+      tags:
+        - Blog
+      summary: Получить конкретный пост
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о посте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '404':
+          description: Пост не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Blog
+      summary: Обновить пост
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBlogPost'
+      responses:
+        '200':
+          description: Пост обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        '403':
+          description: Недостаточно прав
+        '404':
+          description: Пост не найден
+
+    delete:
+      tags:
+        - Blog
+      summary: Удалить пост
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Пост удален
+        '403':
+          description: Недостаточно прав
+        '404':
+          description: Пост не найден
+
+  /blog/api/my-posts:
+    get:
+      tags:
+        - Blog
+      summary: Мои посты
+      description: Получить все посты текущего пользователя
+      responses:
+        '200':
+          description: Список постов пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BlogPost'
+                  total:
+                    type: integer
+                  user:
+                    type: string
+
+  /blog/health:
+    get:
+      tags:
+        - Health Checks
+      summary: Health check Blog Service
+      security: []
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+  # Plugin Hub endpoints
+  /hub/api/services:
+    get:
+      tags:
+        - Plugin Hub
+      summary: Список зарегистрированных сервисов
+      responses:
+        '200':
+          description: Список сервисов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    type:
+                      type: string
+                    status:
+                      type: string
+
+    post:
+      tags:
+        - Plugin Hub
+      summary: Регистрация нового сервиса
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                url:
+                  type: string
+      responses:
+        '201':
+          description: Сервис зарегистрирован
+
+  /hub/health:
+    get:
+      tags:
+        - Health Checks
+      summary: Health check Plugin Hub
+      security: []
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+tags:
+  - name: Authentication
+    description: Аутентификация и управление пользователями
+  - name: Blog
+    description: Управление постами блога
+  - name: Plugin Hub
+    description: Управление сервисами и модулями
+  - name: Health Checks
+    description: Проверка состояния сервисов

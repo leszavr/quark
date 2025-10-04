@@ -1,0 +1,187 @@
+# Blog Service Module Manifest
+# Universal Docking Interface (UDI) спецификация для МКС архитектуры
+
+id: blog-service
+name: "Blog Service"
+version: "1.0.0"
+description: "Production-ready blog management service with user authentication"
+
+# Технические характеристики
+technology: Node.js
+language: TypeScript
+framework: Express
+platform: Docker
+
+# Сетевая конфигурация
+host: blog-service
+port: 3002
+protocol: http
+baseUrl: /api
+
+# Стандартные endpoints UDI
+endpoints:
+  health: /health
+  status: /status
+  manifest: /manifest
+  docs: /api-docs
+
+# Функциональные возможности
+capabilities:
+  - blog-management
+  - post-creation
+  - post-editing
+  - post-publishing
+  - user-posts
+  - content-publishing
+  - user-authentication-proxy
+  - jwt-validation
+
+# Зависимости от других модулей МКС
+dependencies:
+  - plugin-hub
+  - auth-service
+  - postgres
+
+# Что предоставляет другим модулям
+provides:
+  - blog-api
+  - post-management
+  - user-content
+
+# Конфигурация жизненного цикла
+lifecycle:
+  startup: auto
+  restart: always
+  healthCheckInterval: 30
+  timeout: 30
+  gracefulShutdown: true
+
+# Безопасность (Enterprise-grade)
+security:
+  requiresAuth: true
+  authMethod: jwt-enterprise
+  permissions:
+    - blog.read
+    - blog.write
+    - blog.publish
+    - blog.delete
+    - user.register
+    - user.login
+  rateLimits:
+    requests: 1000
+    window: 60  # секунд
+  cors:
+    enabled: true
+    origins: 
+      - http://localhost:3100
+      - https://quark.local
+
+# API endpoints
+api:
+  # Аутентификация (проксирование через Plugin Hub)
+  auth:
+    - method: POST
+      path: /auth/register
+      description: "User registration via Plugin Hub proxy"
+      requiresAuth: false
+    - method: POST
+      path: /auth/login
+      description: "User login via Plugin Hub proxy"
+      requiresAuth: false
+  
+  # Blog управление
+  blog:
+    - method: GET
+      path: /posts
+      description: "Get all posts (public)"
+      requiresAuth: false
+    - method: GET
+      path: /posts/:id
+      description: "Get specific post"
+      requiresAuth: false
+    - method: POST
+      path: /posts
+      description: "Create new post"
+      requiresAuth: true
+      permissions: [blog.write]
+    - method: PUT
+      path: /posts/:id
+      description: "Update existing post"
+      requiresAuth: true
+      permissions: [blog.write]
+    - method: DELETE
+      path: /posts/:id
+      description: "Delete post"
+      requiresAuth: true
+      permissions: [blog.delete]
+    - method: GET
+      path: /my-posts
+      description: "Get current user's posts"
+      requiresAuth: true
+      permissions: [blog.read]
+
+# Мониторинг и метрики
+monitoring:
+  prometheus: true
+  healthChecks:
+    - name: database
+      type: postgresql
+      critical: true
+    - name: plugin-hub
+      type: http
+      url: http://plugin-hub:3000/health
+      critical: true
+    - name: memory
+      type: memory
+      threshold: 512MB
+      critical: false
+
+# События которые публикует
+events:
+  publishes:
+    - post.created
+    - post.updated
+    - post.deleted
+    - post.published
+    - user.registered
+    - user.login.success
+  
+  subscribes:
+    - module.registered
+    - hub.ready
+    - config.changed
+
+# Окружение
+environment:
+  NODE_ENV: production
+  PORT: 3002
+  DATABASE_URL: postgresql://quark:quarkpass@postgres:5432/quark_dev
+  PLUGIN_HUB_URL: http://plugin-hub:3000
+  JWT_SECRET: from-vault
+  CORS_ORIGIN: http://localhost:3100
+
+# Метаданные
+metadata:
+  author: "Quark MCS Team"
+  repository: "https://git.8ls.ru/odmen/quark"
+  documentation: "https://git.8ls.ru/odmen/quark/docs"
+  license: "MIT"
+  tags:
+    - blog
+    - content
+    - posts
+    - authentication
+    - mks-module
+  
+  # ADR ссылки
+  architectureDecisions:
+    - adr-008-blog-service-integration
+    - adr-005-jwt-auth
+    - adr-003-module-docking
+
+# Интеграция с Plugin Hub
+pluginHub:
+  autoRegister: true
+  heartbeatInterval: 30  # секунд
+  retryAttempts: 3
+  retryDelay: 5  # секунд
