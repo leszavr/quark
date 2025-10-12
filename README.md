@@ -1,137 +1,247 @@
-# 🚀 Платформа Quark - МКС-архитектура нового поколения
+# 🚀 Quark MKS Platform - Модульная платформа для блогов и мессенджера
 
-> **Модульная, ИИ-нативная платформа для блогов и мессенджера**  
-> Спроектирована с участием ИИ по принципу Международной Космической Станции
+>├── 🔌 services/
+│   ├── 🔐 auth-service/                   # ⭐ JWT Аутентификация ✅ ГОТОВ
+│   │   ├── src/                           # NestJS приложение
+│   │   ├── Dockerfile                     # Node.js 20 контейнер
+│   │   └── package.json                   # NestJS + TypeORM + JWT
+│   ├── 📝 blog-service/                   # ⭐ Blog API ✅ ГОТОВ
+│   │   ├── src/                           # Express приложение
+│   │   ├── Dockerfile                     # Node.js контейнер
+│   │   └── package.json                   # Express + Sequelize
+├── 🏗️ infra/
+│   ├── 📊 monitoring/                     # ⭐ Система мониторинга ✅ ГОТОВ
+│   │   ├── server.js                      # Express dashboard сервер
+│   │   ├── dashboard.html                 # HTML интерфейс мониторинга
+│   │   └── Dockerfile                     # Контейнер мониторинга
+│   ├── 🌐 plugin-hub/                     # ⭐ Plugin Hub ✅ ГОТОВ
+│   │   ├── src/                           # Центральный узел модулей
+│   │   └── Dockerfile                     # Контейнер plugin системы
+│   └── 🔐 vault/                          # HashiCorp Vault конфигурацияая full-stack пла## 🌐 Доступные сервисы и порты
 
-[![Architecture: МКС](https://img.shields.io/badge/Architecture-МКС--модульная-blue.svg)](docs/architecture/)
-[![Security: Vault+JWT](https://img.shields.io/badge/Security-Vault+JWT-green.svg)](docs/security/)
-[![Infrastructure: Docker](https://img.shields.io/badge/Infrastructure-Docker-blue.svg)](docker-compose.yml)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](#)
+### Frontend интерфейсы:
+- 🎨 **UI-end интерфейс**: http://localhost:3000 (dev) / http://localhost:3002 (alt)
+- 🏛️ **Admin UI**: http://localhost:3100 (production UI)
+- 📊 **Monitoring Dashboard**: http://localhost:3900
+- 🔧 **Traefik Dashboard**: http://localhost:8080
 
-## 🔐 Основные возможности
+### Backend API сервисы:
+- 🔐 **Auth Service**: http://localhost:3001
+- 📝 **Blog Service**: http://localhost:3004
+- 🔌 **Plugin Hub**: http://localhost:3000
 
-### ⭐ Vault + JWT Security Stack
-- **HashiCorp Vault** интеграция для безопасного хранения секретов
-- **Трехуровневая система токенов**: User (24h), Service (24h), Hub (48h)
-- **Автоматическая ротация JWT секретов** каждые 30 минут
-- **Event-driven архитектура** для уведомлений о ротации
-- **Graceful secret transition** без простоя сервисов
+### Инфраструктурные сервисы:
+- 🗄️ **PostgreSQL**: localhost:5432
+- 🗂️ **Redis**: localhost:6379
+- 💬 **NATS**: localhost:4222 (client), :6222 (cluster), :8222 (monitoring)
+- 🔐 **Vault**: http://localhost:8200
+- 📦 **MinIO**: http://localhost:9000 (API), :9001 (Console)
+- 🌐 **Traefik**: :80 (HTTP), :443 (HTTPS), :8080 (Dashboard)
 
-### 🛠️ Модульная архитектура МКС
-- **Plugin Hub** - центральный стыковочный узел для всех модулей
-- **Микросервисная архитектура** с независимыми модулями
-- **Docker-based deployment** с оркестрацией через docker-compose
-- **Service Discovery** и автоматическая регистрация модулей
-- **Health Monitoring** с расширенной диагностикой
+### Пул используемых портов:
+```
+80, 443, 3000, 3001, 3002, 3004, 3100, 3900, 
+4222, 5432, 6222, 6379, 8080, 8200, 8222, 
+9000, 9001
+```с Next.js 15 + React 19**  
+> Backend API + Адаптивный UI с мессенджером и блогами
+
+[![Frontend: Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015-black.svg)](infra/quark-ui/)
+[![Backend: Docker](https://img.shields.io/badge/Backend-Docker%20Services-blue.svg)](docker-compose.yml)
+[![UI: Chakra UI](https://img.shields.io/badge/UI-Chakra%20UI%202.8-teal.svg)](infra/quark-ui/src/theme.ts)
+[![Status: Ready for Auth](https://img.shields.io/badge/Status-Ready%20for%20Auth-orange.svg)](#)
+
+## ✨ Основные возможности
+
+### 🎨 Современный UI-end интерфейс
+- **Next.js 15** + **React 19** с Turbopack
+- **Chakra UI 2.8** + **Tailwind CSS** для стилизации
+- **Адаптивный дизайн** - автоматическое переключение mobile/desktop
+- **ResizableSplitter** - перетаскиваемые панели для desktop
+- **6 цветовых тем** + темная/светлая темы
+- **Полноценный мессенджер** с статусами и онлайн индикаторами
+
+### 🛠️ Backend API сервисы
+- **Auth Service** (NestJS) - JWT аутентификация и регистрация
+- **Blog Service** (Express) - управление блогами и постами
+- **PostgreSQL** база данных с миграциями
+- **Docker Compose** оркестрация всех сервисов
+- **Traefik** reverse proxy и load balancer
 
 ## 🏗️ Архитектура проекта
 
 ```
 quark/
-├── 🔌 services/
-│   ├── 🎯 plugin-hub/                     # ⭐ Центральный стыковочный узел
-│   │   ├── src/
-│   │   │   ├── index.ts                   # Основной сервер
-│   │   │   ├── quark-mks-sdk.ts          # TypeScript SDK
-│   │   │   ├── ServiceRegistry.ts         # Реестр модулей
-│   │   │   ├── HealthMonitor.ts          # Мониторинг здоровья
-│   │   │   └── EventBus.ts               # NATS интеграция
-│   │   ├── package.json                   # JWT deps: jsonwebtoken, bcryptjs
-│   │   └── Dockerfile                     # Контейнеризация
-│   ├── 🔐 auth-service/                   # ⭐ JWT + Vault Аутентификация ✅ ЗАВЕРШЕН
-│   │   ├── src/
-│   │   │   ├── main.ts                    # Bootstrap + Plugin Hub регистрация
-│   │   │   ├── app.module.ts             # Модуль с VaultModule и JwtConfigService
-│   │   │   ├── auth/                      # Модуль аутентификации + DynamicJwtService
-│   │   │   ├── vault/                     # VaultService с автоматической ротацией
-│   │   │   ├── users/                     # Модуль пользователей
-│   │   │   └── common/dto/               # DTO для трех типов токенов
-│   │   ├── Dockerfile                     # Мультистадийная сборка Node.js 20
-│   │   └── package.json                   # NestJS + TypeORM + JWT + Vault
-│   ├── 📊 monitoring/                     # ⭐ Корпоративный мониторинг ✅ ЗАВЕРШЕН
-│   │   ├── dashboard.html                 # Строгий корпоративный интерфейс
-│   │   ├── server.js                      # Express API сервер
-│   │   └── package.json                   # Minimal dependencies
-│   ├── 📝 blog-service/                   # Блог-платформа (планируется)  
-│   ├── 👤 user-service/                   # Управление пользователями
-│   ├── 💬 messaging-service/              # WebSocket мессенджер
-│   └── 🤖 ai-orchestrator/                # ИИ-агенты и LLM
 ├── 🏗️ infra/
-│   ├── 🎨 quark-ui/                       # ⭐ Admin Console ✅ ЗАВЕРШЕН
-│   │   ├── src/                           # Vue.js + Vite приложение
-│   │   ├── Dockerfile                     # Nginx + Alpine
-│   │   └── package.json                   # Vue.js ecosystem
-│   ├── 📡 monitoring/                     # Grafana + Prometheus
-│   ├── 🔑 vault/                          # HashiCorp Vault конфигурация
-│   └── 🌐 plugin-hub/                     # Конфигурация центрального узла
-├── 📋 docs/                               # Техническая документация
-│   ├── architecture/                      # Архитектурные решения
-│   ├── security/                          # Документация по безопасности
-│   └── api/                              # API документация
-├── 🚀 quark-manager.sh                    # ⭐ Единый скрипт управления ✅ ОБНОВЛЕН
-├── 🐳 docker-compose.yml                  # Оркестрация сервисов
+│   └── � quark-ui/                       # ⭐ Современный UI-end интерфейс ✅ ГОТОВ
+│       ├── src/
+│       │   ├── app/                       # Next.js 15 App Router
+│       │   ├── components/                # React 19 компоненты
+│       │   │   ├── layout/                # Header, MainLayout, ResizableLayout
+│       │   │   ├── admin/                 # Админ панель
+│       │   │   ├── profile/               # Профиль пользователя
+│       │   │   ├── BlogFeed.tsx          # Система блогов
+│       │   │   ├── ChatWindow.tsx        # Мессенджер
+│       │   │   └── ResizableSplitter.tsx # Перетаскиваемые панели
+│       │   ├── hooks/                     # Custom React hooks
+│       │   ├── stores/                    # Zustand state management
+│       │   └── theme.ts                   # Chakra UI темы
+│       ├── package.json                   # Next.js 15 + React 19 + Chakra UI
+│       └── next.config.ts                 # Next.js конфигурация
+├── 🔌 services/
+│   ├── � auth-service/                   # ⭐ JWT Аутентификация ✅ ГОТОВ
+│   │   ├── src/                           # NestJS приложение
+│   │   ├── Dockerfile                     # Node.js 20 контейнер
+│   │   └── package.json                   # NestJS + TypeORM + JWT
+│   ├── 📝 blog-service/                   # ⭐ Blog API ✅ ГОТОВ
+│   │   ├── src/                           # Express приложение
+│   │   ├── Dockerfile                     # Node.js контейнер
+│   │   └── package.json                   # Express + Sequelize
+│   ├── � monitoring/                     # Система мониторинга
+│   │   └── server.js                      # Express сервер
+│   └── 🌐 plugin-hub/                     # Plugin система
+├── 📋 docs/                               # Документация проекта
+├── 🚀 quark-manager.sh                    # Управление сервисами
+├── 🐳 docker-compose.yml                  # Оркестрация всех сервисов
 └── 📖 README.md                           # Этот файл
 ```
 
 ## 🎯 Быстрый старт
 
-### Запуск всей платформы одной командой:
+### 🚀 Запуск всей платформы одной командой:
 ```bash
-# Запустить все сервисы МКС Quark
+# Запустить все сервисы Quark
 ./quark-manager.sh start
 
 # Проверить статус
 ./quark-manager.sh status
 
-# Health check API
+# Health check всех API
 ./quark-manager.sh health
 ```
 
-**Доступные endpoints:**
-- 🌐 **Plugin Hub API**: http://localhost:3000/health
-- 🔐 **Auth Service API**: http://localhost:3001/auth/health  
-- 📊 **Monitoring Dashboard**: http://localhost:3900
-- 🎨 **Admin Console**: http://localhost:3100
-- 🔧 **Traefik Dashboard**: http://localhost:8080
-- 🔑 **Vault UI**: http://localhost:8200
+### 🛠️ Ручной запуск (для разработки):
 
-## 🔐 Security Architecture
-
-### JWT + Vault Integration
-- **HashiCorp Vault** в dev-режиме (токен: `myroot`)
-- **Автоматическая ротация секретов** каждые 30 минут
-- **Три типа токенов**:
-  - `User Token`: 24 часа (для пользователей)
-  - `Service Token`: 24 часа (для межсервисного взаимодействия)
-  - `Hub Token`: 48 часов (для Plugin Hub)
-
-### API Endpoints для аутентификации:
+**1️⃣ Backend сервисы:**
 ```bash
-# Регистрация пользователя
-POST http://localhost:3001/auth/register
+# Запустить все backend сервисы
+docker-compose up -d
 
-# Логин
-POST http://localhost:3001/auth/login
-
-# Создание Service Token
-POST http://localhost:3001/auth/tokens/service
-
-# Создание Hub Token
-POST http://localhost:3001/auth/tokens/hub
-
-# Валидация токена
-POST http://localhost:3001/auth/validate
+# Проверить статус сервисов
+docker-compose ps
 ```
 
-## 🏛️ Инфраструктура
+**2️⃣ UI интерфейс:**
+```bash
+# Перейти в папку UI
+cd infra/quark-ui
 
-### Основные компоненты:
-- **PostgreSQL** (port 5432) - основная база данных
-- **Redis** (port 6379) - кэш и хранилище состояний
-- **NATS JetStream** (port 4222) - событийная шина
-- **HashiCorp Vault** (port 8200) - управление секретами
-- **Traefik** (ports 80/443/8080) - API Gateway
-- **MinIO** (ports 9000/9001) - объектное хранилище
+# Установить зависимости
+npm install
+
+# Запустить dev сервер
+npm run dev
+```
+
+**Доступные сервисы:**
+- � **UI-end интерфейс**: http://localhost:3000 (или :3002)
+- 🔐 **Auth Service API**: http://localhost:3001
+- � **Blog Service API**: http://localhost:3004  
+- 📊 **Monitoring**: http://localhost:3900
+- 🔧 **Traefik Dashboard**: http://localhost:8080
+- �️ **PostgreSQL**: localhost:5432
+
+## 🔐 API Endpoints
+
+### Auth Service (порт 3001):
+```bash
+# Регистрация нового пользователя
+POST http://localhost:3001/auth/register
+{
+  "name": "Иван Петров",
+  "email": "ivan@example.com", 
+  "password": "securePassword"
+}
+
+# Авторизация пользователя
+POST http://localhost:3001/auth/login
+{
+  "email": "ivan@example.com",
+  "password": "securePassword"
+}
+
+# Получение профиля пользователя
+GET http://localhost:3001/auth/me
+Authorization: Bearer <jwt_token>
+```
+
+### Blog Service (порт 3004):
+```bash
+# Получить все посты
+GET http://localhost:3004/api/posts
+
+# Создать новый пост
+POST http://localhost:3004/api/posts
+Authorization: Bearer <jwt_token>
+
+# Получить пост по ID
+GET http://localhost:3004/api/posts/:id
+```
+
+### Monitoring Dashboard (порт 3900):
+```bash
+# Статус всех сервисов
+GET http://localhost:3900/api/status
+
+# Health check всех компонентов
+GET http://localhost:3900/api/health
+
+# Информация о Plugin Hub
+GET http://localhost:3900/api/plugin-hub/info
+
+# Мониторинг dashboard
+GET http://localhost:3900/
+```
+
+### Plugin Hub (порт 3000):
+```bash
+# Информация о системе
+GET http://localhost:3000/api/system/info
+
+# Список активных модулей
+GET http://localhost:3000/api/modules
+
+# Статус модуля
+GET http://localhost:3000/api/modules/:id/status
+```
+
+## 🏛️ Технологический стек
+
+### Frontend (UI-end):
+- **Next.js 15** с App Router и Turbopack
+- **React 19** с новейшими возможностями
+- **TypeScript 5.6** для типизации
+- **Chakra UI 2.8** + **Tailwind CSS** для стилизации
+- **Zustand 4.5** для управления состоянием
+- **Framer Motion 11** для анимаций
+- **TipTap** редактор для Markdown
+
+### Backend Services:
+- **NestJS** (Auth Service) - JWT аутентификация
+- **Express.js** (Blog Service) - REST API
+- **PostgreSQL 16** - основная база данных
+- **TypeORM** + **Sequelize** ORM
+- **Docker** + **Docker Compose** для оркестрации
+
+### Инфраструктура:
+- **Traefik** (порты 80/443/8080) - reverse proxy & load balancer
+- **PostgreSQL** (порт 5432) - основная база данных
+- **Redis** (порт 6379) - кэширование и сессии  
+- **NATS** (порты 4222/6222/8222) - event bus и message broker
+- **MinIO** (порты 9000/9001) - объектное файловое хранилище
+- **HashiCorp Vault** (порт 8200) - управление секретами
+- **Plugin Hub** (порт 3000) - центральная система модулей
+- **Monitoring Dashboard** (порт 3900) - система мониторинга сервисов
 
 ## 🛠️ Управление сервисами
 
