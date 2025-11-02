@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -11,38 +11,38 @@ import {
   useColorMode,
   IconButton,
   Tooltip,
-} from '@chakra-ui/react';
-import { Download, FileText, Image as ImageIcon, Video, Music, Play } from 'lucide-react';
-import { MessageAttachment } from '../hooks/useChatStorage';
+} from "@chakra-ui/react";
+import { Download, FileText, Image as ImageIcon, Video, Music, Play } from "lucide-react";
+import { MessageAttachment } from "../hooks/useChatStorage";
 
 interface MessageAttachmentsProps {
   attachments: MessageAttachment[];
   isOwn: boolean;
 }
 
-const getFileIcon = (type: MessageAttachment['type']) => {
+const getFileIcon = (type: MessageAttachment["type"]) => {
   switch (type) {
-    case 'image': return ImageIcon;
-    case 'video': return Video;
-    case 'audio': return Music;
+    case "image": return ImageIcon;
+    case "video": return Video;
+    case "audio": return Music;
     default: return FileText;
   }
 };
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Б';
+  if (bytes === 0) return "0 Б";
   const k = 1024;
-  const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+  const sizes = ["Б", "КБ", "МБ", "ГБ"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-const getTypeColor = (type: MessageAttachment['type']): string => {
+const getTypeColor = (type: MessageAttachment["type"]): string => {
   switch (type) {
-    case 'image': return 'green';
-    case 'video': return 'purple';
-    case 'audio': return 'blue';
-    default: return 'gray';
+    case "image": return "green";
+    case "video": return "purple";
+    case "audio": return "blue";
+    default: return "gray";
   }
 };
 
@@ -55,7 +55,7 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
 
   const handleDownload = (attachment: MessageAttachment) => {
     if (attachment.url) {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = attachment.url;
       link.download = attachment.name;
       document.body.appendChild(link);
@@ -72,7 +72,7 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
 
         return (
           <Box key={attachment.id}>
-            {attachment.type === 'image' && attachment.preview ? (
+            {attachment.type === "image" && attachment.preview ? (
               // Превью изображения
               <Box
                 position="relative"
@@ -80,7 +80,7 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
                 overflow="hidden"
                 maxW="300px"
                 cursor="pointer"
-                _hover={{ transform: 'scale(1.02)' }}
+                _hover={{ transform: "scale(1.02)" }}
                 transition="transform 0.2s"
               >
                 <Image
@@ -120,7 +120,7 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
                   </Text>
                 </Box>
               </Box>
-            ) : attachment.type === 'video' && attachment.preview ? (
+            ) : attachment.type === "video" && attachment.preview ? (
               // Превью видео
               <Box
                 position="relative"
@@ -166,8 +166,8 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
               <Box
                 p={3}
                 bg={isOwn 
-                  ? (colorMode === 'dark' ? 'whiteAlpha.200' : 'whiteAlpha.300')
-                  : (colorMode === 'dark' ? 'gray.600' : 'gray.200')
+                  ? (colorMode === "dark" ? "whiteAlpha.200" : "whiteAlpha.300")
+                  : (colorMode === "dark" ? "gray.600" : "gray.200")
                 }
                 borderRadius="md"
                 maxW="300px"
@@ -175,7 +175,7 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
                 <HStack spacing={3}>
                   <Box
                     p={2}
-                    bg={colorMode === 'dark' ? 'gray.500' : 'gray.100'}
+                    bg={colorMode === "dark" ? "gray.500" : "gray.100"}
                     borderRadius="md"
                   >
                     <Icon size={20} />

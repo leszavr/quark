@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { JwtModuleOptions, JwtOptionsFactory } from '@nestjs/jwt';
-import { VaultService } from '../vault/vault.service';
+import { Injectable } from "@nestjs/common";
+import { JwtModuleOptions, JwtOptionsFactory } from "@nestjs/jwt";
+import { VaultService } from "../vault/vault.service";
 
 @Injectable()
 export class JwtConfigService implements JwtOptionsFactory {
@@ -10,7 +10,7 @@ export class JwtConfigService implements JwtOptionsFactory {
     const secret = await this.vaultService.getJWTSecret();
     return {
       secret,
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: "1h" },
     };
   }
 }

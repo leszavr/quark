@@ -1,13 +1,13 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-import Redis from 'ioredis';
-import { connect, StringCodec } from 'nats';
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
+import Redis from "ioredis";
+import { connect, StringCodec } from "nats";
 
-console.log('🚀 Starting Quark Plugin Hub (МКС Command Module)...');
+console.log("🚀 Starting Quark Plugin Hub (МКС Command Module)...");
 
 class PluginHub {
   private app: express.Application;
@@ -20,15 +20,15 @@ class PluginHub {
   constructor() {
     this.app = express();
     this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      host: process.env.REDIS_HOST || "localhost",
+      port: parseInt(process.env.REDIS_PORT || "6379"),
       maxRetriesPerRequest: 3,
       lazyConnect: true
     });
     
     this.setupMiddleware();
     this.setupRoutes();
-    console.log('PluginHub initialized');
+    console.log("PluginHub initialized");
   }
 
   private setupMiddleware(): void {
@@ -37,7 +37,7 @@ class PluginHub {
     
     // CORS
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || "*",
       credentials: true
     }));
 
@@ -45,86 +45,86 @@ class PluginHub {
     this.app.use(compression());
     
     // JSON parsing
-    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
     
     // Logging
-    this.app.use(morgan('combined'));
+    this.app.use(morgan("combined"));
   }
 
   private setupRoutes(): void {
     // Health check
-    this.app.get('/health', (req, res) => {
+    this.app.get("/health", (req, res) => {
       res.json({
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date().toISOString(),
-        service: 'plugin-hub',
-        version: '1.0.0',
+        service: "plugin-hub",
+        version: "1.0.0",
         connections: {
           redis: this.redis.status,
-          nats: this.natsConnection ? 'connected' : 'disconnected'
+          nats: this.natsConnection ? "connected" : "disconnected"
         }
       });
     });
 
     // Basic info endpoint
-    this.app.get('/', (req, res) => {
+    this.app.get("/", (req, res) => {
       res.json({
-        name: 'Quark Plugin Hub',
-        description: 'МКС Command Module - Central service management',
-        version: '1.0.0',
-        endpoints: ['/health', '/services', '/register'],
+        name: "Quark Plugin Hub",
+        description: "МКС Command Module - Central service management",
+        version: "1.0.0",
+        endpoints: ["/health", "/services", "/register"],
         registeredServices: this.services.size
       });
     });
 
     // Register service
-    this.app.post('/register', async (req, res) => {
+    this.app.post("/register", async (req, res) => {
       try {
         const { id, name, version, url, healthEndpoint } = req.body;
         
         if (!id || !name || !url) {
-          return res.status(400).json({ error: 'Missing required fields: id, name, url' });
+          return res.status(400).json({ error: "Missing required fields: id, name, url" });
         }
 
         const serviceInfo = {
           id,
           name,
-          version: version || '1.0.0',
+          version: version || "1.0.0",
           url,
           healthEndpoint: healthEndpoint || `${url}/health`,
           registeredAt: new Date().toISOString(),
           lastHeartbeat: new Date().toISOString(),
-          status: 'online'
+          status: "online"
         };
 
         // Store in memory
         this.services.set(id, serviceInfo);
 
         // Store in Redis
-        await this.redis.hset('services', id, JSON.stringify(serviceInfo));
+        await this.redis.hset("services", id, JSON.stringify(serviceInfo));
 
         // Publish event via NATS
         if (this.natsConnection) {
-          await this.natsConnection.publish('service.registered', this.sc.encode(JSON.stringify(serviceInfo)));
+          await this.natsConnection.publish("service.registered", this.sc.encode(JSON.stringify(serviceInfo)));
         }
 
         console.log(`📝 Service registered: ${name} (${id})`);
         res.json({ success: true, service: serviceInfo });
       } catch (error) {
-        console.error('❌ Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
+        console.error("❌ Registration error:", error);
+        res.status(500).json({ error: "Registration failed" });
       }
     });
 
     // List services
-    this.app.get('/services', async (req, res) => {
+    this.app.get("/services", async (req, res) => {
       try {
         const services = Array.from(this.services.values());
         res.json({ services, count: services.length });
       } catch (error) {
-        console.error('❌ Services list error:', error);
-        res.status(500).json({ error: 'Failed to get services' });
+        console.error("❌ Services list error:", error);
+        res.status(500).json({ error: "Failed to get services" });
       }
     });
   }
@@ -133,23 +133,23 @@ class PluginHub {
     try {
       // Connect to Redis
       await this.redis.connect();
-      console.log('✅ Connected to Redis');
+      console.log("✅ Connected to Redis");
 
       // Connect to NATS
       this.natsConnection = await connect({
-        servers: process.env.NATS_URL || 'nats://localhost:4222',
+        servers: process.env.NATS_URL || "nats://localhost:4222",
       });
-      console.log('✅ Connected to NATS');
+      console.log("✅ Connected to NATS");
 
       // Load existing services from Redis
-      const existingServices = await this.redis.hgetall('services');
+      const existingServices = await this.redis.hgetall("services");
       for (const [id, serviceData] of Object.entries(existingServices)) {
         this.services.set(id, JSON.parse(serviceData));
       }
       console.log(`📚 Loaded ${this.services.size} existing services`);
 
     } catch (error) {
-      console.error('❌ Connection error:', error);
+      console.error("❌ Connection error:", error);
     }
   }
 
@@ -165,34 +165,34 @@ class PluginHub {
       console.log(`🔗 Service registration: http://localhost:${PORT}/register`);
     });
 
-    console.log('PluginHub started with full functionality!');
+    console.log("PluginHub started with full functionality!");
   }
 
   async stop(): Promise<void> {
     try {
       if (this.server) {
         this.server.close();
-        console.log('✅ HTTP server stopped');
+        console.log("✅ HTTP server stopped");
       }
 
       if (this.natsConnection) {
         await this.natsConnection.close();
-        console.log('✅ NATS disconnected');
+        console.log("✅ NATS disconnected");
       }
 
       if (this.redis) {
         this.redis.disconnect();
-        console.log('✅ Redis disconnected');
+        console.log("✅ Redis disconnected");
       }
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      console.error("❌ Error during shutdown:", error);
     }
   }
 }
 
 const pluginHub = new PluginHub();
 pluginHub.start().catch((error) => {
-  console.error('❌ Fatal error:', error);
+  console.error("❌ Fatal error:", error);
   process.exit(1);
 });
 

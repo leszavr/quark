@@ -1,224 +1,99 @@
-'use client';
+"use client";
 
-import { Box, Code, Heading, Text, List, ListItem, Link, useColorMode } from '@chakra-ui/react';
-import ReactMarkdown from 'react-markdown';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeRaw from 'rehype-raw';
-import 'highlight.js/styles/github-dark.css';
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import "highlight.js/styles/github-dark.css";
 
 interface MarkdownRendererProps {
   children: string;
 }
 
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
-  const { colorMode } = useColorMode();
-
   return (
-    <Box className="markdown-content">
+    <div className="markdown-content">
       <ReactMarkdown
         rehypePlugins={[rehypeHighlight, rehypeRaw]}
         components={{
           // Заголовки
           h1: ({ children }) => (
-            <Heading 
-              as="h1" 
-              size="xl" 
-              mb={6} 
-              mt={8}
-              fontFamily="Space Grotesk"
-              color={colorMode === 'dark' ? '#00f0ff' : '#1a202c'}
-              _first={{ mt: 0 }}
-            >
-              {children}
-            </Heading>
+            <h1 className="text-4xl font-bold mb-6 mt-8 font-space-grotesk text-cyan-400 dark:text-cyan-300">{children}</h1>
           ),
           h2: ({ children }) => (
-            <Heading 
-              as="h2" 
-              size="lg" 
-              mb={4} 
-              mt={8}
-              fontFamily="Space Grotesk"
-              color={colorMode === 'dark' ? 'gray.100' : 'gray.800'}
-              _first={{ mt: 0 }}
-            >
-              {children}
-            </Heading>
+            <h2 className="text-3xl font-bold mb-4 mt-8 font-space-grotesk text-gray-100 dark:text-gray-800">{children}</h2>
           ),
           h3: ({ children }) => (
-            <Heading 
-              as="h3" 
-              size="md" 
-              mb={3} 
-              mt={6}
-              fontFamily="Space Grotesk"
-              color={colorMode === 'dark' ? 'gray.200' : 'gray.700'}
-              _first={{ mt: 0 }}
-            >
-              {children}
-            </Heading>
+            <h3 className="text-2xl font-bold mb-3 mt-6 font-space-grotesk text-gray-200 dark:text-gray-700">{children}</h3>
           ),
           h4: ({ children }) => (
-            <Heading 
-              as="h4" 
-              size="sm" 
-              mb={3} 
-              mt={4}
-              fontFamily="Space Grotesk"
-              color={colorMode === 'dark' ? 'gray.300' : 'gray.600'}
-              _first={{ mt: 0 }}
-            >
-              {children}
-            </Heading>
+            <h4 className="text-xl font-bold mb-3 mt-4 font-space-grotesk text-gray-300 dark:text-gray-600">{children}</h4>
           ),
           
           // Параграфы
           p: ({ children }) => (
-            <Text 
-              mb={4} 
-              lineHeight="1.8"
-              color={colorMode === 'dark' ? 'gray.300' : 'gray.700'}
-            >
-              {children}
-            </Text>
+            <p className="mb-4 leading-relaxed text-gray-300 dark:text-gray-700">{children}</p>
           ),
           
           // Блоки кода
           pre: ({ children }) => (
-            <Box
-              as="pre"
-              bg={colorMode === 'dark' ? 'gray.900' : 'gray.50'}
-              p={4}
-              borderRadius="12px"
-              mb={4}
-              overflow="auto"
-              border="1px solid"
-              borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-              sx={{
-                '& code': {
-                  fontFamily: "'JetBrains Mono', 'Fira Code', Monaco, Menlo, 'Ubuntu Mono', monospace",
-                  fontSize: 'sm',
-                }
-              }}
-            >
-              {children}
-            </Box>
+            <pre className="bg-gray-900 dark:bg-gray-50 p-4 rounded-xl mb-4 overflow-auto border border-gray-700 dark:border-gray-200 font-mono text-sm">{children}</pre>
           ),
           
           // Инлайн код
           code: ({ children, className }) => {
-            // Если это блок кода в pre, возвращаем как есть
             if (className) {
               return <code className={className}>{children}</code>;
             }
-            // Иначе это инлайн код
             return (
-              <Code
-                px={2}
-                py={1}
-                bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
-                color={colorMode === 'dark' ? 'gray.100' : 'gray.800'}
-                borderRadius="md"
-                fontSize="sm"
-                fontFamily="'JetBrains Mono', Monaco, Menlo, 'Ubuntu Mono', monospace"
-              >
-                {children}
-              </Code>
+              <code className="px-2 py-1 bg-gray-700 dark:bg-gray-100 text-gray-100 dark:text-gray-800 rounded font-mono text-sm">{children}</code>
             );
           },
           
           // Ссылки
           a: ({ href, children }) => (
-            <Link
-              href={href}
-              color="primary.400"
-              _hover={{ 
-                color: 'primary.300',
-                textDecoration: 'underline'
-              }}
-              isExternal
-            >
-              {children}
-            </Link>
+            <a href={href} className="text-cyan-400 hover:text-cyan-300 underline" target="_blank" rel="noopener noreferrer">{children}</a>
           ),
           
           // Списки
           ul: ({ children }) => (
-            <List spacing={2} mb={4} pl={4}>
-              {children}
-            </List>
+            <ul className="list-disc mb-4 pl-6">{children}</ul>
           ),
           ol: ({ children }) => (
-            <List as="ol" spacing={2} mb={4} pl={4}>
-              {children}
-            </List>
+            <ol className="list-decimal mb-4 pl-6">{children}</ol>
           ),
           li: ({ children }) => (
-            <ListItem 
-              color={colorMode === 'dark' ? 'gray.300' : 'gray.700'}
-              lineHeight="1.6"
-              sx={{
-                '&::marker': {
-                  color: 'primary.400'
-                }
-              }}
-            >
-              {children}
-            </ListItem>
+            <li className="text-gray-300 dark:text-gray-700 leading-relaxed">{children}</li>
           ),
           
           // Цитаты
           blockquote: ({ children }) => (
-            <Box
-              as="blockquote"
-              pl={4}
-              py={2}
-              mb={4}
-              borderLeft="4px solid"
-              borderColor="primary.400"
-              bg={colorMode === 'dark' ? 'gray.800' : 'gray.50'}
-              borderRadius="0 8px 8px 0"
-              fontStyle="italic"
-            >
-              {children}
-            </Box>
+            <blockquote className="pl-4 py-2 mb-4 border-l-4 border-cyan-400 bg-gray-800 dark:bg-gray-50 rounded-r-lg italic">{children}</blockquote>
           ),
           
           // Жирный текст
           strong: ({ children }) => (
-            <Text as="strong" fontWeight="bold" color={colorMode === 'dark' ? 'gray.100' : 'gray.900'}>
-              {children}
-            </Text>
+            <strong className="font-bold text-gray-100 dark:text-gray-900">{children}</strong>
           ),
           
           // Курсив
           em: ({ children }) => (
-            <Text as="em" fontStyle="italic" color={colorMode === 'dark' ? 'gray.200' : 'gray.700'}>
-              {children}
-            </Text>
+            <em className="italic text-gray-200 dark:text-gray-700">{children}</em>
           ),
           
           // Горизонтальная линия
           hr: () => (
-            <Box
-              as="hr"
-              border="none"
-              height="1px"
-              bg={colorMode === 'dark' ? 'gray.600' : 'gray.300'}
-              my={8}
-            />
+            <hr className="border-none h-px bg-gray-600 dark:bg-gray-300 my-8" />
           ),
         }}
       >
         {children}
       </ReactMarkdown>
-      
-      <style jsx global>{`
+      <style>{`
         .markdown-content .hljs {
-          background: ${colorMode === 'dark' ? '#1a202c !important' : '#f7fafc !important'};
-          color: ${colorMode === 'dark' ? '#e2e8f0' : '#2d3748'};
+          background: #1a202c !important;
+          color: #e2e8f0;
         }
       `}</style>
-    </Box>
+    </div>
   );
 }

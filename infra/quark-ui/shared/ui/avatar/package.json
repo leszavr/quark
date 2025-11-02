@@ -1,0 +1,7 @@
+{
+  "name": "@quark-ui/avatar",
+  "main": "./Avatar.tsx",
+  "exports": {
+    ".": "./Avatar.tsx"
+  }
+}

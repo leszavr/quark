@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
-import { ServiceRegistry } from '../services/ServiceRegistry';
-import { HealthMonitor } from '../services/HealthMonitor';
-import { EventBus } from '../services/EventBus';
+import { Request, Response } from "express";
+import { ServiceRegistry } from "../core/ServiceRegistry";
+import { HealthMonitor } from "../core/HealthMonitor";
+import { EventBus } from "../core/EventBus";
+import { ServiceInfo } from "../types/index.js";
 
 export class PluginController {
   constructor(
@@ -13,39 +14,43 @@ export class PluginController {
   // Регистрация нового сервиса
   async registerService(req: Request, res: Response): Promise<void> {
     try {
-      const { name, version, url, healthEndpoint, metadata } = req.body;
+      const { id, name, version, type, endpoint, port, metadata, dependencies, resources } = req.body;
 
-      if (!name || !version || !url || !healthEndpoint) {
+      if (!id || !name || !version || !type) {
         res.status(400).json({
-          error: 'Missing required fields: name, version, url, healthEndpoint'
+          error: "Missing required fields: id, name, version, type"
         });
         return;
       }
 
-      const service = await this.serviceRegistry.registerService({
+      const service: ServiceInfo = {
+        id,
         name,
         version,
-        url,
-        healthEndpoint,
-        status: 'online',
-        metadata: metadata || {}
-      });
+        type,
+        endpoint,
+        port,
+        status: "active",
+        health: "unknown",
+        lastHeartbeat: new Date(),
+        metadata,
+        dependencies,
+        resources
+      };
+
+      await this.serviceRegistry.registerService(service);
 
       // Публикуем событие регистрации
-      await this.eventBus.publishServiceEvent('register', service.id, {
-        name: service.name,
-        version: service.version,
-        url: service.url
-      });
+      await this.eventBus.publishServiceRegistered(id, name);
 
       res.status(201).json({
         success: true,
-        service
+        message: "Service registered successfully"
       });
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       res.status(500).json({
-        error: 'Failed to register service',
+        error: "Failed to register service",
         details: error.message
       });
     }
@@ -57,11 +62,11 @@ export class PluginController {
       const { serviceId } = req.params;
 
       if (!serviceId) {
-        res.status(400).json({ error: 'Service ID is required' });
+        res.status(400).json({ error: "Service ID is required" });
         return;
       }
 
-      await this.serviceRegistry.updateHeartbeat(serviceId);
+      await this.serviceRegistry.heartbeat(serviceId);
 
       res.json({
         success: true,
@@ -69,7 +74,7 @@ export class PluginController {
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to update heartbeat',
+        error: "Failed to update heartbeat",
         details: error.message
       });
     }
@@ -86,7 +91,7 @@ export class PluginController {
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to get services',
+        error: "Failed to get services",
         details: error.message
       });
     }
@@ -99,11 +104,11 @@ export class PluginController {
       const service = await this.serviceRegistry.getService(serviceId);
 
       if (!service) {
-        res.status(404).json({ error: 'Service not found' });
+        res.status(404).json({ error: "Service not found" });
         return;
       }
 
-      const health = await this.serviceRegistry.getServiceHealth(serviceId);
+      const health = await this.serviceRegistry.getHealth(serviceId);
 
       res.json({
         success: true,
@@ -112,7 +117,7 @@ export class PluginController {
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to get service',
+        error: "Failed to get service",
         details: error.message
       });
     }
@@ -125,24 +130,22 @@ export class PluginController {
       
       const service = await this.serviceRegistry.getService(serviceId);
       if (!service) {
-        res.status(404).json({ error: 'Service not found' });
+        res.status(404).json({ error: "Service not found" });
         return;
       }
 
       await this.serviceRegistry.unregisterService(serviceId);
 
       // Публикуем событие отмены регистрации
-      await this.eventBus.publishServiceEvent('unregister', serviceId, {
-        name: service.name
-      });
+      await this.eventBus.publishServiceUnregistered(serviceId, service.name);
 
       res.json({
         success: true,
-        message: 'Service unregistered successfully'
+        message: "Service unregistered successfully"
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to unregister service',
+        error: "Failed to unregister service",
         details: error.message
       });
     }
@@ -152,7 +155,7 @@ export class PluginController {
   async checkHealth(req: Request, res: Response): Promise<void> {
     try {
       const { serviceId } = req.params;
-      const healthCheck = await this.healthMonitor.checkServiceHealth(serviceId);
+      const healthCheck = await this.healthMonitor.checkService(serviceId);
 
       res.json({
         success: true,
@@ -160,7 +163,7 @@ export class PluginController {
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to check service health',
+        error: "Failed to check service health",
         details: error.message
       });
     }
@@ -169,15 +172,15 @@ export class PluginController {
   // Получение общего состояния системы
   async getSystemHealth(req: Request, res: Response): Promise<void> {
     try {
-      const systemHealth = await this.healthMonitor.getSystemHealth();
+      const healthSummary = await this.healthMonitor.getHealthSummary();
 
       res.json({
         success: true,
-        system: systemHealth
+        system: healthSummary
       });
     } catch (error: any) {
       res.status(500).json({
-        error: 'Failed to get system health',
+        error: "Failed to get system health",
         details: error.message
       });
     }

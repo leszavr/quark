@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -19,9 +19,9 @@ import {
   Badge,
   IconButton,
   useToast,
-} from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
-import { FiEdit2, FiSave, FiX, FiRefreshCw } from 'react-icons/fi';
+} from "@chakra-ui/react";
+import { useState, useEffect } from "react";
+import { FiEdit2, FiSave, FiX, FiRefreshCw } from "react-icons/fi";
 
 interface PersonalizationData {
   signature: string;
@@ -40,13 +40,13 @@ interface PersonalizationData {
 }
 
 const defaultData: PersonalizationData = {
-  signature: '',
+  signature: "",
   displayOnlineStatus: true,
   showLastSeen: true,
   showReadReceipts: true,
-  language: 'ru',
-  timezone: 'Europe/Moscow',
-  theme: 'system',
+  language: "ru",
+  timezone: "Europe/Moscow",
+  theme: "system",
   notifications: {
     email: true,
     push: true,
@@ -56,24 +56,24 @@ const defaultData: PersonalizationData = {
 };
 
 const languages = [
-  { value: 'ru', label: 'Русский' },
-  { value: 'en', label: 'English' },
-  { value: 'uk', label: 'Українська' },
-  { value: 'kz', label: 'Қазақша' },
+  { value: "ru", label: "Русский" },
+  { value: "en", label: "English" },
+  { value: "uk", label: "Українська" },
+  { value: "kz", label: "Қазақша" },
 ];
 
 const timezones = [
-  { value: 'Europe/Moscow', label: 'Москва (UTC+3)' },
-  { value: 'Europe/Kiev', label: 'Киев (UTC+2)' },
-  { value: 'Asia/Almaty', label: 'Алматы (UTC+6)' },
-  { value: 'Europe/London', label: 'Лондон (UTC+0)' },
-  { value: 'America/New_York', label: 'Нью-Йорк (UTC-5)' },
+  { value: "Europe/Moscow", label: "Москва (UTC+3)" },
+  { value: "Europe/Kiev", label: "Киев (UTC+2)" },
+  { value: "Asia/Almaty", label: "Алматы (UTC+6)" },
+  { value: "Europe/London", label: "Лондон (UTC+0)" },
+  { value: "America/New_York", label: "Нью-Йорк (UTC-5)" },
 ];
 
 const themes = [
-  { value: 'system', label: 'Системная' },
-  { value: 'light', label: 'Светлая' },
-  { value: 'dark', label: 'Тёмная' },
+  { value: "system", label: "Системная" },
+  { value: "light", label: "Светлая" },
+  { value: "dark", label: "Тёмная" },
 ];
 
 export function PersonalizationTab() {
@@ -85,35 +85,35 @@ export function PersonalizationTab() {
 
   // Загружаем данные из localStorage при монтировании
   useEffect(() => {
-    const saved = localStorage.getItem('personalizationData');
+    const saved = localStorage.getItem("personalizationData");
     if (saved) {
       try {
         const parsedData = JSON.parse(saved);
         setData(parsedData);
         setOriginalData(parsedData);
       } catch (error) {
-        console.error('Ошибка парсинга данных персонализации:', error);
+        console.error("Ошибка парсинга данных персонализации:", error);
       }
     }
   }, []);
 
   const handleSave = () => {
     try {
-      localStorage.setItem('personalizationData', JSON.stringify(data));
+      localStorage.setItem("personalizationData", JSON.stringify(data));
       setOriginalData(data);
       setIsEditing(false);
       toast({
-        title: 'Настройки сохранены',
-        description: 'Настройки персонализации успешно обновлены',
-        status: 'success',
+        title: "Настройки сохранены",
+        description: "Настройки персонализации успешно обновлены",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Ошибка',
-        description: 'Не удалось сохранить настройки',
-        status: 'error',
+        title: "Ошибка",
+        description: "Не удалось сохранить настройки",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -132,11 +132,11 @@ export function PersonalizationTab() {
   const handleReset = () => {
     setData(defaultData);
     setOriginalData(defaultData);
-    localStorage.removeItem('personalizationData');
+    localStorage.removeItem("personalizationData");
     toast({
-      title: 'Настройки сброшены',
-      description: 'Все настройки персонализации сброшены к значениям по умолчанию',
-      status: 'info',
+      title: "Настройки сброшены",
+      description: "Все настройки персонализации сброшены к значениям по умолчанию",
+      status: "info",
       duration: 3000,
       isClosable: true,
     });
@@ -205,7 +205,7 @@ export function PersonalizationTab() {
               resize="vertical"
               minH="100px"
               isReadOnly={!isEditing}
-              bg={isEditing ? undefined : colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50'}
+              bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
             />
             <Text fontSize="xs" color="gray.500" mt={1}>
               Максимум 500 символов. Подпись будет автоматически добавляться к вашим сообщениям.

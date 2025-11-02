@@ -1,45 +1,32 @@
-'use client';
+"use client";
 
-import { Box, Text, VStack, useColorMode } from '@chakra-ui/react';
+// Chakra UI удалён, используем div/p/span и Tailwind
 
 export function MainContent() {
-  const { colorMode } = useColorMode();
+  // Цвета для Tailwind: text-cyan-400 (dark), text-gray-900 (light)
 
   return (
-    <Box flex={1} p={6}>
-      <VStack spacing={6} align="stretch" h="full">
-        <Box>
-          <Text
-            fontSize="3xl"
-            fontWeight="bold"
-            mb={2}
-            color={colorMode === 'dark' ? '#00f0ff' : '#1a202c'}
-            fontFamily="Space Grotesk"
-          >
+    <div className="flex-1 p-6">
+      <div className="flex flex-col gap-6 h-full">
+        <div>
+          <p className="text-3xl font-bold mb-2 font-spaceGrotesk text-gray-900 dark:text-cyan-400">
             Добро пожаловать в Quark
-          </Text>
-          <Text color="gray.500" fontSize="lg">
+          </p>
+          <p className="text-gray-500 text-lg">
             Ваша цифровая вселенная для самовыражения
-          </Text>
-        </Box>
+          </p>
+        </div>
 
-        <Box
-          p={6}
-          borderRadius="xl"
-          bg={colorMode === 'dark' ? 'gray.800' : 'gray.50'}
-          boxShadow="lg"
-        >
-          <Text fontSize="lg" fontWeight="semibold" mb={3}>
-            🚀 Быстрый старт
-          </Text>
-          <VStack align="stretch" spacing={2}>
-            <Text color="gray.600">• Создайте свой первый пост в блоге</Text>
-            <Text color="gray.600">• Начните общение в мессенджере</Text>
-            <Text color="gray.600">• Настройте ИИ-помощника</Text>
-            <Text color="gray.600">• Исследуйте доступные плагины</Text>
-          </VStack>
-        </Box>
-      </VStack>
-    </Box>
+        <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-800 shadow-lg">
+          <p className="text-lg font-semibold mb-3">🚀 Быстрый старт</p>
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600">• Создайте свой первый пост в блоге</p>
+            <p className="text-gray-600">• Начните общение в мессенджере</p>
+            <p className="text-gray-600">• Настройте ИИ-помощника</p>
+            <p className="text-gray-600">• Исследуйте доступные плагины</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,11 +1,11 @@
-import { IsString } from 'class-validator';
+import { IsString } from "class-validator";
 
 export class Complete2FALoginDto {
   @IsString()
-  tempToken: string;
+  tempToken!: string;
 
   @IsString()
-  twoFactorToken: string;
+  twoFactorToken!: string;
 
   @IsString()
   deviceFingerprint?: string;

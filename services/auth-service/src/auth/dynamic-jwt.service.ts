@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { VaultService } from '../vault/vault.service';
-import { JwtSecretRotatedEvent } from '../vault/events/jwt-secret-rotated.event';
-import * as jwt from 'jsonwebtoken';
+import { Injectable, Logger } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
+import { VaultService } from "../vault/vault.service";
+import { JwtSecretRotatedEvent } from "../vault/events/jwt-secret-rotated.event";
+import * as jwt from "jsonwebtoken";
 
 @Injectable()
 export class DynamicJwtService {
@@ -20,10 +20,10 @@ export class DynamicJwtService {
       const secret = await this.vaultService.getJWTSecret();
       
       return jwt.sign(payload, secret, {
-        algorithm: 'HS256',
+        algorithm: "HS256",
       } as jwt.SignOptions);
     } catch (error) {
-      this.logger.error('❌ Error signing JWT:', error.message);
+      this.logger.error("❌ Error signing JWT:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -39,25 +39,25 @@ export class DynamicJwtService {
       // Сначала пытаемся с текущим секретом
       try {
         return jwt.verify(token, currentSecret, {
-          algorithms: ['HS256'],
-          issuer: 'quark-auth-service',
+          algorithms: ["HS256"],
+          issuer: "quark-auth-service",
         });
       } catch (currentSecretError) {
-        this.logger.warn('⚠️ Token verification failed with current secret, trying previous secret...');
+        this.logger.warn("⚠️ Token verification failed with current secret, trying previous secret...");
         
         // Если не прошло, пытаемся с предыдущим секретом (для graceful transition)
         const previousSecret = await this.vaultService.getPreviousJWTSecret();
         if (previousSecret) {
           try {
             const payload = jwt.verify(token, previousSecret, {
-              algorithms: ['HS256'],
-              issuer: 'quark-auth-service',
+              algorithms: ["HS256"],
+              issuer: "quark-auth-service",
             });
             
-            this.logger.warn('✅ Token verified with previous secret - consider refreshing token');
+            this.logger.warn("✅ Token verified with previous secret - consider refreshing token");
             return payload;
           } catch (previousSecretError) {
-            this.logger.error('❌ Token verification failed with both current and previous secrets');
+            this.logger.error("❌ Token verification failed with both current and previous secrets");
             throw currentSecretError; // Возвращаем оригинальную ошибку
           }
         } else {
@@ -65,7 +65,7 @@ export class DynamicJwtService {
         }
       }
     } catch (error) {
-      this.logger.error('❌ Error verifying JWT:', error.message);
+      this.logger.error("❌ Error verifying JWT:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -80,11 +80,11 @@ export class DynamicJwtService {
   /**
    * Обработчик события ротации JWT секрета
    */
-  @OnEvent('jwt.secret.rotated')
+  @OnEvent("jwt.secret.rotated")
   handleJwtSecretRotated(event: JwtSecretRotatedEvent) {
-    this.logger.log('🔄 JWT secret rotation detected');
+    this.logger.log("🔄 JWT secret rotation detected");
     this.logger.log(`⏰ Rotated at: ${event.rotatedAt.toISOString()}`);
-    this.logger.log('✅ DynamicJwtService ready for new secret');
+    this.logger.log("✅ DynamicJwtService ready for new secret");
     
     // Дополнительная логика может быть добавлена здесь
     // Например, инвалидация кэша или уведомление других компонентов

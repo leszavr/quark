@@ -1,35 +1,18 @@
-'use client';
+"use client";
 
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Avatar,
-  Card,
-  CardBody,
-  CardHeader,
-  useColorMode,
-  useColorModeValue,
-  Badge,
-  IconButton,
-  Input,
-  Textarea,
-} from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, MessageCircle, Heart, Share2, BookOpen, ArrowLeft, Edit3, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { MarkdownRenderer } from './MarkdownRenderer';
-import { BlogComments } from './BlogComments';
-import { TiptapEditor } from './TiptapEditor';
-import { useBlogStorage, BlogPost } from '../hooks/useBlogStorage';
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, MessageCircle, Heart, Share2, BookOpen, ArrowLeft, Edit3, Plus } from "lucide-react";
+import { useState } from "react";
+import { MarkdownRenderer } from "./MarkdownRenderer";
+import { BlogComments } from "./BlogComments";
+import { TiptapEditor } from "./TiptapEditor";
+import { useBlogStorage, BlogPost } from "../hooks/useBlogStorage";
 
-const MotionCard = motion.create(Card);
-const MotionBox = motion.create(Box);
+const MotionCard = motion.create("div");
+const MotionBox = motion.create("div");
 
 // Типы состояний блога
-type BlogViewState = 'feed' | 'post' | 'editor';
+type BlogViewState = "feed" | "post" | "editor";
 
 
 
@@ -41,21 +24,14 @@ interface BlogFeedProps {
 }
 
 export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
-  const { colorMode } = useColorMode();
-  
-  // Цвета для темы - все хуки должны быть в начале компонента
-  const iconBg = useColorModeValue('#4a5568', '#68d391');
-  const iconColor = useColorModeValue('white', 'black');
-  const titleColor = useColorModeValue('#4a5568', '#68d391');
-  
-  const [viewState, setViewState] = useState<BlogViewState>('feed');
+  const [viewState, setViewState] = useState<BlogViewState>("feed");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   
   // Состояние редактора - все хуки должны быть объявлены до условных возвратов
   const [editorData, setEditorData] = useState({
-    title: '',
-    preview: '',
-    content: '',
+    title: "",
+    preview: "",
+    content: "",
     tags: [] as string[],
   });
   const [editorErrors, setEditorErrors] = useState<string[]>([]);
@@ -79,14 +55,14 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
   // Функции навигации
   const openPost = (postId: string) => {
     setSelectedPostId(postId);
-    setViewState('post');
+    setViewState("post");
     onPostClick?.(postId);
   };
   
 
   
   const backToFeed = () => {
-    setViewState('feed');
+    setViewState("feed");
     setSelectedPostId(null);
   };
   
@@ -98,9 +74,9 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
   // Если данные загружаются, показываем индикатор
   if (loading) {
     return (
-      <Box p={6} h="full" display="flex" alignItems="center" justifyContent="center">
-        <Text>Загрузка...</Text>
-      </Box>
+      <div className="p-6 h-full flex items-center justify-center">
+        <span>Загрузка...</span>
+      </div>
     );
   }
 
@@ -111,64 +87,48 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      h="full"
+      className="h-full"
     >
-      <VStack spacing={4} align="stretch" h="full">
+      <div className="flex flex-col gap-4 items-stretch h-full">
         {/* Заголовок */}
-        <HStack justify="space-between" mb={4}>
-          <HStack spacing={3}>
-            <Box
-              w={8}
-              h={8}
-              borderRadius="md"
-              bg={iconBg}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <BookOpen size={18} color={iconColor} />
-            </Box>
-            <Text
-              fontSize="2xl"
-              fontWeight="bold"
-              fontFamily="Space Grotesk"
-              color={titleColor}
-            >
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-3">
+            <div className="w-8 h-8 bg-gray-600 dark:bg-green-400 rounded-md flex items-center justify-center">
+              <BookOpen size={18} className="text-white dark:text-black" />
+            </div>
+            <span className="text-2xl font-bold font-space-grotesk text-gray-600 dark:text-green-400">
               Лента блогов
-            </Text>
-          </HStack>
-          <HStack spacing={2}>
+            </span>
+          </div>
+          <div className="flex gap-2">
             {onChatClick && (
-              <Button
-                leftIcon={<MessageCircle />}
-                size="sm"
-                colorScheme="blue"
-                variant="solid"
+              <button
+                className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-500 text-white rounded-full"
                 onClick={onChatClick}
-                borderRadius="full"
               >
+                <MessageCircle size={16} />
                 Чат
-              </Button>
+              </button>
             )}
-            <IconButton
-              aria-label="Создать пост"
-              icon={<Plus />}
-              variant="outline"
-              size="sm"
+            <button
+              className="p-2 border rounded"
               onClick={openEditorForNew}
-            />
-            <Badge colorScheme="cyan" variant="subtle">
+              aria-label="Создать пост"
+            >
+              <Plus size={16} />
+            </button>
+            <span className="px-2 py-1 text-xs bg-cyan-100 text-cyan-700 rounded-full dark:bg-cyan-800 dark:text-cyan-200">
               {posts.length} постов
-            </Badge>
-          </HStack>
-        </HStack>
+            </span>
+          </div>
+        </div>
 
         {/* Посты */}
-        <VStack spacing={4} flex={1} overflowY="auto">
+        <div className="flex flex-col gap-4 flex-1 overflow-y-auto">
           {posts.map((post, index) => (
             <MotionCard
               key={post.id}
-              cursor="pointer"
+              className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 rounded-lg w-full"
               onClick={() => openPost(post.id)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -177,161 +137,112 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
                 y: -4,
                 transition: { duration: 0.2 }
               }}
-              bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-              borderWidth="1px"
-              borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-              shadow="lg"
-              _hover={{
-                shadow: 'xl',
-                borderColor: colorMode === 'dark' ? 'primary.500' : 'primary.400',
-              }}
-              w="full"
             >
-              <CardHeader pb={2}>
-                <HStack justify="space-between">
-                  <HStack spacing={3}>
-                    <Avatar 
-                      size="sm" 
-                      name={post.author.name}
+              <div className="p-4 pb-2">
+                <div className="flex justify-between">
+                  <div className="flex gap-3">
+                    <img
+                      className="w-8 h-8 rounded-full object-cover"
                       src={post.author.avatar}
+                      alt={post.author.name}
                     />
-                    <Box>
-                      <Text fontSize="sm" fontWeight="medium">
+                    <div>
+                      <span className="text-sm font-medium">
                         {post.author.name}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
+                      </span>
+                      <span className="text-xs text-gray-500">
                         {post.author.username} • {post.date}
-                      </Text>
-                    </Box>
-                  </HStack>
-                  <HStack spacing={2}>
-                    <HStack spacing={1}>
-                      <Eye size={14} color="gray" />
-                      <Text fontSize="xs" color="gray.500">
-                        {post.readTime}
-                      </Text>
-                    </HStack>
-                  </HStack>
-                </HStack>
-              </CardHeader>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Eye size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-500">
+                      {post.readTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <CardBody pt={0}>
-                <VStack align="stretch" spacing={3}>
-                  <Box>
-                    <Text
-                      fontSize="lg"
-                      fontWeight="bold"
-                      mb={2}
-                      fontFamily="Space Grotesk"
-                      lineHeight="shorter"
-                    >
+              <div className="p-4 pt-0">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <span className="text-lg font-bold mb-2 block font-space-grotesk leading-tight">
                       {post.title}
-                    </Text>
-                    <Text
-                      fontSize="md"
-                      color="gray.600"
-                      lineHeight="base"
-                      noOfLines={3}
-                      _dark={{ color: 'gray.400' }}
-                    >
+                    </span>
+                    <span className="text-md text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
                       {post.preview}
-                    </Text>
-                  </Box>
+                    </span>
+                  </div>
 
                   {/* Теги */}
                   {post.tags && post.tags.length > 0 && (
-                    <HStack spacing={2} flexWrap="wrap">
+                    <div className="flex gap-2 flex-wrap">
                       {post.tags.slice(0, 3).map((tag, tagIndex) => (
-                        <Text
+                        <span
                           key={tagIndex}
-                          fontSize="xs"
-                          px={2}
-                          py={1}
-                          bg="blue.100"
-                          color="blue.700"
-                          borderRadius="full"
-                          _dark={{
-                            bg: 'blue.800',
-                            color: 'blue.200'
-                          }}
+                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full dark:bg-blue-800 dark:text-blue-200"
                         >
                           #{tag}
-                        </Text>
+                        </span>
                       ))}
                       {post.tags.length > 3 && (
-                        <Text fontSize="xs" color="gray.500">
+                        <span className="text-xs text-gray-500">
                           +{post.tags.length - 3}
-                        </Text>
+                        </span>
                       )}
-                    </HStack>
+                    </div>
                   )}
 
-                  <HStack justify="space-between" align="center" pt={2}>
-                    <HStack spacing={4}>
-                      <HStack spacing={1}>
-                        <IconButton
-                          aria-label="Like"
-                          icon={<Heart size={16} fill={post.isLiked ? '#ff6b6b' : 'none'} />}
-                          variant="ghost"
-                          size="sm"
-                          color={post.isLiked ? 'red.400' : 'gray.500'}
-                          _hover={{ color: 'red.400' }}
+                  <div className="flex justify-between items-center pt-2">
+                    <div className="flex gap-4">
+                      <div className="flex gap-1 items-center">
+                        <button
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                           onClick={(e) => {
                             e.stopPropagation();
                             togglePostLike(post.id);
                           }}
-                        />
-                        <Text fontSize="sm" color="gray.500">
+                          aria-label="Like"
+                        >
+                          <Heart size={16} fill={post.isLiked ? "#ff6b6b" : "none"} className={post.isLiked ? "text-red-400" : "text-gray-500"} />
+                        </button>
+                        <span className="text-sm text-gray-500">
                           {post.likes}
-                        </Text>
-                      </HStack>
+                        </span>
+                      </div>
                       
-                      <HStack spacing={1}>
-                        <IconButton
-                          aria-label="Comments"
-                          icon={<MessageCircle size={16} />}
-                          variant="ghost"
-                          size="sm"
-                          color="gray.500"
-                          _hover={{ color: 'primary.500' }}
-                        />
-                        <Text fontSize="sm" color="gray.500">
+                      <div className="flex gap-1 items-center">
+                        <MessageCircle size={16} className="text-gray-500" />
+                        <span className="text-sm text-gray-500">
                           {post.comments}
-                        </Text>
-                      </HStack>
-                    </HStack>
+                        </span>
+                      </div>
+                    </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      colorScheme="cyan"
+                    <button
+                      className="px-3 py-1 text-sm border border-cyan-500 text-cyan-700 rounded hover:bg-cyan-50 dark:hover:bg-cyan-900 dark:text-cyan-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         openPost(post.id);
                       }}
                     >
                       Читать
-                    </Button>
-                  </HStack>
-                </VStack>
-              </CardBody>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </MotionCard>
           ))}
 
           {/* Кнопка загрузить еще */}
-          <Button
-            variant="ghost"
-            size="lg"
-            color="gray.500"
-            _hover={{ 
-              bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50',
-              color: 'primary.500'
-            }}
+          <button
+            className="px-4 py-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-cyan-500 transition-colors rounded-lg"
           >
             Загрузить еще посты
-          </Button>
-        </VStack>
-      </VStack>
+          </button>
+        </div>
+      </div>
     </MotionBox>
   );
 
@@ -345,143 +256,108 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 20 }}
         transition={{ duration: 0.3 }}
-        h="full"
+        className="h-full"
       >
-        <VStack spacing={6} h="full" align="stretch">
+        <div className="flex flex-col gap-6 h-full">
           {/* Навигация */}
-          <HStack justify="space-between" align="center">
-            <IconButton
-              aria-label="Назад к блогу"
-              icon={<ArrowLeft />}
-              variant="outline"
-              size="sm"
+          <div className="flex justify-between items-center">
+            <button
+              className="p-2 border rounded"
               onClick={backToFeed}
-            />
-            <HStack spacing={2}>
-              <IconButton
-                aria-label="Редактировать"
-                icon={<Edit3 />}
-                variant="outline"
-                size="sm"
+              aria-label="Назад к блогу"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div className="flex gap-2">
+              <button
+                className="p-2 border rounded"
                 onClick={openEditorForEdit}
-              />
-            </HStack>
-          </HStack>
-          
-          <VStack spacing={6} align="stretch" flex={1} overflowY="auto">
-            {/* Заголовок поста */}
-            <Box>
-              <Text
-                fontSize="3xl"
-                fontWeight="bold"
-                fontFamily="Space Grotesk"
-                lineHeight="shorter"
-                mb={4}
+                aria-label="Редактировать"
               >
+                <Edit3 size={16} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-6 flex-1 overflow-y-auto">
+            {/* Заголовок поста */}
+            <div>
+              <span className="text-3xl font-bold font-space-grotesk leading-tight mb-4 block">
                 {selectedPost.title}
-              </Text>
+              </span>
               
-              <HStack spacing={4} mb={4}>
-                <HStack spacing={3}>
-                  <Avatar size="md" name={selectedPost.author.name} />
-                  <Box>
-                    <Text fontSize="md" fontWeight="medium">
+              <div className="flex gap-4 mb-4">
+                <div className="flex gap-3">
+                  <img className="w-12 h-12 rounded-full" src={selectedPost.author.avatar} alt={selectedPost.author.name} />
+                  <div>
+                    <span className="text-md font-medium">
                       {selectedPost.author.name}
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
+                    </span>
+                    <span className="text-sm text-gray-500 block">
                       {selectedPost.author.username} • {selectedPost.date} • {selectedPost.readTime}
-                    </Text>
-                  </Box>
-                </HStack>
-              </HStack>
+                    </span>
+                  </div>
+                </div>
+              </div>
               
               {/* Теги */}
               {selectedPost.tags && selectedPost.tags.length > 0 && (
-                <HStack spacing={2} flexWrap="wrap" mb={6}>
+                <div className="flex gap-2 flex-wrap mb-6">
                   {selectedPost.tags.map((tag, index) => (
-                    <Text
+                    <span
                       key={index}
-                      fontSize="sm"
-                      px={3}
-                      py={1}
-                      bg="blue.100"
-                      color="blue.700"
-                      borderRadius="full"
-                      _dark={{
-                        bg: 'blue.800',
-                        color: 'blue.200'
-                      }}
+                      className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-full dark:bg-blue-800 dark:text-blue-200"
                     >
                       #{tag}
-                    </Text>
+                    </span>
                   ))}
-                </HStack>
+                </div>
               )}
-            </Box>
+            </div>
             
             {/* Контент поста */}
-            <Box
-              bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-              borderRadius="16px"
-              p={8}
-              borderWidth="1px"
-              borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-              shadow="lg"
-              flex={1}
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg flex-1"
             >
               <MarkdownRenderer>
                 {selectedPost.content || selectedPost.preview}
               </MarkdownRenderer>
-            </Box>
+            </div>
             
             {/* Действия с постом */}
-            <HStack justify="space-between" align="center" py={4}>
-              <HStack spacing={4}>
-                <HStack spacing={2} cursor="pointer">
-                  <IconButton
-                    aria-label="Like"
-                    icon={<Heart size={20} fill={selectedPost.isLiked ? '#ff6b6b' : 'none'} />}
-                    variant="ghost"
-                    size="md"
-                    color={selectedPost.isLiked ? 'red.400' : 'gray.500'}
-                    _hover={{ color: 'red.400' }}
+            <div className="flex justify-between items-center py-4">
+              <div className="flex gap-4">
+                <div className="flex gap-2 cursor-pointer">
+                  <button
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                     onClick={() => togglePostLike(selectedPost.id)}
-                  />
-                  <Text fontSize="md">{selectedPost.likes}</Text>
-                </HStack>
-                <HStack spacing={2}>
-                  <IconButton
-                    aria-label="Comments"
-                    icon={<MessageCircle size={20} />}
-                    variant="ghost"
-                    size="md"
-                    color="gray.500"
-                    _hover={{ color: 'primary.500' }}
-                  />
-                  <Text fontSize="md">{selectedPost.comments}</Text>
-                </HStack>
-              </HStack>
-              <HStack spacing={2}>
-                <IconButton
+                    aria-label="Like"
+                  >
+                    <Heart size={20} fill={selectedPost.isLiked ? "#ff6b6b" : "none"} className={selectedPost.isLiked ? "text-red-400" : "text-gray-500"} />
+                  </button>
+                  <span className="text-md">{selectedPost.likes}</span>
+                </div>
+                <div className="flex gap-2">
+                  <MessageCircle size={20} className="text-gray-500" />
+                  <span className="text-md">{selectedPost.comments}</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="p-2 border rounded"
                   aria-label="Share"
-                  icon={<Share2 size={20} />}
-                  variant="outline"
-                  size="md"
-                />
-                <Button size="md" colorScheme="cyan" onClick={openEditorForEdit}>
+                >
+                  <Share2 size={20} />
+                </button>
+                <button className="px-4 py-2 bg-cyan-500 text-white rounded" onClick={openEditorForEdit}>
                   Редактировать
-                </Button>
-              </HStack>
-            </HStack>
+                </button>
+              </div>
+            </div>
             
             {/* Комментарии */}
-            <Box
-              bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-              borderRadius="16px"
-              p={6}
-              borderWidth="1px"
-              borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-              shadow="lg"
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg"
             >
               <BlogComments 
                 postId={selectedPost.id}
@@ -493,9 +369,9 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
                 onDeleteComment={deleteComment}
                 onLikeComment={toggleCommentLike}
               />
-            </Box>
-          </VStack>
-        </VStack>
+            </div>
+          </div>
+        </div>
       </MotionBox>
     );
   };
@@ -506,14 +382,14 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
       setEditorData({
         title: post.title,
         preview: post.preview,
-        content: post.content || '',
+        content: post.content || "",
         tags: post.tags || [],
       });
     } else {
       setEditorData({
-        title: '',
-        preview: '',
-        content: '',
+        title: "",
+        preview: "",
+        content: "",
         tags: [],
       });
     }
@@ -524,14 +400,14 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
   const openEditorForNew = () => {
     setSelectedPostId(null);
     initializeEditor();
-    setViewState('editor');
+    setViewState("editor");
   };
 
   // Открыть редактор для редактирования поста
   const openEditorForEdit = () => {
     if (selectedPost) {
       initializeEditor(selectedPost);
-      setViewState('editor');
+      setViewState("editor");
     }
   };
 
@@ -563,9 +439,9 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
           tags: editorData.tags,
           isPublished: true,
           author: {
-            name: 'Вы',
-            avatar: '',
-            username: '@you',
+            name: "Вы",
+            avatar: "",
+            username: "@you",
           },
         });
         setSelectedPostId(newPost.id);
@@ -574,7 +450,7 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
       setEditorErrors([]);
       backToFeed();
     } catch (error) {
-      setEditorErrors(['Ошибка при сохранении поста']);
+      setEditorErrors(["Ошибка при сохранении поста"]);
     }
   };
 
@@ -587,103 +463,95 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.3 }}
-      h="full"
+      className="h-full"
     >
-      <VStack spacing={6} h="full" align="stretch">
+      <div className="flex flex-col gap-6 h-full">
         {/* Навигация редактора */}
-        <HStack justify="space-between" align="center">
-          <IconButton
-            aria-label="Назад"
-            icon={<ArrowLeft />}
-            variant="outline"
-            size="sm"
+        <div className="flex justify-between items-center">
+          <button
+            className="p-2 border rounded"
             onClick={backToFeed}
-          />
-          <Text fontSize="xl" fontWeight="bold" fontFamily="Space Grotesk">
-            {selectedPostId ? 'Редактирование поста' : 'Создание поста'}
-          </Text>
-          <HStack spacing={2}>
-            <Button size="sm" variant="outline">
+            aria-label="Назад"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span className="text-xl font-bold font-space-grotesk">
+            {selectedPostId ? "Редактирование поста" : "Создание поста"}
+          </span>
+          <div className="flex gap-2">
+            <button className="px-3 py-1 text-sm border rounded">
               Предпросмотр
-            </Button>
-            <Button 
-              size="sm" 
-              colorScheme="cyan"
+            </button>
+            <button 
+              className="px-3 py-1 text-sm bg-cyan-500 text-white rounded"
               onClick={handleSavePost}
-              isDisabled={!editorData.title.trim() || !editorData.content.trim()}
+              disabled={!editorData.title.trim() || !editorData.content.trim()}
             >
-              {selectedPostId ? 'Обновить' : 'Опубликовать'}
-            </Button>
-          </HStack>
-        </HStack>
+              {selectedPostId ? "Обновить" : "Опубликовать"}
+            </button>
+          </div>
+        </div>
         
-        <VStack spacing={4} flex={1} align="stretch">
+        <div className="flex flex-col gap-4 flex-1">
           {/* Ошибки валидации */}
           {editorErrors.length > 0 && (
-            <Box
-              bg="red.50"
-              borderColor="red.200"
-              borderWidth="1px"
-              borderRadius="8px"
-              p={3}
-              _dark={{ bg: 'red.900', borderColor: 'red.700' }}
+            <div
+              className="bg-red-50 border border-red-200 rounded-lg p-3 dark:bg-red-900 dark:border-red-700"
             >
               {editorErrors.map((error, index) => (
-                <Text key={index} color="red.600" fontSize="sm" _dark={{ color: 'red.300' }}>
+                <span key={index} className="text-red-600 text-sm block dark:text-red-300">
                   • {error}
-                </Text>
+                </span>
               ))}
-            </Box>
+            </div>
           )}
           
           {/* Поля ввода */}
-          <VStack spacing={4}>
-            <Box w="full">
-              <Text mb={2} fontSize="sm" fontWeight="medium">Заголовок</Text>
-              <Input
+          <div className="flex flex-col gap-4">
+            <div className="w-full">
+              <span className="mb-2 block text-sm font-medium">Заголовок</span>
+              <input
                 value={editorData.title}
                 onChange={(e) => setEditorData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Введите заголовок поста..."
-                size="lg"
-                borderRadius="12px"
+                className="w-full px-4 py-3 text-lg border rounded-xl"
               />
-            </Box>
+            </div>
             
-            <Box w="full">
-              <Text mb={2} fontSize="sm" fontWeight="medium">Краткое описание</Text>
-              <Textarea
+            <div className="w-full">
+              <span className="mb-2 block text-sm font-medium">Краткое описание</span>
+              <textarea
                 value={editorData.preview}
                 onChange={(e) => setEditorData(prev => ({ ...prev, preview: e.target.value }))}
                 placeholder="Краткое описание для превью..."
                 rows={3}
-                borderRadius="12px"
-                resize="vertical"
+                className="w-full px-4 py-2 border rounded-xl resize-vertical"
               />
-            </Box>
-          </VStack>
+            </div>
+          </div>
           
           {/* WYSIWYG редактор контента */}
-          <Box flex={1}>
-            <Text mb={3} fontSize="sm" fontWeight="medium">Содержание</Text>
+          <div className="flex-1">
+            <span className="mb-3 block text-sm font-medium">Содержание</span>
             <TiptapEditor
               value={editorData.content}
               onChange={(content: string) => setEditorData(prev => ({ ...prev, content }))}
               placeholder="Начните писать ваш пост здесь..."
               height="350px"
             />
-          </Box>
-        </VStack>
-      </VStack>
+          </div>
+        </div>
+      </div>
     </MotionBox>
   );
 
   return (
-    <Box p={6} h="full" overflow="hidden">
+    <div className="p-6 h-full overflow-hidden">
       <AnimatePresence mode="wait">
-        {viewState === 'feed' && renderFeedView()}
-        {viewState === 'post' && renderPostView()}
-        {viewState === 'editor' && renderEditorView()}
+        {viewState === "feed" && renderFeedView()}
+        {viewState === "post" && renderPostView()}
+        {viewState === "editor" && renderEditorView()}
       </AnimatePresence>
-    </Box>
+    </div>
   );
 }

@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { Box, Flex, useColorMode } from '@chakra-ui/react';
-import { ReactNode, useRef, useState, useCallback, useEffect } from 'react';
-import { useAppStore } from '@/stores/appStore';
+import { ReactNode, useRef, useState, useCallback, useEffect } from "react";
+import { useAppStore } from "@/stores/appStore";
 
 interface ResizableSplitterProps {
   leftChild: ReactNode;
@@ -19,7 +18,6 @@ export function ResizableSplitter({
   maxLeftWidth = 70,
   onRightWidthChange
 }: ResizableSplitterProps) {
-  const { colorMode } = useColorMode();
   const { splitRatio, setSplitRatio } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -59,119 +57,61 @@ export function ResizableSplitter({
     
     const handleMouseUp = () => {
       setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
     
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
   }, [leftWidth, minLeftWidth, maxLeftWidth, setSplitRatio]);
 
   // Предотвращаем выделение текста во время перетаскивания
   useEffect(() => {
     if (isDragging) {
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
     } else {
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
     }
     
     return () => {
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
     };
   }, [isDragging]);
 
   return (
-    <Flex 
-      ref={containerRef}
-      h="full" 
-      w="full"
-      overflow="hidden"
-    >
+    <div ref={containerRef} className="flex w-full h-full overflow-hidden">
       {/* Левая панель */}
-      <Box 
-        width={`${leftWidth}%`}
-        overflow="hidden"
-        transition={isDragging ? "none" : "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"}
+      <div
+        style={{ width: `${leftWidth}%`, transition: isDragging ? "none" : "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
+        className="overflow-hidden"
       >
         {leftChild}
-      </Box>
-      
+      </div>
       {/* Разделитель */}
-      <Box
-        width="6px"
-        flexShrink={0}
-        cursor="col-resize"
+      <div
+        style={{ width: "6px" }}
+        className={`flex-shrink-0 cursor-col-resize relative transition-all duration-200 ${isDragging ? "bg-blue-400 scale-x-130" : isHovered ? "bg-blue-300 scale-x-120" : "bg-gray-300 dark:bg-gray-600 scale-x-100"}`}
         onMouseDown={handleMouseDown}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        bg={
-          isDragging 
-            ? 'blue.400' 
-            : isHovered 
-              ? 'blue.300'
-              : (colorMode === 'dark' ? 'gray.600' : 'gray.300')
-        }
-        position="relative"
-        _before={{
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: '-3px',
-          right: '-3px',
-          bottom: 0,
-          // Увеличенная невидимая область для более удобного захвата
-        }}
-        _hover={{
-          transform: 'scaleX(1.2)',
-          shadow: 'md'
-        }}
-        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-        transform={isDragging ? 'scaleX(1.3)' : 'scaleX(1)'}
       >
         {/* Визуальный индикатор в центре */}
-        <Flex
-          position="absolute"
-          top="50%"
-          left="50%"
-          transform="translate(-50%, -50%)"
-          flexDirection="column"
-          align="center"
-          gap="1px"
-          opacity={isHovered || isDragging ? 1 : 0.6}
-          transition="opacity 0.2s ease"
-        >
-          <Box
-            w="2px"
-            h="4px"
-            bg={colorMode === 'dark' ? 'gray.300' : 'gray.600'}
-            borderRadius="1px"
-          />
-          <Box
-            w="2px"
-            h="4px"
-            bg={colorMode === 'dark' ? 'gray.300' : 'gray.600'}
-            borderRadius="1px"
-          />
-          <Box
-            w="2px"
-            h="4px"
-            bg={colorMode === 'dark' ? 'gray.300' : 'gray.600'}
-            borderRadius="1px"
-          />
-        </Flex>
-      </Box>
-      
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-60 transition-opacity duration-200" style={{ opacity: isHovered || isDragging ? 1 : 0.6 }}>
+          <div className="w-0.5 h-1 bg-gray-600 dark:bg-gray-300 rounded" />
+          <div className="w-0.5 h-1 bg-gray-600 dark:bg-gray-300 rounded" />
+          <div className="w-0.5 h-1 bg-gray-600 dark:bg-gray-300 rounded" />
+        </div>
+      </div>
       {/* Правая панель */}
-      <Box 
-        width={`${rightWidth}%`}
-        overflow="hidden"
-        transition={isDragging ? "none" : "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"}
+      <div
+        style={{ width: `${rightWidth}%`, transition: isDragging ? "none" : "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
+        className="overflow-hidden"
       >
         {rightChild}
-      </Box>
-    </Flex>
+      </div>
+    </div>
   );
 }

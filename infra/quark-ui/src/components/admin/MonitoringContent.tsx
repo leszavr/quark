@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
 import {
   VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
   Heading, Badge, Grid, Box, Select, Progress, Alert, AlertIcon,
   useColorModeValue
-} from '@chakra-ui/react'
-import { useState } from 'react'
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Users, Activity, Monitor, Clock, TrendingUp, Play, Pause
-} from 'lucide-react'
+} from "lucide-react";
 
 export function MonitoringContent() {
-  const [timeRange, setTimeRange] = useState('24h')
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true)
+  const [timeRange, setTimeRange] = useState("24h");
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
 
   // Тестовые данные метрик
   const metrics = {
@@ -34,31 +34,31 @@ export function MonitoringContent() {
       newToday: 23,
       sessionsAvg: 8.3
     }
-  }
+  };
 
   const alerts = [
     {
       id: 1,
-      type: 'warning',
-      message: 'Высокое использование памяти на сервере app-01',
-      timestamp: new Date().toLocaleString('ru-RU'),
+      type: "warning",
+      message: "Высокое использование памяти на сервере app-01",
+      timestamp: new Date().toLocaleString("ru-RU"),
       resolved: false
     },
     {
       id: 2,
-      type: 'info',
-      message: 'Завершено обновление модуля аутентификации',
-      timestamp: new Date(Date.now() - 15*60000).toLocaleString('ru-RU'),
+      type: "info",
+      message: "Завершено обновление модуля аутентификации",
+      timestamp: new Date(Date.now() - 15*60000).toLocaleString("ru-RU"),
       resolved: true
     },
     {
       id: 3,
-      type: 'error',
-      message: 'Ошибка подключения к базе данных (временно)',
-      timestamp: new Date(Date.now() - 45*60000).toLocaleString('ru-RU'),
+      type: "error",
+      message: "Ошибка подключения к базе данных (временно)",
+      timestamp: new Date(Date.now() - 45*60000).toLocaleString("ru-RU"),
       resolved: true
     }
-  ]
+  ];
 
   return (
     <VStack spacing={6} align="stretch">
@@ -81,10 +81,10 @@ export function MonitoringContent() {
           <Button 
             leftIcon={isAutoRefresh ? <Pause size={16} /> : <Play size={16} />}
             onClick={() => setIsAutoRefresh(!isAutoRefresh)}
-            colorScheme={isAutoRefresh ? 'orange' : 'green'}
+            colorScheme={isAutoRefresh ? "orange" : "green"}
             variant="outline"
           >
-            {isAutoRefresh ? 'Пауза' : 'Авто'}
+            {isAutoRefresh ? "Пауза" : "Авто"}
           </Button>
         </HStack>
       </Flex>
@@ -105,7 +105,7 @@ export function MonitoringContent() {
                 </Flex>
                 <Progress 
                   value={metrics.systemHealth.cpu} 
-                  colorScheme={metrics.systemHealth.cpu > 80 ? 'red' : metrics.systemHealth.cpu > 60 ? 'orange' : 'green'}
+                  colorScheme={metrics.systemHealth.cpu > 80 ? "red" : metrics.systemHealth.cpu > 60 ? "orange" : "green"}
                   size="lg"
                 />
               </Box>
@@ -117,7 +117,7 @@ export function MonitoringContent() {
                 </Flex>
                 <Progress 
                   value={metrics.systemHealth.memory} 
-                  colorScheme={metrics.systemHealth.memory > 85 ? 'red' : metrics.systemHealth.memory > 70 ? 'orange' : 'green'}
+                  colorScheme={metrics.systemHealth.memory > 85 ? "red" : metrics.systemHealth.memory > 70 ? "orange" : "green"}
                   size="lg"
                 />
               </Box>
@@ -129,7 +129,7 @@ export function MonitoringContent() {
                 </Flex>
                 <Progress 
                   value={metrics.systemHealth.disk} 
-                  colorScheme={metrics.systemHealth.disk > 90 ? 'red' : metrics.systemHealth.disk > 75 ? 'orange' : 'green'}
+                  colorScheme={metrics.systemHealth.disk > 90 ? "red" : metrics.systemHealth.disk > 75 ? "orange" : "green"}
                   size="lg"
                 />
               </Box>
@@ -279,7 +279,7 @@ export function MonitoringContent() {
             {alerts.map((alert) => (
               <Alert 
                 key={alert.id}
-                status={alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'}
+                status={alert.type === "error" ? "error" : alert.type === "warning" ? "warning" : "info"}
                 borderRadius="md"
                 opacity={alert.resolved ? 0.7 : 1}
               >
@@ -305,5 +305,5 @@ export function MonitoringContent() {
         </CardBody>
       </Card>
     </VStack>
-  )
+  );
 }

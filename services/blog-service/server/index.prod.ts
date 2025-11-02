@@ -26,8 +26,8 @@ function serveStatic(app: express.Express) {
   app.use(express.static(publicPath));
   
   // SPA fallback - serve index.html for all non-API routes
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) {
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/health") || req.path.startsWith("/status") || req.path.startsWith("/manifest") || req.path.startsWith("/auth")) {
       return next();
     }
     
@@ -85,14 +85,14 @@ app.use((req, res, next) => {
   serveStatic(app);
 
   // Use port from environment (3004 for Quark integration)
-  const port = parseInt(process.env.PORT || '3004', 10);
+  const port = parseInt(process.env.PORT || "3004", 10);
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`🚀 Blog Service (Interface) запущен на порту ${port}`);
-    log(`📊 Environment: ${process.env.NODE_ENV || 'production'}`);
+    log(`📊 Environment: ${process.env.NODE_ENV || "production"}`);
     log(`🌐 Interface доступен на http://localhost:${port}`);
   });
 })();

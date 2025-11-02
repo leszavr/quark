@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -13,11 +13,11 @@ import {
   MenuItem,
   MenuDivider,
   Badge,
-} from '@chakra-ui/react';
-import { Home, Moon, Sun, Settings, LogOut, User, Zap, MessageSquare, MessageSquareOff } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAppStore } from '@/stores/appStore';
+} from "@chakra-ui/react";
+import { Home, Moon, Sun, Settings, LogOut, User, Zap, MessageSquare, MessageSquareOff } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAppStore } from "@/stores/appStore";
 
 interface HeaderProps {
   showHomeButton?: boolean;
@@ -28,22 +28,22 @@ export function Header({ showHomeButton = false }: HeaderProps) {
   const pathname = usePathname();
   const { viewMode, setViewMode, chatWindow, setChatWindow } = useAppStore();
   
-  const isChatVisible = chatWindow.isOpen && (viewMode === 'both' || viewMode === 'chat-only' || viewMode === 'home');
+  const isChatVisible = chatWindow.isOpen && (viewMode === "both" || viewMode === "chat-only" || viewMode === "home");
   
   const toggleChat = () => {
     if (isChatVisible) {
       // Скрываем только чат, блог остается открытым
-      setViewMode('blog-only');
+      setViewMode("blog-only");
       setChatWindow({ isOpen: false });
     } else {
       // Показываем чат в режиме both (блог + чат)
       setChatWindow({ isOpen: true });
-      setViewMode('both');
+      setViewMode("both");
     }
   };
 
-  const headerBg = colorMode === 'dark' ? 'gray.800' : 'white';
-  const borderColor = colorMode === 'dark' ? 'gray.700' : 'gray.200';
+  const headerBg = colorMode === "dark" ? "gray.800" : "white";
+  const borderColor = colorMode === "dark" ? "gray.700" : "gray.200";
 
   return (
     <Box
@@ -57,9 +57,9 @@ export function Header({ showHomeButton = false }: HeaderProps) {
       top={0}
       zIndex={1000}
       backdropFilter="blur(10px)"
-      bg={colorMode === 'dark' 
-        ? 'rgba(26, 32, 44, 0.8)' 
-        : 'rgba(255, 255, 255, 0.8)'
+      bg={colorMode === "dark" 
+        ? "rgba(26, 32, 44, 0.8)" 
+        : "rgba(255, 255, 255, 0.8)"
       }
     >
       <HStack justify="space-between" align="center">
@@ -73,7 +73,7 @@ export function Header({ showHomeButton = false }: HeaderProps) {
                 variant="ghost"
                 size="md"
                 _hover={{ 
-                  bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' 
+                  bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
                 }}
               />
             </Link>
@@ -86,20 +86,20 @@ export function Header({ showHomeButton = false }: HeaderProps) {
                 w={10}
                 h={10}
                 borderRadius="lg"
-                bg={colorMode === 'dark' ? '#00f0ff' : '#1a202c'}
+                bg={colorMode === "dark" ? "#00f0ff" : "#1a202c"}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                boxShadow={colorMode === 'dark' ? '0 4px 8px rgba(0, 240, 255, 0.3)' : '0 4px 8px rgba(26, 32, 44, 0.3)'}
+                boxShadow={colorMode === "dark" ? "0 4px 8px rgba(0, 240, 255, 0.3)" : "0 4px 8px rgba(26, 32, 44, 0.3)"}
               >
-                <Zap size={20} color={colorMode === 'dark' ? 'black' : 'white'} />
+                <Zap size={20} color={colorMode === "dark" ? "black" : "white"} />
               </Box>
               
               <Text 
                 fontSize="2xl" 
                 fontWeight="bold" 
                 fontFamily="Space Grotesk"
-                color={colorMode === 'dark' ? '#00f0ff' : '#1a202c'}
+                color={colorMode === "dark" ? "#00f0ff" : "#1a202c"}
               >
                 Quark
               </Text>
@@ -117,19 +117,19 @@ export function Header({ showHomeButton = false }: HeaderProps) {
             variant="ghost"
             size="md"
             _hover={{ 
-              bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' 
+              bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
             }}
           />
 
           {/* Переключатель темы */}
           <IconButton
             aria-label="Переключить тему"
-            icon={colorMode === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            icon={colorMode === "light" ? <Moon size={20} /> : <Sun size={20} />}
             onClick={toggleColorMode}
             variant="ghost"
             size="md"
             _hover={{ 
-              bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' 
+              bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
             }}
           />
 
@@ -142,7 +142,7 @@ export function Header({ showHomeButton = false }: HeaderProps) {
                 p={2}
                 borderRadius="lg"
                 _hover={{ 
-                  bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' 
+                  bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
                 }}
                 transition="all 0.2s"
               >
@@ -150,7 +150,7 @@ export function Header({ showHomeButton = false }: HeaderProps) {
                   size="sm" 
                   name="Иван Петров"
                 />
-                <Box display={{ base: 'none', md: 'block' }}>
+                <Box display={{ base: "none", md: "block" }}>
                   <Text fontSize="sm" fontWeight="medium">
                     Иван Петров
                   </Text>

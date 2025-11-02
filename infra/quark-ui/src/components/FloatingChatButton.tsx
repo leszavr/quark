@@ -1,46 +1,38 @@
-'use client';
+"use client";
 
-import { IconButton, Box, useColorMode } from '@chakra-ui/react';
-import { MessageSquare } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAppStore } from '@/stores/appStore';
+import { IconButton } from "../../button";
 
-const MotionIconButton = motion.create(IconButton);
+import { MessageSquare } from "lucide-react";
+import { motion } from "framer-motion";
+import { useAppStore } from "@/stores/appStore";
+
+const MotionIconButton = motion(IconButton);
 
 export function FloatingChatButton() {
-  const { colorMode } = useColorMode();
+  // Цветовая схема теперь через Tailwind dark: классы
+  const colorMode = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   const { setViewMode, setChatWindow, viewMode } = useAppStore();
   
   const handleChatToggle = () => {
     // Всегда показываем чат в режиме both (блог + чат)
     setChatWindow({ isOpen: true });
-    setViewMode('both');
+    setViewMode("both");
   };
 
   return (
-    <Box
-      position="fixed"
-      bottom={6}
-      right={6}
-      zIndex={1000}
+    <div
+      className="fixed bottom-6 right-6 z-[1000]"
     >
       <MotionIconButton
         aria-label="Открыть чат"
         icon={<MessageSquare size={24} />}
-        size="lg"
-        borderRadius="full"
-        bg={colorMode === 'light' ? '#4a5568' : '#68d391'}
-        color={colorMode === 'light' ? 'white' : 'black'}
-        boxShadow={colorMode === 'light' ? '0 8px 24px rgba(74, 85, 104, 0.4)' : '0 8px 24px rgba(104, 211, 145, 0.4)'}
-        _hover={{
-          transform: 'scale(1.1)',
-          boxShadow: colorMode === 'light' ? '0 12px 32px rgba(74, 85, 104, 0.6)' : '0 12px 32px rgba(104, 211, 145, 0.6)',
-        }}
+        className="w-14 h-14 rounded-full shadow-lg bg-gray-700 text-white dark:bg-green-300 dark:text-black"
+        style={{ boxShadow: "0 8px 24px rgba(74,85,104,0.4)" }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
         onClick={handleChatToggle}
       />
-    </Box>
+  </div>
   );
 }

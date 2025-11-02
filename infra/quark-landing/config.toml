@@ -1,0 +1,21 @@
+concurrent = 1
+check_interval = 0
+connection_max_age = "15m0s"
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "quark-landing-runner"
+  url = "http://192.168.1.8/"
+  id = 6
+  token = "glrtr-ik8noL8j2_NYppI9HHT6d286MQpwOjUKdDozCw.01.1208dwgl4"
+  token_obtained_at = 2025-10-28T03:55:53Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "shell"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]

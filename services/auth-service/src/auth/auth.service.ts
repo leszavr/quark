@@ -1,12 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
-import { TwoFactorService } from '../users/two-factor.service';
-import { DeviceService } from '../users/device.service';
-import { LoginDto, RegisterDto, AuthResponseDto } from '../common/dto/auth.dto';
-import { CreateTokenDto, TokenResponseDto, TokenType, UserTokenPayload, ServiceTokenPayload, HubTokenPayload } from '../common/dto/token.dto';
-import { User } from '../users/user.entity';
-import { DynamicJwtService } from './dynamic-jwt.service';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UsersService } from "../users/users.service";
+import { TwoFactorService } from "../users/two-factor.service";
+import { DeviceService } from "../users/device.service";
+import { LoginDto, RegisterDto, AuthResponseDto } from "../common/dto/auth.dto";
+import { CreateTokenDto, TokenResponseDto, TokenType, UserTokenPayload, ServiceTokenPayload, HubTokenPayload } from "../common/dto/token.dto";
+import { User } from "../users/user.entity";
+import { DynamicJwtService } from "./dynamic-jwt.service";
 
 @Injectable()
 export class AuthService {
@@ -28,16 +28,16 @@ export class AuthService {
     
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const isPasswordValid = await this.usersService.validatePassword(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
+      throw new UnauthorizedException("Account is deactivated");
     }
 
     // Проверяем, нужна ли 2FA
@@ -50,7 +50,7 @@ export class AuthService {
         // Создаем временный токен для 2FA
         const tempPayload = {
           sub: user.id,
-          type: 'temp_2fa',
+          type: "temp_2fa",
           exp: Math.floor(Date.now() / 1000) + (5 * 60), // 5 минут
         };
         const tempToken = await this.dynamicJwtService.sign(tempPayload);
@@ -84,23 +84,23 @@ export class AuthService {
     try {
       tempPayload = await this.dynamicJwtService.verify(tempToken);
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired temporary token');
+      throw new UnauthorizedException("Invalid or expired temporary token");
     }
 
-    if (tempPayload.type !== 'temp_2fa') {
-      throw new UnauthorizedException('Invalid token type');
+    if (tempPayload.type !== "temp_2fa") {
+      throw new UnauthorizedException("Invalid token type");
     }
 
     const userId = tempPayload.sub;
     const user = await this.usersService.findById(userId);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException("User not found");
     }
 
     // Проверяем 2FA токен
     const is2FAValid = await this.twoFactorService.verifyTwoFactorToken(userId, twoFactorToken);
     if (!is2FAValid) {
-      throw new UnauthorizedException('Invalid 2FA token');
+      throw new UnauthorizedException("Invalid 2FA token");
     }
 
     // Регистрируем устройство при успешной аутентификации
@@ -131,8 +131,8 @@ export class AuthService {
       roles: user.roles,
       permissions: this.getUserPermissions(user.roles),
       exp: now + (24 * 60 * 60), // 24 hours
-      iss: 'quark-auth-service',
-      aud: ['blog-service', 'messaging-service', 'user-service'],
+      iss: "quark-auth-service",
+      aud: ["blog-service", "messaging-service", "user-service"],
       token_type: TokenType.USER,
     };
     
@@ -156,7 +156,7 @@ export class AuthService {
    */
   async createServiceToken(createTokenDto: CreateTokenDto): Promise<TokenResponseDto> {
     if (createTokenDto.token_type !== TokenType.SERVICE) {
-      throw new UnauthorizedException('Invalid token type for service token creation');
+      throw new UnauthorizedException("Invalid token type for service token creation");
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -169,7 +169,7 @@ export class AuthService {
       roles: createTokenDto.roles,
       permissions: createTokenDto.permissions,
       exp,
-      iss: 'quark-plugin-hub',
+      iss: "quark-plugin-hub",
       aud: createTokenDto.aud,
       token_type: TokenType.SERVICE,
     };
@@ -189,7 +189,7 @@ export class AuthService {
    */
   async createHubToken(createTokenDto: CreateTokenDto): Promise<TokenResponseDto> {
     if (createTokenDto.token_type !== TokenType.HUB) {
-      throw new UnauthorizedException('Invalid token type for hub token creation');
+      throw new UnauthorizedException("Invalid token type for hub token creation");
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -198,11 +198,11 @@ export class AuthService {
     const payload: HubTokenPayload = {
       sub: createTokenDto.sub,
       service_id: createTokenDto.service_id!,
-      roles: ['system', 'hub'],
-      permissions: ['*'], // Hub has all permissions
+      roles: ["system", "hub"],
+      permissions: ["*"], // Hub has all permissions
       exp,
-      iss: 'quark-plugin-hub',
-      aud: ['*'], // Hub can access all services
+      iss: "quark-plugin-hub",
+      aud: ["*"], // Hub can access all services
       token_type: TokenType.HUB,
     };
 
@@ -232,10 +232,10 @@ export class AuthService {
         case TokenType.HUB:
           return payload as HubTokenPayload;
         default:
-          throw new UnauthorizedException('Unknown token type');
+          throw new UnauthorizedException("Unknown token type");
       }
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException("Invalid token");
     }
   }
 
@@ -244,9 +244,9 @@ export class AuthService {
    */
   private getUserPermissions(roles: string[]): string[] {
     const permissionMap: Record<string, string[]> = {
-      'user': ['posts:read', 'profile:read', 'profile:update'],
-      'moderator': ['posts:read', 'posts:moderate', 'users:moderate', 'profile:read', 'profile:update'],
-      'admin': ['*'], // Админ имеет все разрешения
+      "user": ["posts:read", "profile:read", "profile:update"],
+      "moderator": ["posts:read", "posts:moderate", "users:moderate", "profile:read", "profile:update"],
+      "admin": ["*"], // Админ имеет все разрешения
     };
 
     const permissions = new Set<string>();
@@ -264,31 +264,31 @@ export class AuthService {
    * Определение типа устройства по User-Agent
    */
   private getDeviceTypeFromUserAgent(userAgent?: string): any {
-    if (!userAgent) return 'web';
+    if (!userAgent) return "web";
     
     const ua = userAgent.toLowerCase();
-    if (ua.includes('mobile') || ua.includes('android')) return 'mobile_android';
-    if (ua.includes('iphone') || ua.includes('ios')) return 'mobile_ios';
-    if (ua.includes('electron')) return 'desktop';
-    return 'web';
+    if (ua.includes("mobile") || ua.includes("android")) return "mobile_android";
+    if (ua.includes("iphone") || ua.includes("ios")) return "mobile_ios";
+    if (ua.includes("electron")) return "desktop";
+    return "web";
   }
 
   /**
    * Определение имени устройства по User-Agent
    */
   private getDeviceNameFromUserAgent(userAgent?: string): string {
-    if (!userAgent) return 'Unknown Device';
+    if (!userAgent) return "Unknown Device";
     
     const ua = userAgent.toLowerCase();
-    if (ua.includes('chrome')) return 'Chrome Browser';
-    if (ua.includes('firefox')) return 'Firefox Browser';
-    if (ua.includes('safari')) return 'Safari Browser';
-    if (ua.includes('edge')) return 'Edge Browser';
-    if (ua.includes('android')) return 'Android Device';
-    if (ua.includes('iphone')) return 'iPhone';
-    if (ua.includes('ipad')) return 'iPad';
-    if (ua.includes('electron')) return 'Desktop App';
+    if (ua.includes("chrome")) return "Chrome Browser";
+    if (ua.includes("firefox")) return "Firefox Browser";
+    if (ua.includes("safari")) return "Safari Browser";
+    if (ua.includes("edge")) return "Edge Browser";
+    if (ua.includes("android")) return "Android Device";
+    if (ua.includes("iphone")) return "iPhone";
+    if (ua.includes("ipad")) return "iPad";
+    if (ua.includes("electron")) return "Desktop App";
     
-    return 'Unknown Device';
+    return "Unknown Device";
   }
 }

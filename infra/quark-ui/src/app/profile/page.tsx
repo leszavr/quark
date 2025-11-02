@@ -1,20 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import {
-  Box,
-  Container,
-  Heading,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Icon,
-  HStack,
-  Text,
-  useColorMode,
-} from '@chakra-ui/react';
+import React, { useState } from "react";
+// Chakra UI удалён, используем стандартные элементы и Tailwind
 import {
   User,
   Palette,
@@ -22,147 +9,88 @@ import {
   Shield,
   AlertTriangle,
   Bot,
-} from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+} from "lucide-react";
+import { Header } from "@/components/layout/Header";
 
 // Импортируем компоненты табов
-import { BasicInfoTab } from '../../components/profile/BasicInfoTab';
-import { PersonalizationTab } from '../../components/profile/PersonalizationTab';
-import { AIAgentTab } from '../../components/profile/AIAgentTab';
-import { SupportTab } from '../../components/profile/SupportTab';
-import { SecurityTab } from '../../components/profile/SecurityTab';
-import { DangerZoneTab } from '../../components/profile/DangerZoneTab';
+import { BasicInfoTab } from "../../components/profile/BasicInfoTab";
+import { PersonalizationTab } from "../../components/profile/PersonalizationTab";
+import { AIAgentTab } from "../../components/profile/AIAgentTab";
+import { SupportTab } from "../../components/profile/SupportTab";
+import { SecurityTab } from "../../components/profile/SecurityTab";
+import { DangerZoneTab } from "../../components/profile/DangerZoneTab";
 
 export default function ProfilePage() {
-  const { colorMode } = useColorMode();
   const [tabIndex, setTabIndex] = useState(0);
 
   const tabs = [
     {
-      id: 'basic',
-      label: 'Основная информация',
+      id: "basic",
+      label: "Основная информация",
       icon: User,
-      color: 'blue',
+      color: "blue",
     },
     {
-      id: 'personalization',
-      label: 'Персонализация',
+      id: "personalization",
+      label: "Персонализация",
       icon: Palette,
-      color: 'purple',
+      color: "purple",
     },
     {
-      id: 'ai-agent',
-      label: 'AI Агент',
+      id: "ai-agent",
+      label: "AI Агент",
       icon: Bot,
-      color: 'cyan',
+      color: "cyan",
     },
     {
-      id: 'support',
-      label: 'Поддержка',
+      id: "support",
+      label: "Поддержка",
       icon: MessageSquare,
-      color: 'green',
+      color: "green",
     },
     {
-      id: 'security',
-      label: 'Безопасность',
+      id: "security",
+      label: "Безопасность",
       icon: Shield,
-      color: 'orange',
+      color: "orange",
     },
     {
-      id: 'danger',
-      label: 'Danger Zone',
+      id: "danger",
+      label: "Danger Zone",
       icon: AlertTriangle,
-      color: 'red',
+      color: "red",
     },
   ];
 
   return (
-    <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header showHomeButton />
-      <Container maxW="6xl" py={8}>
-        <Box mb={8}>
-          <Heading size="lg" mb={2}>
-            Настройки профиля
-          </Heading>
-          <Text color="gray.600" _dark={{ color: "gray.400" }}>
-            Управляйте своим аккаунтом и персональными настройками
-          </Text>
-        </Box>
-
-        <Tabs
-          index={tabIndex}
-          onChange={setTabIndex}
-          variant="enclosed"
-          colorScheme="blue"
-        >
-          <TabList
-            bg="white"
-            _dark={{ bg: "gray.800" }}
-            borderRadius="lg"
-            p={2}
-            mb={6}
-            overflowX="auto"
-            flexWrap={{ base: "wrap", md: "nowrap" }}
-          >
-            {tabs.map((tab, index) => (
-              <Tab
-                key={tab.id}
-                minW={{ base: "auto", md: "200px" }}
-                px={4}
-                py={3}
-                borderRadius="md"
-                _selected={{
-                  bg: `${tab.color}.500`,
-                  color: 'white',
-                  _dark: {
-                    bg: `${tab.color}.600`,
-                  },
-                }}
-                _hover={{
-                  bg: `${tab.color}.50`,
-                  _dark: {
-                    bg: 'gray.700',
-                  },
-                }}
-                transition="all 0.2s"
-              >
-                <HStack spacing={2}>
-                  <Icon as={tab.icon} boxSize={4} />
-                  <Text fontSize="sm" fontWeight="medium">
-                    {tab.label}
-                  </Text>
-                </HStack>
-              </Tab>
-            ))}
-          </TabList>
-
-          <TabPanels>
-            <TabPanel p={0}>
-              <BasicInfoTab />
-            </TabPanel>
-            
-            <TabPanel p={0}>
-              <PersonalizationTab />
-            </TabPanel>
-            
-            <TabPanel p={0}>
-              <AIAgentTab />
-            </TabPanel>
-            
-            <TabPanel p={0}>
-              <SupportTab />
-            </TabPanel>
-            
-            <TabPanel p={0}>
-              <SecurityTab />
-            </TabPanel>
-            
-            <TabPanel p={0}>
-              <DangerZoneTab />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </Container>
-    </Box>
+      <div className="max-w-6xl mx-auto py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-2">Настройки профиля</h1>
+          <p className="text-gray-600 dark:text-gray-400">Управляйте своим аккаунтом и персональными настройками</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 mb-6 overflow-x-auto flex flex-wrap md:flex-nowrap gap-2">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              className={`min-w-[200px] px-4 py-3 rounded-md transition-all text-sm font-medium flex items-center gap-2 ${tabIndex === index ? `bg-${tab.color}-500 text-white dark:bg-${tab.color}-600` : `bg-${tab.color}-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-${tab.color}-100 dark:hover:bg-gray-600`}`}
+              onClick={() => setTabIndex(index)}
+            >
+              {React.createElement(tab.icon, { size: 16 })}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div>
+          {tabIndex === 0 && <BasicInfoTab />}
+          {tabIndex === 1 && <PersonalizationTab />}
+          {tabIndex === 2 && <AIAgentTab />}
+          {tabIndex === 3 && <SupportTab />}
+          {tabIndex === 4 && <SecurityTab />}
+          {tabIndex === 5 && <DangerZoneTab />}
+        </div>
+      </div>
+    </div>
   );
 }

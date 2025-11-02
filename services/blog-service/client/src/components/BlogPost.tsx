@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Heart, MessageCircle, Repeat2, Share } from 'lucide-react';
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Heart, MessageCircle, Repeat2, Share } from "lucide-react";
 
 interface BlogPostProps {
   id: string;
@@ -51,7 +51,7 @@ export default function BlogPost({
         <div className="flex items-start gap-3 mb-4">
           <Avatar className="h-12 w-12">
             <AvatarImage src={avatar} alt={author} />
-            <AvatarFallback>{author.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+            <AvatarFallback>{author.split(" ").map(n => n[0]).join("")}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -100,9 +100,9 @@ export default function BlogPost({
             size="sm"
             onClick={handleLike}
             data-testid={`button-like-${id}`}
-            className={`gap-2 ${isLiked ? 'text-red-500' : ''} hover-elevate`}
+            className={`gap-2 ${isLiked ? "text-red-500" : ""} hover-elevate`}
           >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+            <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
             {likesCount}
           </Button>
           

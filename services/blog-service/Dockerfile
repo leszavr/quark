@@ -1,44 +1,58 @@
 # syntax=docker/dockerfile:1.4
-# Multi-stage build для Blog Service (Interface)
+# Multi-stage build для Blog Service в pnpm workspace
 FROM node:20-alpine AS builder
 
-WORKDIR /app
+WORKDIR /workspace
 
-# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
-RUN npm install -g npm@11.6.1
+# Устанавливаем pnpm
+RUN npm install -g pnpm@latest
 
-# Копируем package files
-COPY package*.json ./
+# Копируем workspace конфигурацию
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc* ./
 
-# Устанавливаем зависимости для сборки
-RUN npm install
+# Копируем все package.json файлы для правильного разрешения зависимостей workspace
+COPY services/blog-service/package.json ./services/blog-service/
+COPY infra/*/package.json ./infra/
 
-# Копируем исходный код
-COPY . .
+# Устанавливаем ВСЕ зависимости workspace (это важно для pnpm workspaces!)
+RUN pnpm install --no-frozen-lockfile || pnpm install
 
-# Собираем клиент и сервер
-RUN npm run build
+# Копируем исходники blog-service
+COPY services/blog-service ./services/blog-service
+
+# Собираем blog-service
+WORKDIR /workspace/services/blog-service
+RUN pnpm run build
 
 # Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
-RUN npm install -g npm@11.6.1
+# Копируем package.json для metadata
+COPY --from=builder /workspace/services/blog-service/package.json ./
 
-# Копируем только production зависимости
-COPY package*.json ./
-RUN npm install --omit=dev --omit=dev
+# Копируем node_modules из workspace root (pnpm workspace хранит все зависимости там)
+COPY --from=builder /workspace/node_modules ./node_modules
 
-# Копируем собранное приложение
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/shared ./shared
-COPY --from=builder /app/module-manifest.yaml ./module-manifest.yaml
+# Fix: создаём отсутствующие симлинки для зависимостей blog-service
+# pnpm workspace иногда не создаёт симлинки для всех зависимостей
+RUN cd /app/node_modules && \
+    if [ ! -e drizzle-zod ] && [ -d .pnpm ]; then \
+        DRIZZLE_ZOD_PATH=$(find .pnpm -maxdepth 1 -name "drizzle-zod@*" -type d | head -1); \
+        if [ -n "$DRIZZLE_ZOD_PATH" ]; then \
+            ln -sf "$DRIZZLE_ZOD_PATH/node_modules/drizzle-zod" drizzle-zod; \
+        fi; \
+    fi
+
+# Копируем собранное приложение из builder
+COPY --from=builder /workspace/services/blog-service/dist ./dist
+COPY --from=builder /workspace/services/blog-service/server ./server
+COPY --from=builder /workspace/services/blog-service/shared ./shared
+COPY --from=builder /workspace/services/blog-service/module-manifest.yaml ./module-manifest.yaml
 
 # Копируем Drizzle конфигурацию для миграций
-COPY drizzle.config.ts ./
+COPY --from=builder /workspace/services/blog-service/drizzle.config.ts ./
 
 # Создаем директорию для uploads
 RUN mkdir -p uploads
@@ -51,5 +65,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3004/api/health || exit 1
 
 # Запускаем приложение
-CMD ["node", "server/index.js"]
 CMD ["node", "dist/index.prod.js"]

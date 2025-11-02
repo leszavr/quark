@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Box, useColorModeValue } from '@chakra-ui/react';
-import { Header } from './Header';
-import { WindowLayout } from '@/components/WindowLayout';
+import React from "react";
+import { Header } from "./Header";
+import { WindowLayout } from "@/components/WindowLayout";
 
 interface MainLayoutProps {
   showHeader?: boolean;
@@ -15,22 +15,21 @@ export function MainLayout({
   showHomeButton = false, 
   children 
 }: MainLayoutProps) {
-  const bgColor = useColorModeValue("gray.50", "gray.900");
+  // Tailwind: bg-gray-50 (light), bg-gray-900 (dark)
   
   return (
-    <Box minH="100vh" bg={bgColor}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {showHeader && <Header showHomeButton={showHomeButton} />}
-      
-      <Box flex={1}>
+      <div className="flex-1 flex flex-col">
         {children ? (
           children
         ) : (
           // Используем готовый WindowLayout с режимом "both"
-          <Box h={showHeader ? "calc(100vh - 70px)" : "100vh"}>
+          <div className={showHeader ? "h-[calc(100vh-70px)]" : "h-screen"}>
             <WindowLayout />
-          </Box>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

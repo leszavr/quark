@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Box, HStack } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useCallback, useEffect } from "react";
+// Chakra UI удалён, используем div и Tailwind
+import { motion, AnimatePresence } from "framer-motion";
 
-const MotionBox = motion.create(Box);
+const MotionBox = motion.div;
 
 interface ResizableLayoutProps {
   leftPanel: React.ReactNode;
@@ -90,28 +90,27 @@ export function ResizableLayout({
   // Добавляем глобальные обработчики событий
   React.useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // Мобильный режим - переключение между экранами
   if (isMobileMode) {
     return (
-      <Box
+      <div
         ref={containerRef}
-        h={height}
-        position="relative"
-        overflow="hidden"
+        className="relative overflow-hidden"
+        style={{ height }}
       >
         <AnimatePresence mode="wait">
           {!showChatWindow ? (
@@ -122,13 +121,9 @@ export function ResizableLayout({
               animate={{ x: 0 }}
               exit={{ x: -100, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              position="absolute"
-              top={0}
-              left={0}
-              width="100%"
-              height="100%"
+              className="absolute top-0 left-0 w-full h-full"
             >
-              {React.cloneElement(leftPanel as React.ReactElement<any>, {
+              {React.cloneElement(leftPanel as React.ReactElement<{ onChatClick: () => void }>, {
                 onChatClick: openChatWindow
               })}
             </MotionBox>
@@ -140,96 +135,55 @@ export function ResizableLayout({
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 100, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              position="absolute"
-              top={0}
-              left={0}
-              width="100%"
-              height="100%"
+              className="absolute top-0 left-0 w-full h-full"
             >
-              {React.cloneElement(rightPanel as React.ReactElement<any>, {
+              {React.cloneElement(rightPanel as React.ReactElement<{ showBackButton: boolean; onBack: () => void }>, {
                 showBackButton: true,
                 onBack: backToChatList
               })}
             </MotionBox>
           )}
         </AnimatePresence>
-      </Box>
+  </div>
     );
   }
 
   // Обычный десктопный режим
   return (
-    <HStack
+    <div
       ref={containerRef}
-      spacing={0}
-      align="stretch"
-      h={height}
-      position="relative"
+      className="flex flex-row items-stretch relative"
+      style={{ height }}
     >
       {/* Левая панель */}
-      <Box
-        width={`${leftWidth}%`}
-        minW={`${minLeftWidth}px`}
-        position="relative"
+      <div
+        className="relative"
+        style={{ width: `${leftWidth}%`, minWidth: `${minLeftWidth}px` }}
       >
         {leftPanel}
-      </Box>
+  </div>
 
       {/* Разделительная линия */}
-      <Box
-        width="4px"
-        bg="gray.300"
-        _dark={{ bg: "gray.600" }}
-        cursor="col-resize"
-        position="relative"
+      <div
+        className="w-1 bg-gray-300 dark:bg-gray-600 cursor-col-resize relative transition-colors duration-200 hover:bg-blue-400 dark:hover:bg-blue-500"
         onMouseDown={handleMouseDown}
-        _hover={{
-          bg: "blue.400",
-          _dark: { bg: "blue.500" }
-        }}
-        transition="background-color 0.2s"
       >
         {/* Визуальный индикатор */}
-        <Box
-          position="absolute"
-          top="50%"
-          left="50%"
-          transform="translate(-50%, -50%)"
-          width="20px"
-          height="40px"
-          borderRadius="full"
-          bg="gray.400"
-          _dark={{ bg: "gray.500" }}
-          opacity={0}
-          _hover={{ opacity: 1 }}
-          transition="opacity 0.2s"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-10 rounded-full bg-gray-400 dark:bg-gray-500 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
         >
-          <Box
-            width="2px"
-            height="20px"
-            bg="white"
-            borderRadius="full"
-            mr="2px"
-          />
-          <Box
-            width="2px"
-            height="20px"
-            bg="white"
-            borderRadius="full"
-          />
-        </Box>
-      </Box>
+          <div className="w-0.5 h-5 bg-white rounded-full mr-0.5" />
+          <div className="w-0.5 h-5 bg-white rounded-full" />
+        </div>
+      </div>
 
       {/* Правая панель */}
-      <Box
-        flex={1}
-        minW={`${minRightWidth}px`}
+      <div
+        className="flex-1"
+        style={{ minWidth: `${minRightWidth}px` }}
       >
         {rightPanel}
-      </Box>
-    </HStack>
+      </div>
+  </div>
   );
 }

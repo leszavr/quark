@@ -1,144 +1,173 @@
-'use client';
+"use client";
 
 import {
   VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
   Heading, Badge, Avatar, IconButton, Tooltip, Grid, Input, Select,
-  Table, Thead, Tbody, Tr, Th, Td, useColorModeValue, useDisclosure,
+  Table, Thead, Tbody, Tr, Th, Td, useColorMode, useColorModeValue, useDisclosure,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   ModalCloseButton, Box, Stat, StatNumber, StatLabel, FormControl,
   FormLabel, Switch, Divider, Alert, AlertIcon
-} from '@chakra-ui/react'
-import { useState } from 'react'
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Users, Search, Filter, Download, Eye, Edit, Trash2, 
   UserCheck, UserX, Shield, Crown, Clock, Calendar,
   Mail, Phone, MapPin, MoreHorizontal, Plus
-} from 'lucide-react'
+} from "lucide-react";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  role: "admin" | "user" | "moderator";
+  status: "active" | "inactive" | "suspended";
+  lastActive: string;
+  joinDate: string;
+  avatar?: string;
+  lastLogin?: string;
+  createdAt?: string;
+  sessionsCount?: number;
+  verified?: boolean;
+}
 
 export function UsersContent() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [selectedUser, setSelectedUser] = useState<any>(null)
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { colorMode } = useColorMode();
+  const rowHoverBg = useColorModeValue("gray.50", "gray.700");
 
   // Тестовые данные пользователей
   const [users] = useState([
     {
       id: 1,
-      name: 'Анна Козлова',
-      email: 'anna.kozlova@example.com',
-      phone: '+7 (999) 123-45-67',
-      role: 'admin',
-      status: 'active',
-      avatar: '👩‍💼',
-      lastLogin: '2024-01-15T14:30:00Z',
-      createdAt: '2023-06-15T10:00:00Z',
-      location: 'Москва',
+      name: "Анна Козлова",
+      email: "anna.kozlova@example.com",
+      phone: "+7 (999) 123-45-67",
+      role: "admin" as const,
+      status: "active" as const,
+      avatar: "👩‍💼",
+      lastActive: "2024-01-15T14:30:00Z",
+      joinDate: "2023-06-15T10:00:00Z",
+      lastLogin: "2024-01-15T14:30:00Z",
+      createdAt: "2023-06-15T10:00:00Z",
+      location: "Москва",
       sessionsCount: 1247,
       verified: true
     },
     {
       id: 2,
-      name: 'Дмитрий Петров',
-      email: 'dmitry.petrov@example.com',
-      phone: '+7 (999) 234-56-78',
-      role: 'moderator',
-      status: 'active',
-      avatar: '👨‍💻',
-      lastLogin: '2024-01-15T12:15:00Z',
-      createdAt: '2023-08-22T09:30:00Z',
-      location: 'Санкт-Петербург',
+      name: "Дмитрий Петров",
+      email: "dmitry.petrov@example.com",
+      phone: "+7 (999) 234-56-78",
+      role: "moderator" as const,
+      status: "active" as const,
+      avatar: "👨‍💻",
+      lastActive: "2024-01-15T12:15:00Z",
+      joinDate: "2023-08-22T09:30:00Z",
+      lastLogin: "2024-01-15T12:15:00Z",
+      createdAt: "2023-08-22T09:30:00Z",
+      location: "Санкт-Петербург",
       sessionsCount: 892,
       verified: true
     },
     {
       id: 3,
-      name: 'Елена Смирнова',
-      email: 'elena.smirnova@example.com',
-      phone: '+7 (999) 345-67-89',
-      role: 'user',
-      status: 'suspended',
-      avatar: '👩‍🎨',
-      lastLogin: '2024-01-10T08:45:00Z',
-      createdAt: '2023-12-01T16:20:00Z',
-      location: 'Новосибирск',
-      sessionsCount: 156,
+      name: "Елена Смирнова",
+      email: "elena.smirnova@example.com",
+      phone: "+7 (999) 345-67-89",
+      role: "user" as const,
+      status: "suspended" as const,
+      avatar: "👩‍🎨",
+      lastActive: "2024-01-10T09:45:00Z",
+      joinDate: "2023-12-05T14:20:00Z",
+      lastLogin: "2024-01-10T09:45:00Z",
+      createdAt: "2023-12-05T14:20:00Z",
+      location: "Новосибирск",
+      sessionsCount: 42,
       verified: false
     },
     {
       id: 4,
-      name: 'Александр Иванов',
-      email: 'alex.ivanov@example.com',
-      phone: '+7 (999) 456-78-90',
-      role: 'user',
-      status: 'active',
-      avatar: '👨‍🔬',
-      lastLogin: '2024-01-15T16:45:00Z',
-      createdAt: '2023-09-10T11:15:00Z',
-      location: 'Екатеринбург',
-      sessionsCount: 678,
+      name: "Михаил Иванов",
+      email: "mikhail.ivanov@example.com",
+      phone: "+7 (999) 456-78-90",
+      role: "user" as const,
+      status: "inactive" as const,
+      avatar: "👨‍🔧",
+      lastActive: "2023-12-28T16:20:00Z",
+      joinDate: "2023-11-15T11:30:00Z",
+      lastLogin: "2023-12-28T16:20:00Z",
+      createdAt: "2023-11-15T11:30:00Z",
+      location: "Екатеринбург",
+      sessionsCount: 156,
       verified: true
     },
     {
       id: 5,
-      name: 'Мария Васильева',
-      email: 'maria.vasileva@example.com',
-      phone: '+7 (999) 567-89-01',
-      role: 'user',
-      status: 'inactive',
-      avatar: '👩‍🏫',
-      lastLogin: '2023-12-20T13:20:00Z',
-      createdAt: '2023-05-03T14:40:00Z',
-      location: 'Казань',
-      sessionsCount: 423,
+      name: "Ольга Кузнецова",
+      email: "olga.kuznetsova@example.com",
+      phone: "+7 (999) 567-89-01",
+      role: "moderator" as const,
+      status: "active" as const,
+      avatar: "👩‍🔬",
+      lastActive: "2024-01-15T11:10:00Z",
+      joinDate: "2023-09-30T13:45:00Z",
+      lastLogin: "2024-01-15T11:10:00Z",
+      createdAt: "2023-09-30T13:45:00Z",
+      location: "Казань",
+      sessionsCount: 634,
       verified: true
     }
-  ])
+  ]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    return matchesSearch && matchesStatus && matchesRole
-  })
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    return matchesSearch && matchesStatus && matchesRole;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'green'
-      case 'inactive': return 'gray'
-      case 'suspended': return 'red'
-      default: return 'gray'
+      case "active": return "green";
+      case "inactive": return "gray";
+      case "suspended": return "red";
+      default: return "gray";
     }
-  }
+  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'purple'
-      case 'moderator': return 'blue'
-      case 'user': return 'gray'
-      default: return 'gray'
+      case "admin": return "purple";
+      case "moderator": return "blue";
+      case "user": return "gray";
+      default: return "gray";
     }
-  }
+  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'admin': return Crown
-      case 'moderator': return Shield
-      case 'user': return Users
-      default: return Users
+      case "admin": return Crown;
+      case "moderator": return Shield;
+      case "user": return Users;
+      default: return Users;
     }
-  }
+  };
 
-  const handleViewUser = (user: any) => {
-    setSelectedUser(user)
-    onOpen()
-  }
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    onOpen();
+  };
 
-  const activeUsers = users.filter(u => u.status === 'active').length
-  const suspendedUsers = users.filter(u => u.status === 'suspended').length
-  const verifiedUsers = users.filter(u => u.verified).length
+  const activeUsers = users.filter(u => u.status === "active").length;
+  const suspendedUsers = users.filter(u => u.status === "suspended").length;
+  const verifiedUsers = users.filter(u => u.verified).length;
 
   return (
     <VStack spacing={6} align="stretch">
@@ -210,12 +239,12 @@ export function UsersContent() {
               <Search 
                 size={18} 
                 style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
+                  position: "absolute",
+                  left: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
                   zIndex: 1,
-                  color: 'gray'
+                  color: "gray"
                 }} 
               />
               <Input
@@ -247,9 +276,9 @@ export function UsersContent() {
               variant="outline" 
               leftIcon={<Filter size={18} />}
               onClick={() => {
-                setSearchTerm('')
-                setStatusFilter('all')
-                setRoleFilter('all')
+                setSearchTerm("");
+                setStatusFilter("all");
+                setRoleFilter("all");
               }}
             >
               Сбросить
@@ -266,7 +295,7 @@ export function UsersContent() {
         <CardBody p={0}>
           <Box overflowX="auto">
             <Table variant="simple">
-              <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+              <Thead bg={useColorModeValue("gray.50", "gray.700")}>
                 <Tr>
                   <Th>Пользователь</Th>
                   <Th>Роль</Th>
@@ -279,9 +308,9 @@ export function UsersContent() {
               </Thead>
               <Tbody>
                 {filteredUsers.map((user) => {
-                  const RoleIcon = getRoleIcon(user.role)
+                  const RoleIcon = getRoleIcon(user.role);
                   return (
-                    <Tr key={user.id} _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}>
+                    <Tr key={user.id} _hover={{ bg: rowHoverBg }}>
                       <Td>
                         <HStack spacing={3}>
                           <Box fontSize="2xl">{user.avatar}</Box>
@@ -301,19 +330,19 @@ export function UsersContent() {
                           w="fit-content"
                         >
                           <RoleIcon size={12} />
-                          {user.role === 'admin' ? 'Администратор' :
-                           user.role === 'moderator' ? 'Модератор' : 'Пользователь'}
+                          {user.role === "admin" ? "Администратор" :
+                           user.role === "moderator" ? "Модератор" : "Пользователь"}
                         </Badge>
                       </Td>
                       <Td>
                         <Badge colorScheme={getStatusColor(user.status)}>
-                          {user.status === 'active' ? 'Активен' :
-                           user.status === 'inactive' ? 'Неактивен' : 'Заблокирован'}
+                          {user.status === "active" ? "Активен" :
+                           user.status === "inactive" ? "Неактивен" : "Заблокирован"}
                         </Badge>
                       </Td>
                       <Td>
                         <Text fontSize="sm">
-                          {new Date(user.lastLogin).toLocaleDateString('ru-RU')}
+                          {new Date(user.lastLogin).toLocaleDateString("ru-RU")}
                         </Text>
                       </Td>
                       <Td>{user.sessionsCount}</Td>
@@ -354,7 +383,7 @@ export function UsersContent() {
                         </HStack>
                       </Td>
                     </Tr>
-                  )
+                  );
                 })}
               </Tbody>
             </Table>
@@ -404,13 +433,13 @@ export function UsersContent() {
                       <HStack>
                         <Clock size={16} />
                         <Text fontSize="sm">
-                          Последний вход: {new Date(selectedUser.lastLogin).toLocaleString('ru-RU')}
+                          Последний вход: {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleString("ru-RU") : "Неизвестно"}
                         </Text>
                       </HStack>
                       <HStack>
                         <Calendar size={16} />
                         <Text fontSize="sm">
-                          Регистрация: {new Date(selectedUser.createdAt).toLocaleDateString('ru-RU')}
+                          Регистрация: {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString("ru-RU") : "Неизвестно"}
                         </Text>
                       </HStack>
                       <HStack>
@@ -449,7 +478,7 @@ export function UsersContent() {
                   </VStack>
                 </Box>
 
-                {selectedUser.status === 'suspended' && (
+                {selectedUser.status === "suspended" && (
                   <Alert status="warning">
                     <AlertIcon />
                     Аккаунт пользователя заблокирован администратором
@@ -466,7 +495,7 @@ export function UsersContent() {
               >
                 Редактировать
               </Button>
-              {selectedUser?.status === 'active' ? (
+              {selectedUser?.status === "active" ? (
                 <Button 
                   colorScheme="red" 
                   variant="outline"
@@ -491,5 +520,5 @@ export function UsersContent() {
         </ModalContent>
       </Modal>
     </VStack>
-  )
+  );
 }

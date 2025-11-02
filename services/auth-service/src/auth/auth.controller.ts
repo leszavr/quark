@@ -1,30 +1,30 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, ForbiddenException, Request } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, AuthResponseDto } from '../common/dto/auth.dto';
-import { Complete2FALoginDto } from '../common/dto/2fa.dto';
-import { CreateTokenDto, TokenResponseDto } from '../common/dto/token.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/user.decorator';
+import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, ForbiddenException, Request } from "@nestjs/common";
+import { AuthService } from "./auth.service";
+import { LoginDto, RegisterDto, AuthResponseDto } from "../common/dto/auth.dto";
+import { Complete2FALoginDto } from "../common/dto/2fa.dto";
+import { CreateTokenDto, TokenResponseDto } from "../common/dto/token.dto";
+import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { CurrentUser } from "../common/decorators/user.decorator";
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('register')
+  @Post("register")
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(registerDto);
   }
 
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto, @Request() req): Promise<AuthResponseDto | { requiresTwoFactor: boolean; tempToken: string }> {
+  async login(@Body() loginDto: LoginDto, @Request() req: { ip?: string; connection?: any }): Promise<AuthResponseDto | { requiresTwoFactor: boolean; tempToken: string }> {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     return this.authService.login(loginDto, loginDto.deviceFingerprint, ipAddress);
   }
 
-  @Post('login/2fa')
+  @Post("login/2fa")
   @HttpCode(HttpStatus.OK)
-  async complete2FALogin(@Body() complete2FADto: Complete2FALoginDto, @Request() req): Promise<AuthResponseDto> {
+  async complete2FALogin(@Body() complete2FADto: Complete2FALoginDto, @Request() req: { ip?: string; connection?: any }): Promise<AuthResponseDto> {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     return this.authService.complete2FALogin(
       complete2FADto.tempToken,
@@ -35,10 +35,13 @@ export class AuthController {
     );
   }
 
-  @Get('profile')
+  @Get("profile")
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user: any) {
     const fullUser = await this.authService.validateUser(user.userId);
+    if (!fullUser) {
+      return null;
+    }
     return {
       id: fullUser.id,
       email: fullUser.email,
@@ -55,15 +58,15 @@ export class AuthController {
    * Создание Service Token для межсервисного взаимодействия
    * Доступно только для Hub Tokens
    */
-  @Post('tokens/service')
+  @Post("tokens/service")
   @UseGuards(JwtAuthGuard)
   async createServiceToken(
     @Body() createTokenDto: CreateTokenDto,
     @CurrentUser() user: any
   ): Promise<TokenResponseDto> {
     // Проверяем, что запрос от Hub Token
-    if (user.token_type !== 'hub') {
-      throw new ForbiddenException('Only Hub tokens can create Service tokens');
+    if (user.token_type !== "hub") {
+      throw new ForbiddenException("Only Hub tokens can create Service tokens");
     }
     return this.authService.createServiceToken(createTokenDto);
   }
@@ -72,15 +75,15 @@ export class AuthController {
    * Создание Hub Token для системных операций
    * Доступно только для системных операций
    */
-  @Post('tokens/hub')
+  @Post("tokens/hub")
   @UseGuards(JwtAuthGuard)
   async createHubToken(
     @Body() createTokenDto: CreateTokenDto,
     @CurrentUser() user: any
   ): Promise<TokenResponseDto> {
     // Проверяем системные права
-    if (!user.permissions?.includes('*')) {
-      throw new ForbiddenException('Insufficient permissions for Hub token creation');
+    if (!user.permissions?.includes("*")) {
+      throw new ForbiddenException("Insufficient permissions for Hub token creation");
     }
     return this.authService.createHubToken(createTokenDto);
   }
@@ -88,7 +91,7 @@ export class AuthController {
   /**
    * Валидация токена
    */
-  @Post('validate')
+  @Post("validate")
   @HttpCode(HttpStatus.OK)
   async validateToken(@Body() { token }: { token: string }) {
     const payload = await this.authService.validateToken(token);
@@ -103,12 +106,12 @@ export class AuthController {
    * Валидация токена для Traefik ForwardAuth
    * Читает токен из Authorization заголовка и возвращает user context в заголовках
    */
-  @Get('validate')
+  @Get("validate")
   @HttpCode(HttpStatus.OK)
-  async validateTokenForTraefik(@Request() req) {
+  async validateTokenForTraefik(@Request() req: { headers: any; res: any }): Promise<any> {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ForbiddenException('Missing or invalid authorization header');
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw new ForbiddenException("Missing or invalid authorization header");
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -116,22 +119,22 @@ export class AuthController {
       const payload = await this.authService.validateToken(token);
       
       // Устанавливаем заголовки для передачи в целевой сервис
-      if (payload.token_type === 'user') {
+      if (payload.token_type === "user") {
         const userPayload = payload as any; // UserTokenPayload
-        req.res.setHeader('X-User-Id', userPayload.user_id);
-        req.res.setHeader('X-Subject', payload.sub);
-      } else if (payload.token_type === 'service') {
+        req.res.setHeader("X-User-Id", userPayload.user_id);
+        req.res.setHeader("X-Subject", payload.sub);
+      } else if (payload.token_type === "service") {
         const servicePayload = payload as any; // ServiceTokenPayload
-        req.res.setHeader('X-Service-Id', servicePayload.service_id);
-        req.res.setHeader('X-Service-Name', servicePayload.service_name);
-      } else if (payload.token_type === 'hub') {
+        req.res.setHeader("X-Service-Id", servicePayload.service_id);
+        req.res.setHeader("X-Service-Name", servicePayload.service_name);
+      } else if (payload.token_type === "hub") {
         const hubPayload = payload as any; // HubTokenPayload
-        req.res.setHeader('X-Service-Id', hubPayload.service_id);
+        req.res.setHeader("X-Service-Id", hubPayload.service_id);
       }
       
-      req.res.setHeader('X-User-Roles', JSON.stringify(payload.roles || []));
-      req.res.setHeader('X-Token-Type', payload.token_type);
-      req.res.setHeader('X-User-Permissions', JSON.stringify(payload.permissions || []));
+      req.res.setHeader("X-User-Roles", JSON.stringify(payload.roles || []));
+      req.res.setHeader("X-Token-Type", payload.token_type);
+      req.res.setHeader("X-User-Permissions", JSON.stringify(payload.permissions || []));
 
       return {
         valid: true,
@@ -141,17 +144,17 @@ export class AuthController {
         tokenType: payload.token_type
       };
     } catch (error) {
-      throw new ForbiddenException('Invalid token');
+      throw new ForbiddenException("Invalid token");
     }
   }
 
-  @Get('health')
+  @Get("health")
   getHealth() {
     return {
-      status: 'healthy',
-      service: 'auth-service',
+      status: "healthy",
+      service: "auth-service",
       timestamp: new Date().toISOString(),
-      version: '1.0.0'
+      version: "1.0.0"
     };
   }
 }

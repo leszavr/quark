@@ -61,10 +61,10 @@ export class PluginHubClient {
       };
 
       const response = await fetch(`${this.config.hubUrl}/api/services/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': `${this.config.moduleId}/1.0.0`
+          "Content-Type": "application/json",
+          "User-Agent": `${this.config.moduleId}/1.0.0`
         },
         body: JSON.stringify(registrationData)
       });
@@ -88,7 +88,7 @@ export class PluginHubClient {
       }
 
     } catch (error) {
-      console.error(`❌ Plugin Hub registration failed:`, error instanceof Error ? error.message : String(error));
+      console.error("❌ Plugin Hub registration failed:", error instanceof Error ? error.message : String(error));
       
       // Retry logic
       if (this.retryCount < this.config.retryAttempts!) {
@@ -111,24 +111,24 @@ export class PluginHubClient {
    */
   private parseSimpleYaml(yamlContent: string): any {
     // Простая реализация для основных YAML конструкций
-    const lines = yamlContent.split('\n');
+    const lines = yamlContent.split("\n");
     const result: any = {};
     let currentSection: any = result;
     let indent = 0;
     
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
+      if (!trimmed || trimmed.startsWith("#")) continue;
       
       const currentIndent = line.length - line.trimStart().length;
       
-      if (trimmed.includes(':')) {
-        const [key, ...valueParts] = trimmed.split(':');
-        const value = valueParts.join(':').trim();
+      if (trimmed.includes(":")) {
+        const [key, ...valueParts] = trimmed.split(":");
+        const value = valueParts.join(":").trim();
         
         if (value) {
           // Simple value
-          currentSection[key.trim()] = value.replace(/['"]/g, '');
+          currentSection[key.trim()] = value.replace(/['"]/g, "");
         } else {
           // Section header
           currentSection[key.trim()] = {};
@@ -146,8 +146,8 @@ export class PluginHubClient {
   private async loadManifest(): Promise<any> {
     try {
       if (this.config.manifestPath) {
-        const fs = await import('fs');
-        const manifestContent = fs.readFileSync(this.config.manifestPath, 'utf8');
+        const fs = await import("fs");
+        const manifestContent = fs.readFileSync(this.config.manifestPath, "utf8");
         // Simple YAML parsing for manifest (assuming key: value format)
         return this.parseSimpleYaml(manifestContent);
       } else {
@@ -175,7 +175,7 @@ export class PluginHubClient {
         };
       }
     } catch (error) {
-      console.error('Failed to load manifest:', error);
+      console.error("Failed to load manifest:", error);
       throw error;
     }
   }
@@ -192,7 +192,7 @@ export class PluginHubClient {
       try {
         await this.sendHeartbeat();
       } catch (error) {
-        console.error('Heartbeat failed:', error instanceof Error ? error.message : String(error));
+        console.error("Heartbeat failed:", error instanceof Error ? error.message : String(error));
         // При ошибке heartbeat пытаемся перерегистрироваться
         this.isRegistered = false;
         this.register();
@@ -217,9 +217,9 @@ export class PluginHubClient {
     };
 
     const response = await fetch(`${this.config.hubUrl}/api/services/${this.config.moduleId}/heartbeat`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(heartbeatData)
     });
@@ -228,14 +228,14 @@ export class PluginHubClient {
       throw new Error(`Heartbeat failed: ${response.status}`);
     }
 
-    console.log(`💗 Heartbeat sent to Plugin Hub`);
+    console.log("💗 Heartbeat sent to Plugin Hub");
   }
 
   /**
    * Graceful shutdown - уведомляем Plugin Hub о завершении работы
    */
   async shutdown(): Promise<void> {
-    console.log('🛑 Shutting down Plugin Hub integration...');
+    console.log("🛑 Shutting down Plugin Hub integration...");
     
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -244,18 +244,18 @@ export class PluginHubClient {
     if (this.isRegistered) {
       try {
         await fetch(`${this.config.hubUrl}/api/services/${this.config.moduleId}/shutdown`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             timestamp: new Date().toISOString(),
-            reason: 'graceful-shutdown'
+            reason: "graceful-shutdown"
           })
         });
-        console.log('✅ Plugin Hub notified of shutdown');
+        console.log("✅ Plugin Hub notified of shutdown");
       } catch (error) {
-        console.error('Failed to notify Plugin Hub of shutdown:', error instanceof Error ? error.message : String(error));
+        console.error("Failed to notify Plugin Hub of shutdown:", error instanceof Error ? error.message : String(error));
       }
     }
   }
@@ -280,7 +280,7 @@ export class PluginHubClient {
       const result = await response.json();
       return result.data || [];
     } catch (error) {
-      console.error('Service discovery failed:', error instanceof Error ? error.message : String(error));
+      console.error("Service discovery failed:", error instanceof Error ? error.message : String(error));
       return [];
     }
   }

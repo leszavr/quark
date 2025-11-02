@@ -1,21 +1,10 @@
-'use client';
+"use client";
 
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  Grid,
-  useColorMode,
-  IconButton,
-} from '@chakra-ui/react';
-import { useState } from 'react';
-import { Smile } from 'lucide-react';
+import { Button } from "../../button";
+import { IconButton } from "../../button";
+// Остальные компоненты Chakra UI временно оставлены для поэтапной миграции
+import { useState } from "react";
+import { Smile } from "lucide-react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
@@ -25,142 +14,94 @@ interface EmojiPickerProps {
 // Категории эмодзи
 const emojiCategories = {
   smileys: {
-    name: 'Смайлики',
+    name: "Смайлики",
     emojis: [
-      '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-      '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚',
-      '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭',
-      '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄'
+      "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃",
+      "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "☺️", "😚",
+      "😙", "🥲", "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭",
+      "🤫", "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄"
     ]
   },
   gestures: {
-    name: 'Жесты',
+    name: "Жесты",
     emojis: [
-      '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙',
-      '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋',
-      '🖖', '👏', '🙌', '🤲', '🤝', '🙏', '✍️', '💪', '🦵', '🦶'
+      "👍", "👎", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙",
+      "👈", "👉", "👆", "🖕", "👇", "☝️", "👋", "🤚", "🖐️", "✋",
+      "🖖", "👏", "🙌", "🤲", "🤝", "🙏", "✍️", "💪", "🦵", "🦶"
     ]
   },
   objects: {
-    name: 'Объекты',
+    name: "Объекты",
     emojis: [
-      '💻', '📱', '⌚', '📷', '📹', '🎥', '📞', '☎️', '📠', '📺',
-      '📻', '🎵', '🎶', '🎤', '🎧', '📢', '📣', '📯', '🔔', '🔕',
-      '📪', '📫', '📬', '📭', '📮', '🗳️', '✏️', '✒️', '🖋️', '🖊️'
+      "💻", "📱", "⌚", "📷", "📹", "🎥", "📞", "☎️", "📠", "📺",
+      "📻", "🎵", "🎶", "🎤", "🎧", "📢", "📣", "📯", "🔔", "🔕",
+      "📪", "📫", "📬", "📭", "📮", "🗳️", "✏️", "✒️", "🖋️", "🖊️"
     ]
   },
   nature: {
-    name: 'Природа',
+    name: "Природа",
     emojis: [
-      '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
-      '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔',
-      '🌸', '💐', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🌱', '🌲'
+      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
+      "🦁", "🐮", "🐷", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔",
+      "🌸", "💐", "🌹", "🥀", "🌺", "🌻", "🌼", "🌷", "🌱", "🌲"
     ]
   },
   food: {
-    name: 'Еда',
+    name: "Еда",
     emojis: [
-      '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈',
-      '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦',
-      '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠'
+      "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈",
+      "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦",
+      "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🍠"
     ]
   }
 };
 
 export function EmojiPicker({ onEmojiSelect, children }: EmojiPickerProps) {
-  const { colorMode } = useColorMode();
-  const [selectedCategory, setSelectedCategory] = useState('smileys');
+  // Цветовая схема теперь через Tailwind dark: классы
+  const colorMode = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const [selectedCategory, setSelectedCategory] = useState("smileys");
 
   const handleEmojiClick = (emoji: string) => {
     onEmojiSelect(emoji);
   };
 
   return (
-    <Popover placement="top-start">
-      <PopoverTrigger>
-        {children || (
-          <IconButton
-            aria-label="Выбрать эмодзи"
-            icon={<Smile size={18} />}
-            variant="ghost"
-            size="sm"
-            color="gray.500"
-            _hover={{ color: 'secondary.500' }}
-          />
-        )}
-      </PopoverTrigger>
-      <PopoverContent 
-        w="320px" 
-        h="280px"
-        bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-        borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-        shadow="xl"
+    <div className="relative inline-block">
+      {children || (
+        <IconButton icon={<Smile size={18} />} aria-label="Выбрать эмодзи" className="text-gray-500 hover:text-secondary-500 p-2" />
+      )}
+      <div
+        className={`absolute left-0 top-full mt-2 w-[320px] h-[280px] z-10 rounded-lg shadow-xl border ${colorMode === "dark" ? "bg-gray-800 border-gray-600" : "bg-white border-gray-200"}`}
       >
-        <PopoverBody p={0}>
-          <VStack spacing={0} h="full">
-            {/* Категории */}
-            <HStack
-              spacing={0}
-              w="full"
-              p={2}
-              borderBottom="1px solid"
-              borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-            >
-              {Object.entries(emojiCategories).map(([key, category]) => (
+        <div className="flex flex-col h-full">
+          {/* Категории */}
+          <div className={`flex w-full p-2 border-b ${colorMode === "dark" ? "border-gray-600" : "border-gray-200"}`}>
+            {Object.entries(emojiCategories).map(([key, category]) => (
+              <Button
+                key={key}
+                className={`text-xs ${selectedCategory === key ? "font-bold text-primary-500 bg-black/5" : "font-normal text-gray-600"} flex-1 rounded-md hover:bg-black/5`}
+                onClick={() => setSelectedCategory(key)}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
+          {/* Сетка эмодзи */}
+          <div className="flex-1 w-full overflow-y-auto p-2">
+            <div className="grid grid-cols-8 gap-1">
+              {emojiCategories[selectedCategory as keyof typeof emojiCategories]?.emojis.map((emoji, index) => (
                 <Button
-                  key={key}
-                  variant="ghost"
-                  size="sm"
-                  fontSize="xs"
-                  fontWeight={selectedCategory === key ? 'bold' : 'normal'}
-                  color={selectedCategory === key 
-                    ? 'primary.500' 
-                    : (colorMode === 'dark' ? 'gray.300' : 'gray.600')
-                  }
-                  bg={selectedCategory === key 
-                    ? (colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50')
-                    : 'transparent'
-                  }
-                  _hover={{
-                    bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50',
-                  }}
-                  onClick={() => setSelectedCategory(key)}
-                  flex={1}
-                  borderRadius="md"
+                  key={`${emoji}-${index}`}
+                  className="min-w-[32px] h-8 p-0 text-[16px] rounded-md hover:bg-black/10 transition-all duration-100 hover:scale-110"
+                  onClick={() => handleEmojiClick(emoji)}
                 >
-                  {category.name}
+                  {emoji}
                 </Button>
               ))}
-            </HStack>
-
-            {/* Сетка эмодзи */}
-            <Box flex={1} w="full" overflowY="auto" p={2}>
-              <Grid templateColumns="repeat(8, 1fr)" gap={1}>
-                {emojiCategories[selectedCategory as keyof typeof emojiCategories]?.emojis.map((emoji, index) => (
-                  <Button
-                    key={`${emoji}-${index}`}
-                    variant="ghost"
-                    size="sm"
-                    minW="32px"
-                    h="32px"
-                    p={0}
-                    fontSize="16px"
-                    borderRadius="md"
-                    _hover={{
-                      bg: colorMode === 'dark' ? 'whiteAlpha.200' : 'blackAlpha.100',
-                      transform: 'scale(1.2)',
-                    }}
-                    transition="all 0.1s"
-                    onClick={() => handleEmojiClick(emoji)}
-                  >
-                    {emoji}
-                  </Button>
-                ))}
-              </Grid>
-            </Box>
-          </VStack>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
