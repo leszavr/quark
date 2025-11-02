@@ -1,35 +1,35 @@
-import { IsString, IsArray, IsNumber, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsArray, IsNumber, IsOptional, IsEnum } from "class-validator";
 
 export enum TokenType {
-  USER = 'user',
-  SERVICE = 'service', 
-  HUB = 'hub'
+  USER = "user",
+  SERVICE = "service", 
+  HUB = "hub"
 }
 
 export class BaseTokenPayload {
   @IsString()
-  sub: string;
+  sub!: string;
 
   @IsArray()
   @IsString({ each: true })
-  roles: string[];
+  roles!: string[];
 
   @IsArray()
   @IsString({ each: true })
-  permissions: string[];
+  permissions!: string[];
 
   @IsNumber()
-  exp: number;
+  exp!: number;
 
   @IsString()
-  iss: string;
+  iss!: string;
 
   @IsArray()
   @IsString({ each: true })
-  aud: string[];
+  aud!: string[];
 
   @IsEnum(TokenType)
-  token_type: TokenType;
+  token_type!: TokenType;
 }
 
 /**
@@ -38,13 +38,13 @@ export class BaseTokenPayload {
  */
 export class UserTokenPayload extends BaseTokenPayload {
   @IsString()
-  user_id: string;
+  user_id!: string;
 
   @IsOptional()
   @IsString()
   session_id?: string;
 
-  token_type: TokenType.USER;
+  token_type!: TokenType.USER;
 }
 
 /**
@@ -53,12 +53,12 @@ export class UserTokenPayload extends BaseTokenPayload {
  */
 export class ServiceTokenPayload extends BaseTokenPayload {
   @IsString()
-  service_id: string;
+  service_id!: string;
 
   @IsString()
-  service_name: string;
+  service_name!: string;
 
-  token_type: TokenType.SERVICE;
+  token_type!: TokenType.SERVICE;
 }
 
 /**
@@ -67,9 +67,9 @@ export class ServiceTokenPayload extends BaseTokenPayload {
  */
 export class HubTokenPayload extends BaseTokenPayload {
   @IsString()
-  service_id: string;
+  service_id!: string;
 
-  token_type: TokenType.HUB;
+  token_type!: TokenType.HUB;
 }
 
 /**
@@ -77,22 +77,22 @@ export class HubTokenPayload extends BaseTokenPayload {
  */
 export class CreateTokenDto {
   @IsEnum(TokenType)
-  token_type: TokenType;
+  token_type!: TokenType;
 
   @IsString()
-  sub: string;
+  sub!: string;
 
   @IsArray()
   @IsString({ each: true })
-  roles: string[];
+  roles!: string[];
 
   @IsArray()
   @IsString({ each: true })
-  permissions: string[];
+  permissions!: string[];
 
   @IsArray()
   @IsString({ each: true })
-  aud: string[];
+  aud!: string[];
 
   @IsOptional()
   @IsString()
@@ -120,14 +120,13 @@ export class CreateTokenDto {
  */
 export class TokenResponseDto {
   @IsString()
-  access_token: string;
+  access_token!: string;
 
   @IsEnum(TokenType)
-  token_type: TokenType;
+  token_type!: TokenType;
 
   @IsNumber()
-  expires_in: number;
+  expires_in!: number;
 
-  @IsString()
-  issued_at: string;
+  issued_at!: string;
 }

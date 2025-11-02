@@ -1,12 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Box, HStack } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChatList } from '@/components/ChatList';
-import { ChatWindow } from '@/components/ChatWindow';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChatList } from "@/components/ChatList";
+import { ChatWindow } from "@/components/ChatWindow";
 
-const MotionBox = motion.create(Box);
+const MotionDiv = motion.div;
 
 interface ChatAreaProps {
   showBackButton?: boolean;
@@ -15,7 +14,7 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({ showBackButton = false, onBack, onChatClick }: ChatAreaProps) {
-  const [selectedChatId, setSelectedChatId] = useState<string>('chat-1'); // По умолчанию первый чат
+  const [selectedChatId, setSelectedChatId] = useState<string>("chat-1"); // По умолчанию первый чат
   const [showChatWindow, setShowChatWindow] = useState(false); // для мобильной навигации
 
   // Функции мобильной навигации
@@ -36,80 +35,65 @@ export function ChatArea({ showBackButton = false, onBack, onChatClick }: ChatAr
   if (isMobileMode) {
     // Мобильная навигация: ChatList ⇄ ChatWindow
     return (
-      <Box h="full" position="relative" overflow="hidden">
+  <div className="h-full relative overflow-hidden">
         <AnimatePresence mode="wait">
           {!showChatWindow ? (
             // Показываем список чатов
-            <MotionBox
+            <MotionDiv
               key="chat-list"
               initial={{ x: 0 }}
               animate={{ x: 0 }}
               exit={{ x: -100, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              position="absolute"
-              top={0}
-              left={0}
-              width="100%"
-              height="100%"
+              className="absolute top-0 left-0 w-full h-full"
             >
               <ChatList 
                 onChatSelect={handleChatSelect}
                 selectedChatId={selectedChatId}
                 fullWidth={true}
               />
-            </MotionBox>
+            </MotionDiv>
           ) : (
             // Показываем окно чата
-            <MotionBox
+            <MotionDiv
               key="chat-window"
               initial={{ x: 100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 100, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              position="absolute"
-              top={0}
-              left={0}
-              width="100%"
-              height="100%"
+              className="absolute top-0 left-0 w-full h-full"
             >
               <ChatWindow
                 chatId={selectedChatId}
                 showBackButton={true}
                 onBack={handleBackToList}
               />
-            </MotionBox>
+            </MotionDiv>
           )}
         </AnimatePresence>
-      </Box>
+  </div>
     );
   }
 
   // Десктопный режим: ChatList + ChatWindow рядом
   return (
-    <HStack spacing={0} align="stretch" h="full">
+  <div className="flex flex-row h-full items-stretch">
       {/* Список чатов (30% ширины) */}
-      <Box 
-        w="300px" 
-        minW="300px" 
-        maxW="400px"
-        borderRight="1px solid" 
-        borderColor="gray.200" 
-        _dark={{ borderColor: "gray.700" }}
-      >
+      <div className="w-[300px] min-w-[300px] max-w-[400px] border-r border-gray-200 dark:border-gray-700">
         <ChatList 
           onChatSelect={setSelectedChatId}
           selectedChatId={selectedChatId}
           fullWidth={false}
         />
-      </Box>
+  </div>
 
       {/* Окно чата (70% ширины) */}
-      <Box flex={1}>
+  <div className="flex-1">
         <ChatWindow
           chatId={selectedChatId}
           showBackButton={false}
         />
-      </Box>
-    </HStack>
+  </div>
+  </div>
   );
 }

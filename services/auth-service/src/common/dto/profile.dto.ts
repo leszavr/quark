@@ -1,11 +1,11 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsEnum, IsObject } from "class-validator";
 
 export enum DeviceType {
-  WEB = 'web',
-  MOBILE_IOS = 'mobile_ios',
-  MOBILE_ANDROID = 'mobile_android',
-  DESKTOP = 'desktop',
-  API = 'api',
+  WEB = "web",
+  MOBILE_IOS = "mobile_ios",
+  MOBILE_ANDROID = "mobile_android",
+  DESKTOP = "desktop",
+  API = "api",
 }
 
 // DTO для управления профилем
@@ -37,10 +37,10 @@ export class UpdateProfileDto {
 // DTO для регистрации устройства
 export class RegisterDeviceDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsEnum(DeviceType)
-  type: DeviceType;
+  type!: DeviceType;
 
   @IsOptional()
   @IsString()
@@ -51,19 +51,19 @@ export class RegisterDeviceDto {
   location?: string;
 
   @IsString()
-  deviceFingerprint: string;
+  deviceFingerprint!: string;
 }
 
 // DTO для включения 2FA
 export class Enable2FADto {
   @IsString()
-  totpToken: string; // Код из приложения аутентификатора
+  totpToken!: string; // Код из приложения аутентификатора
 }
 
 // DTO для верификации 2FA
 export class Verify2FADto {
   @IsString()
-  token: string;
+  token!: string;
 
   @IsOptional()
   @IsBoolean()
@@ -73,39 +73,39 @@ export class Verify2FADto {
 // DTO для смены пароля
 export class ChangePasswordDto {
   @IsString()
-  currentPassword: string;
+  currentPassword!: string;
 
   @IsString()
-  newPassword: string;
+  newPassword!: string;
 }
 
 // Response DTO для 2FA setup
 export class Setup2FAResponseDto {
-  qrCodeUrl: string;
-  secret: string;
-  backupCodes: string[];
+  qrCodeUrl!: string;
+  secret!: string;
+  backupCodes!: string[];
 }
 
 // Response DTO для устройств
 export class DeviceResponseDto {
-  id: string;
-  name: string;
-  type: DeviceType;
-  status: string;
+  id!: string;
+  name!: string;
+  type!: DeviceType;
+  status!: string;
   location?: string;
   lastSeenAt?: Date;
-  isTrusted: boolean;
-  isCurrentDevice: boolean;
-  createdAt: Date;
+  isTrusted!: boolean;
+  isCurrentDevice!: boolean;
+  createdAt!: Date;
 }
 
 // Response DTO для сессий
 export class SessionResponseDto {
-  id: string;
+  id!: string;
   deviceName?: string;
   ipAddress?: string;
   userAgent?: string;
   lastActivityAt?: Date;
-  isCurrentSession: boolean;
-  createdAt: Date;
+  isCurrentSession!: boolean;
+  createdAt!: Date;
 }

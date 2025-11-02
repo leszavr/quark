@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
@@ -8,79 +8,79 @@ import {
   NumberInput, NumberInputField, NumberInputStepper,
   NumberIncrementStepper, NumberDecrementStepper, IconButton,
   Tooltip, useToast
-} from '@chakra-ui/react'
-import { useState } from 'react'
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Settings, Database, Mail, Globe, Palette, Bell,
   Save, RefreshCw, Upload, Download, Server, Code,
   Shield, Key, Clock, Zap, FileText, Archive
-} from 'lucide-react'
+} from "lucide-react";
 
 export function SettingsContent() {
-  const toast = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const toast = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Общие настройки
-  const [siteName, setSiteName] = useState('Quark UI Platform')
-  const [siteDescription, setSiteDescription] = useState('Платформа для разработки и развертывания AI-приложений')
-  const [maintenanceMode, setMaintenanceMode] = useState(false)
-  const [registrationEnabled, setRegistrationEnabled] = useState(true)
+  const [siteName, setSiteName] = useState("Quark UI Platform");
+  const [siteDescription, setSiteDescription] = useState("Платформа для разработки и развертывания AI-приложений");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
 
   // Настройки уведомлений
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(false)
-  const [newsletterEnabled, setNewsletterEnabled] = useState(true)
-  const [notificationRetention, setNotificationRetention] = useState(30)
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [newsletterEnabled, setNewsletterEnabled] = useState(true);
+  const [notificationRetention, setNotificationRetention] = useState(30);
 
   // Настройки производительности
-  const [cacheEnabled, setCacheEnabled] = useState(true)
-  const [cacheTimeout, setCacheTimeout] = useState(3600)
-  const [compressionEnabled, setCompressionEnabled] = useState(true)
-  const [maxFileSize, setMaxFileSize] = useState(50)
+  const [cacheEnabled, setCacheEnabled] = useState(true);
+  const [cacheTimeout, setCacheTimeout] = useState(3600);
+  const [compressionEnabled, setCompressionEnabled] = useState(true);
+  const [maxFileSize, setMaxFileSize] = useState(50);
 
   // Email настройки
-  const [smtpHost, setSmtpHost] = useState('smtp.example.com')
-  const [smtpPort, setSmtpPort] = useState(587)
-  const [smtpUser, setSmtpUser] = useState('noreply@example.com')
-  const [smtpPassword, setSmtpPassword] = useState('')
-  const [emailFrom, setEmailFrom] = useState('Quark UI <noreply@example.com>')
+  const [smtpHost, setSmtpHost] = useState("smtp.example.com");
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpUser, setSmtpUser] = useState("noreply@example.com");
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [emailFrom, setEmailFrom] = useState("Quark UI <noreply@example.com>");
 
   // API настройки
-  const [apiRateLimit, setApiRateLimit] = useState(1000)
-  const [apiTimeout, setApiTimeout] = useState(30)
-  const [corsEnabled, setCorsEnabled] = useState(true)
-  const [allowedOrigins, setAllowedOrigins] = useState('https://example.com, https://app.example.com')
+  const [apiRateLimit, setApiRateLimit] = useState(1000);
+  const [apiTimeout, setApiTimeout] = useState(30);
+  const [corsEnabled, setCorsEnabled] = useState(true);
+  const [allowedOrigins, setAllowedOrigins] = useState("https://example.com, https://app.example.com");
 
   // База данных
-  const [autoBackup, setAutoBackup] = useState(true)
-  const [backupInterval, setBackupInterval] = useState(24)
-  const [maxBackups, setMaxBackups] = useState(7)
-  const [dbOptimization, setDbOptimization] = useState(false)
+  const [autoBackup, setAutoBackup] = useState(true);
+  const [backupInterval, setBackupInterval] = useState(24);
+  const [maxBackups, setMaxBackups] = useState(7);
+  const [dbOptimization, setDbOptimization] = useState(false);
 
   const handleSave = async (section: string) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       // Имитация сохранения
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
-        title: 'Настройки сохранены',
+        title: "Настройки сохранены",
         description: `Раздел "${section}" успешно обновлен`,
-        status: 'success',
+        status: "success",
         duration: 3000,
         isClosable: true,
-      })
+      });
     } catch (error) {
       toast({
-        title: 'Ошибка сохранения',
-        description: 'Не удалось сохранить настройки',
-        status: 'error',
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить настройки",
+        status: "error",
         duration: 3000,
         isClosable: true,
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <VStack spacing={6} align="stretch">
@@ -202,7 +202,7 @@ export function SettingsContent() {
                 <Button 
                   colorScheme="blue" 
                   leftIcon={<Save size={18} />}
-                  onClick={() => handleSave('Общие настройки')}
+                  onClick={() => handleSave("Общие настройки")}
                   isLoading={isLoading}
                 >
                   Сохранить изменения
@@ -336,7 +336,7 @@ export function SettingsContent() {
                 <Button 
                   colorScheme="blue" 
                   leftIcon={<Save size={18} />}
-                  onClick={() => handleSave('Уведомления')}
+                  onClick={() => handleSave("Уведомления")}
                   isLoading={isLoading}
                 >
                   Сохранить изменения
@@ -424,7 +424,7 @@ export function SettingsContent() {
                 <Button 
                   colorScheme="blue" 
                   leftIcon={<Save size={18} />}
-                  onClick={() => handleSave('Производительность')}
+                  onClick={() => handleSave("Производительность")}
                   isLoading={isLoading}
                 >
                   Сохранить изменения
@@ -511,7 +511,7 @@ export function SettingsContent() {
                 <Button 
                   colorScheme="blue" 
                   leftIcon={<Save size={18} />}
-                  onClick={() => handleSave('API')}
+                  onClick={() => handleSave("API")}
                   isLoading={isLoading}
                 >
                   Сохранить изменения
@@ -613,7 +613,7 @@ export function SettingsContent() {
                 <Button 
                   colorScheme="blue" 
                   leftIcon={<Save size={18} />}
-                  onClick={() => handleSave('База данных')}
+                  onClick={() => handleSave("База данных")}
                   isLoading={isLoading}
                 >
                   Сохранить изменения
@@ -624,5 +624,5 @@ export function SettingsContent() {
         </TabPanels>
       </Tabs>
     </VStack>
-  )
+  );
 }

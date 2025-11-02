@@ -3,11 +3,11 @@ export interface ServiceInfo {
   id: string;
   name: string;
   version: string;
-  type: 'api' | 'background' | 'auth' | 'storage' | 'notification';
+  type: "api" | "background" | "auth" | "storage" | "notification";
   endpoint?: string;
   port?: number;
-  status: 'active' | 'inactive' | 'error';
-  health: 'healthy' | 'unhealthy' | 'unknown';
+  status: "active" | "inactive" | "error";
+  health: "healthy" | "unhealthy" | "unknown";
   lastHeartbeat: Date;
   metadata?: Record<string, any>;
   dependencies?: string[];
@@ -23,7 +23,7 @@ export interface ModuleDefinition {
   id: string;
   name: string;
   version: string;
-  type: 'service' | 'plugin' | 'wasm' | 'native';
+  type: "service" | "plugin" | "wasm" | "native";
   manifest: {
     description: string;
     author: string;
@@ -32,7 +32,7 @@ export interface ModuleDefinition {
     keywords?: string[];
   };
   runtime: {
-    engine: 'node' | 'wasm' | 'docker' | 'native';
+    engine: "node" | "wasm" | "docker" | "native";
     entrypoint: string;
     environment?: Record<string, string>;
     resources?: {
@@ -52,7 +52,7 @@ export interface ModuleDefinition {
 
 export interface ApiEndpoint {
   path: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   description: string;
   parameters?: Parameter[];
   responses?: Response[];
@@ -60,7 +60,7 @@ export interface ApiEndpoint {
 
 export interface EventDefinition {
   name: string;
-  type: 'publish' | 'subscribe';
+  type: "publish" | "subscribe";
   subject: string;
   schema?: any;
   description?: string;
@@ -70,12 +70,12 @@ export interface ModuleDependency {
   moduleId: string;
   version: string;
   optional?: boolean;
-  type: 'service' | 'api' | 'event';
+  type: "service" | "api" | "event";
 }
 
 export interface Parameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: "string" | "number" | "boolean" | "object" | "array";
   required?: boolean;
   description?: string;
 }
@@ -92,7 +92,7 @@ export interface ConfigurationSchema {
 }
 
 export interface ConfigProperty {
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: "string" | "number" | "boolean" | "object" | "array";
   description?: string;
   default?: any;
   enum?: any[];
@@ -116,7 +116,7 @@ export interface ModuleEvent extends SystemEvent {
 // Health Check Types
 export interface HealthCheck {
   serviceId: string;
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   timestamp: Date;
   details?: {
     uptime?: number;

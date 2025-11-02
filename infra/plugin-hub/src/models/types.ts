@@ -2,7 +2,7 @@ export interface ServiceInfo {
   id: string;
   name: string;
   version: string;
-  status: 'online' | 'offline' | 'error';
+  status: "online" | "offline" | "error";
   url: string;
   healthEndpoint: string;
   registeredAt: Date;
@@ -17,7 +17,7 @@ export interface ServiceInfo {
 
 export interface HealthCheck {
   serviceId: string;
-  status: 'healthy' | 'unhealthy' | 'unknown';
+  status: "healthy" | "unhealthy" | "unknown";
   timestamp: Date;
   responseTime?: number;
   details?: any;

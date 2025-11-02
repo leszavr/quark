@@ -1,0 +1,111 @@
+# .gitlab-ci.yml — CI/CD для Quark Landing (Next.js, TypeScript)
+
+stages:
+  - test
+  - build
+  - build-image
+  - deploy
+
+variables:
+  NODE_VERSION: "22"
+  NODE_ENV: production
+  NEXT_TELEMETRY_DISABLED: 1
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  DOCKER_IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+# Задача для тестирования (линтинг и проверка типов)
+test:
+  stage: test
+  tags:
+    - shell
+    - quark
+    - nextjs
+  image: node:22
+  before_script:
+    - npm install pnpm
+    - node -v
+    - npx pnpm -v
+    - df -h
+    - free -m
+    - npx pnpm store prune
+    - npx pnpm install --reporter=ndjson
+  script:
+    - pnpm run lint
+    - pnpm run type-check
+  only:
+    - prod
+
+# Задача для сборки
+build:
+  stage: build
+  tags:
+    - shell
+    - quark
+    - nextjs
+  image: node:22
+  before_script:
+    - npm install pnpm
+    - node -v
+    - npx pnpm -v
+    - df -h
+    - free -m
+    - npx pnpm store prune
+    - npx pnpm install --reporter=ndjson
+  script:
+    - pnpm run build
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 day
+  only:
+    - prod
+
+# Задача для сборки Docker образа
+build-image:
+  stage: build-image
+  tags:
+    - shell
+    - quark
+    - nextjs
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $DOCKER_IMAGE .
+    - docker push $DOCKER_IMAGE
+    - docker tag $DOCKER_IMAGE $DOCKER_IMAGE_LATEST
+    - docker push $DOCKER_IMAGE_LATEST
+  only:
+    - prod
+  dependencies:
+    - build
+
+deploy:
+  stage: deploy
+
+# Задача для деплоя через SSH и docker-compose
+deploy:
+  stage: deploy
+  tags:
+    - shell
+    - quark
+    - nextjs
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh
+  script:
+    - echo "Деплой на сервер через SSH и docker-compose"
+    - ssh -i ~/.ssh/k3s-dev-key -o IdentitiesOnly=yes -o PreferredAuthentications=publickey odmen@192.168.1.8 '
+        cd /home/odmen/quark_landing && 
+        git pull && 
+        docker-compose pull && 
+        docker-compose up -d --build
+      '
+  only:
+    - prod
+  dependencies:
+    - build-image

@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import axios, { AxiosInstance } from 'axios';
-import * as https from 'https';
-import Redis from 'ioredis';
-import rateLimit from 'express-rate-limit';
-import { v4 as uuidv4 } from 'uuid';
-import vault from 'node-vault';
+import { Request, Response, NextFunction } from "express";
+import axios, { AxiosInstance } from "axios";
+import * as https from "https";
+import Redis from "ioredis";
+import rateLimit from "express-rate-limit";
+import { v4 as uuidv4 } from "uuid";
+import vault from "node-vault";
 
 /**
  * Enterprise-Grade JWT Authentication Middleware for Quark Plugin Hub
@@ -32,7 +32,7 @@ export interface UserContext {
     verified: boolean;
   };
   context_version: number;
-  token_type: 'user' | 'service' | 'hub';
+  token_type: "user" | "service" | "hub";
   session_id?: string;
   exp: number;
   iat: number;
@@ -41,7 +41,7 @@ export interface UserContext {
 export interface CircuitBreakerState {
   failures: number;
   lastFailureTime: number;
-  state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+  state: "CLOSED" | "OPEN" | "HALF_OPEN";
   nextAttemptTime: number;
 }
 
@@ -88,7 +88,7 @@ export class EnterpriseJWTMiddleware {
   private circuitBreakerState: CircuitBreakerState = {
     failures: 0,
     lastFailureTime: 0,
-    state: 'CLOSED',
+    state: "CLOSED",
     nextAttemptTime: 0
   };
 
@@ -106,7 +106,7 @@ export class EnterpriseJWTMiddleware {
   }
 
   private async initializeComponents(): Promise<void> {
-    console.log('🚀 Initializing Enterprise JWT Middleware...');
+    console.log("🚀 Initializing Enterprise JWT Middleware...");
     
     // Initialize Redis
     this.redis = new Redis(this.config.redis.url, {
@@ -115,12 +115,12 @@ export class EnterpriseJWTMiddleware {
       keyPrefix: this.config.redis.keyPrefix,
     });
 
-    this.redis.on('connect', () => console.log('✅ Redis connected for JWT middleware'));
-    this.redis.on('error', (err) => console.error('❌ Redis error:', err));
+    this.redis.on("connect", () => console.log("✅ Redis connected for JWT middleware"));
+    this.redis.on("error", (err) => console.error("❌ Redis error:", err));
 
     // Initialize Vault
     this.vaultClient = vault({
-      apiVersion: 'v1',
+      apiVersion: "v1",
       endpoint: this.config.vaultConfig.endpoint,
       token: this.config.vaultConfig.token,
     });
@@ -136,9 +136,9 @@ export class EnterpriseJWTMiddleware {
       timeout: 10000,
       httpsAgent: this.mtlsHttpsAgent,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Service-ID': 'plugin-hub',
-        'User-Agent': 'Quark-PluginHub-Enterprise/1.0'
+        "Content-Type": "application/json",
+        "X-Service-ID": "plugin-hub",
+        "User-Agent": "Quark-PluginHub-Enterprise/1.0"
       }
     });
 
@@ -147,19 +147,19 @@ export class EnterpriseJWTMiddleware {
     this.startCircuitBreakerMonitoring();
     this.startMetricsLogging();
 
-    console.log('✅ Enterprise JWT Middleware initialized');
+    console.log("✅ Enterprise JWT Middleware initialized");
   }
 
   private async initializeMTLS(): Promise<void> {
     try {
-      console.log('🔐 Initializing mTLS with Vault PKI...');
+      console.log("🔐 Initializing mTLS with Vault PKI...");
       
       // Request certificate from Vault PKI
       const certResponse = await this.vaultClient.write(
         `${this.config.mtls.pkiPath}/issue/${this.config.mtls.roleName}`,
         {
-          common_name: 'plugin-hub.quark.internal',
-          ttl: '24h'
+          common_name: "plugin-hub.quark.internal",
+          ttl: "24h"
         }
       );
 
@@ -175,9 +175,9 @@ export class EnterpriseJWTMiddleware {
         maxCachedSessions: 10
       });
 
-      console.log('✅ mTLS initialized with Vault certificates');
+      console.log("✅ mTLS initialized with Vault certificates");
     } catch (error) {
-      console.warn('⚠️ mTLS initialization failed, falling back to regular HTTPS:', error);
+      console.warn("⚠️ mTLS initialization failed, falling back to regular HTTPS:", error);
       this.config.mtls.enabled = false;
     }
   }
@@ -186,12 +186,12 @@ export class EnterpriseJWTMiddleware {
    * Main authentication middleware
    */
   public authenticate = async (
-    req: Request & { user?: UserContext; requestId?: string },
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> => {
-    const requestId = uuidv4();
-    req.requestId = requestId;
+  const requestId = uuidv4();
+  (req as any).requestId = requestId;
     this.metrics.totalRequests++;
 
     const startTime = Date.now();
@@ -200,13 +200,13 @@ export class EnterpriseJWTMiddleware {
       // Extract JWT token
       const token = this.extractJWTFromHeader(req);
       if (!token) {
-        return this.sendError(res, 401, 'Missing JWT token', { requestId });
+        return this.sendError(res, 401, "Missing JWT token", { requestId });
       }
 
       // Apply rate limiting
       const rateLimitResult = await this.checkRateLimit(token);
       if (!rateLimitResult.allowed) {
-        return this.sendError(res, 429, 'Rate limit exceeded', { 
+        return this.sendError(res, 429, "Rate limit exceeded", { 
           requestId, 
           resetTime: rateLimitResult.resetTime 
         });
@@ -215,18 +215,18 @@ export class EnterpriseJWTMiddleware {
       // Get user context with multi-level caching
       const userContext = await this.getUserContext(token, requestId);
       if (!userContext?.valid) {
-        return this.sendError(res, 401, 'Invalid or expired token', { requestId });
+        return this.sendError(res, 401, "Invalid or expired token", { requestId });
       }
 
       // Validate token expiration
       if (userContext.exp < Math.floor(Date.now() / 1000)) {
-        return this.sendError(res, 401, 'Token expired', { requestId });
+        return this.sendError(res, 401, "Token expired", { requestId });
       }
 
       // Check permissions
       const requiredPermissions = this.getRequiredPermissions(req.path, req.method);
       if (!this.hasPermissions(userContext.permissions, requiredPermissions)) {
-        return this.sendError(res, 403, 'Insufficient permissions', { 
+        return this.sendError(res, 403, "Insufficient permissions", { 
           requestId,
           required: requiredPermissions,
           user: userContext.permissions
@@ -234,7 +234,8 @@ export class EnterpriseJWTMiddleware {
       }
 
       // Add user context to request
-      req.user = userContext;
+  (req as any).user = userContext;
+  (req as any).requestId = requestId;
 
       // Log successful authentication
       const duration = Date.now() - startTime;
@@ -245,7 +246,7 @@ export class EnterpriseJWTMiddleware {
       const duration = Date.now() - startTime;
       this.metrics.failures++;
       console.error(`❌ Auth error: duration=${duration}ms [${requestId}]:`, error);
-      return this.sendError(res, 500, 'Authentication failed', { requestId });
+      return this.sendError(res, 500, "Authentication failed", { requestId });
     }
   };
 
@@ -310,12 +311,12 @@ export class EnterpriseJWTMiddleware {
     try {
       this.metrics.authServiceCalls++;
       
-      const response = await this.authServiceClient.post('/auth/validate', 
+      const response = await this.authServiceClient.post("/auth/validate", 
         { token },
         {
           headers: {
-            'X-Request-ID': requestId,
-            'X-Timestamp': new Date().toISOString()
+            "X-Request-ID": requestId,
+            "X-Timestamp": new Date().toISOString()
           }
         }
       );
@@ -331,7 +332,7 @@ export class EnterpriseJWTMiddleware {
           permissions: payload.permissions || [],
           profile: payload.profile,
           context_version: payload.context_version || 1,
-          token_type: payload.token_type || 'user',
+          token_type: payload.token_type || "user",
           session_id: payload.session_id,
           exp: payload.exp,
           iat: payload.iat || Math.floor(Date.now() / 1000)
@@ -354,7 +355,7 @@ export class EnterpriseJWTMiddleware {
       const redisKey = `jwt:${tokenHash}`;
       await this.redis.setex(redisKey, this.config.cache.redisTTL, JSON.stringify(context));
     } catch (error) {
-      console.error('Failed to cache user context:', error);
+      console.error("Failed to cache user context:", error);
     }
   }
 
@@ -395,7 +396,7 @@ export class EnterpriseJWTMiddleware {
   private getStaleCache(tokenHash: string): UserContext | null {
     const memoryEntry = this.memoryCache.get(tokenHash);
     if (memoryEntry) {
-      console.warn('⚠️ Using stale memory cache');
+      console.warn("⚠️ Using stale memory cache");
       return memoryEntry.context;
     }
     return null;
@@ -403,13 +404,13 @@ export class EnterpriseJWTMiddleware {
 
   // Circuit Breaker Implementation
   private isCircuitBreakerOpen(): boolean {
-    return this.circuitBreakerState.state === 'OPEN' && 
+    return this.circuitBreakerState.state === "OPEN" && 
            Date.now() < this.circuitBreakerState.nextAttemptTime;
   }
 
   private recordCircuitBreakerSuccess(): void {
     this.circuitBreakerState.failures = 0;
-    this.circuitBreakerState.state = 'CLOSED';
+    this.circuitBreakerState.state = "CLOSED";
   }
 
   private recordCircuitBreakerFailure(): void {
@@ -417,10 +418,10 @@ export class EnterpriseJWTMiddleware {
     this.circuitBreakerState.lastFailureTime = Date.now();
 
     if (this.circuitBreakerState.failures >= this.config.circuitBreaker.failureThreshold) {
-      this.circuitBreakerState.state = 'OPEN';
+      this.circuitBreakerState.state = "OPEN";
       this.circuitBreakerState.nextAttemptTime = Date.now() + this.config.circuitBreaker.resetTimeoutMs;
       this.metrics.circuitBreakerTrips++;
-      console.warn('⚠️ Circuit breaker OPENED due to failures');
+      console.warn("⚠️ Circuit breaker OPENED due to failures");
     }
   }
 
@@ -440,7 +441,7 @@ export class EnterpriseJWTMiddleware {
 
       return { allowed, resetTime };
     } catch (error) {
-      console.error('Rate limit check failed:', error);
+      console.error("Rate limit check failed:", error);
       return { allowed: true }; // Allow on error
     }
   }
@@ -448,13 +449,13 @@ export class EnterpriseJWTMiddleware {
   // Permission Checking
   private getRequiredPermissions(path: string, method: string): string[] {
     const permissionMap: { [key: string]: string[] } = {
-      'GET /modules/discovery': [], // Public
-      'POST /modules/register': ['modules:register'],
-      'DELETE /modules/:id': ['modules:delete'],
-      'POST /modules/:id/install': ['modules:install'],
-      'POST /modules/:id/update': ['modules:update'],
-      'GET /admin': ['admin:read'],
-      'POST /admin': ['admin:write']
+      "GET /modules/discovery": [], // Public
+      "POST /modules/register": ["modules:register"],
+      "DELETE /modules/:id": ["modules:delete"],
+      "POST /modules/:id/install": ["modules:install"],
+      "POST /modules/:id/update": ["modules:update"],
+      "GET /admin": ["admin:read"],
+      "POST /admin": ["admin:write"]
     };
 
     const key = `${method} ${path}`;
@@ -462,19 +463,19 @@ export class EnterpriseJWTMiddleware {
   }
 
   private hasPermissions(userPermissions: string[], requiredPermissions: string[]): boolean {
-    if (userPermissions.includes('*')) return true;
+    if (userPermissions.includes("*")) return true;
     return requiredPermissions.every(permission => userPermissions.includes(permission));
   }
 
   // Utility Methods
   private extractJWTFromHeader(req: Request): string | null {
     const authHeader = req.headers.authorization;
-    return authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    return authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
   }
 
   private hashToken(token: string): string {
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(token).digest('hex').substring(0, 16);
+    const crypto = require("crypto");
+    return crypto.createHash("sha256").update(token).digest("hex").substring(0, 16);
   }
 
   private sendError(res: Response, status: number, message: string, meta: any = {}): Response {
@@ -501,17 +502,17 @@ export class EnterpriseJWTMiddleware {
 
   private startCircuitBreakerMonitoring(): void {
     setInterval(() => {
-      if (this.circuitBreakerState.state === 'OPEN' && 
+      if (this.circuitBreakerState.state === "OPEN" && 
           Date.now() >= this.circuitBreakerState.nextAttemptTime) {
-        this.circuitBreakerState.state = 'HALF_OPEN';
-        console.log('🔄 Circuit breaker HALF_OPEN - testing service');
+        this.circuitBreakerState.state = "HALF_OPEN";
+        console.log("🔄 Circuit breaker HALF_OPEN - testing service");
       }
     }, this.config.circuitBreaker.monitoringPeriodMs);
   }
 
   private startMetricsLogging(): void {
     setInterval(() => {
-      console.log('📊 JWT Middleware Metrics:', {
+      console.log("📊 JWT Middleware Metrics:", {
         ...this.metrics,
         memoryCache: this.memoryCache.size,
         circuitBreakerState: this.circuitBreakerState.state
@@ -521,8 +522,8 @@ export class EnterpriseJWTMiddleware {
 
   // Graceful Shutdown
   public async shutdown(): Promise<void> {
-    console.log('🛑 Shutting down Enterprise JWT Middleware...');
+    console.log("🛑 Shutting down Enterprise JWT Middleware...");
     await this.redis.quit();
-    console.log('✅ Middleware shutdown complete');
+    console.log("✅ Middleware shutdown complete");
   }
 }

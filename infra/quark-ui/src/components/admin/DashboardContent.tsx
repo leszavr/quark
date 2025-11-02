@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
 import {
   Box, Flex, Text, VStack, HStack, Card, CardBody, CardHeader,
   Heading, Badge, Stat, StatLabel, StatNumber,
-  IconButton, Tooltip, useColorModeValue, Divider
-} from '@chakra-ui/react'
-import { useState } from 'react'
+  IconButton, Tooltip, useColorMode, useColorModeValue, Divider
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Users, Activity, Monitor, Cpu, Bell, Settings, 
   FileText, Plus, Download, RefreshCw
-} from 'lucide-react'
+} from "lucide-react";
+type UsersProps = React.ComponentProps<typeof Users>;
 
 // Компонент главной страницы админки
 export function DashboardContent() {
@@ -28,7 +29,7 @@ export function DashboardContent() {
       </Flex>
 
       {/* Лента событий и быстрые действия */}
-      <Flex gap={6} direction={{ base: 'column', lg: 'row' }}>
+      <Flex gap={6} direction={{ base: "column", lg: "row" }}>
         <EventsFeed />
         <QuickActions />
       </Flex>
@@ -41,13 +42,13 @@ function StatCard({ title, value, change, changeType, icon: Icon }: {
   title: string;
   value: string;
   change: string;
-  changeType: 'positive' | 'negative' | 'neutral';
-  icon?: React.ComponentType<any>;
+  changeType: "positive" | "negative" | "neutral";
+  icon?: React.ComponentType<UsersProps>
 }) {
   const changeColor = {
-    positive: 'green.500',
-    negative: 'red.500',
-    neutral: 'gray.500'
+    positive: "green.500",
+    negative: "red.500",
+    neutral: "gray.500"
   }[changeType];
 
   return (
@@ -60,7 +61,7 @@ function StatCard({ title, value, change, changeType, icon: Icon }: {
       borderColor="gray.200"
       shadow="sm"
       minW="200px"
-      _hover={{ transform: 'translateY(-1px)', shadow: 'md' }}
+      _hover={{ transform: "translateY(-1px)", shadow: "md" }}
       transition="all 0.2s"
     >
       <HStack justify="space-between" mb={2}>
@@ -70,7 +71,7 @@ function StatCard({ title, value, change, changeType, icon: Icon }: {
         {Icon && (
           <Icon 
             size={20} 
-            color={changeType === 'positive' ? '#48BB78' : changeType === 'negative' ? '#F56565' : '#A0AEC0'}
+            color={changeType === "positive" ? "#48BB78" : changeType === "negative" ? "#F56565" : "#A0AEC0"}
           />
         )}
       </HStack>
@@ -87,11 +88,14 @@ function StatCard({ title, value, change, changeType, icon: Icon }: {
 // Компонент ленты событий
 function EventsFeed() {
   const events = [
-    { id: 1, type: 'info', message: 'Новый пользователь зарегистрирован', time: '2 мин назад' },
-    { id: 2, type: 'success', message: 'Модуль "User Auth" одобрен', time: '15 мин назад' },
-    { id: 3, type: 'warning', message: 'Высокая нагрузка на сервер', time: '1 час назад' },
-    { id: 4, type: 'info', message: 'Создан новый ИИ-агент', time: '2 часа назад' }
+    { id: 1, type: "info", message: "Новый пользователь зарегистрирован", time: "2 мин назад" },
+    { id: 2, type: "success", message: "Модуль \"User Auth\" одобрен", time: "15 мин назад" },
+    { id: 3, type: "warning", message: "Высокая нагрузка на сервер", time: "1 час назад" },
+    { id: 4, type: "info", message: "Создан новый ИИ-агент", time: "2 часа назад" }
   ];
+
+  const { colorMode } = useColorMode();
+  const eventBg = useColorModeValue("gray.50", "gray.700");
 
   return (
     <Card flex={2}>
@@ -109,14 +113,14 @@ function EventsFeed() {
       <CardBody pt={0}>
         <VStack spacing={3} align="stretch">
           {events.map((event) => (
-            <HStack key={event.id} p={3} borderRadius="md" bg={useColorModeValue('gray.50', 'gray.700')}>
+            <HStack key={event.id} p={3} borderRadius="md" bg={eventBg}>
               <Box
                 w={3}
                 h={3}
                 borderRadius="full"
                 bg={
-                  event.type === 'success' ? 'green.500' :
-                  event.type === 'warning' ? 'orange.500' : 'blue.500'
+                  event.type === "success" ? "green.500" :
+                  event.type === "warning" ? "orange.500" : "blue.500"
                 }
               />
               <VStack align="start" spacing={0} flex={1}>
@@ -152,7 +156,7 @@ function QuickActions() {
                 colorScheme="blue"
                 size="lg"
                 borderRadius="xl"
-                _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+                _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
                 transition="all 0.2s"
               />
             </Tooltip>
@@ -164,7 +168,7 @@ function QuickActions() {
                 variant="outline"
                 size="lg"
                 borderRadius="xl"
-                _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+                _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
                 transition="all 0.2s"
               />
             </Tooltip>
@@ -177,7 +181,7 @@ function QuickActions() {
                   variant="outline"
                   size="lg"
                   borderRadius="xl"
-                  _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+                  _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
                   transition="all 0.2s"
                 />
                 <Badge

@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as speakeasy from 'speakeasy';
-import * as qrcode from 'qrcode';
-import { User } from './user.entity';
-import { Setup2FAResponseDto } from '../common/dto/profile.dto';
+import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import * as speakeasy from "speakeasy";
+import * as qrcode from "qrcode";
+import { User } from "./user.entity";
+import { Setup2FAResponseDto } from "../common/dto/profile.dto";
 
 @Injectable()
 export class TwoFactorService {
@@ -16,18 +16,21 @@ export class TwoFactorService {
   async generateTwoFactorSecret(userId: string): Promise<Setup2FAResponseDto> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException("User not found");
     }
 
     // Генерируем секрет для TOTP
     const secret = speakeasy.generateSecret({
       name: `Quark Platform (${user.email})`,
-      issuer: 'Quark Platform',
+      issuer: "Quark Platform",
       length: 20,
     });
 
     // Генерируем QR код
-    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    let qrCodeUrl = "";
+    if (secret.otpauth_url) {
+      qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    }
 
     // Генерируем резервные коды
     const backupCodes = this.generateBackupCodes();
@@ -48,19 +51,19 @@ export class TwoFactorService {
   async enableTwoFactor(userId: string, token: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user || !user.twoFactorSecret) {
-      throw new BadRequestException('2FA setup not initiated');
+      throw new BadRequestException("2FA setup not initiated");
     }
 
     // Проверяем токен
     const isValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
-      encoding: 'base32',
+      encoding: "base32",
       token,
       window: 2, // Допускаем небольшое расхождение времени
     });
 
     if (!isValid) {
-      throw new UnauthorizedException('Invalid 2FA token');
+      throw new UnauthorizedException("Invalid 2FA token");
     }
 
     // Включаем 2FA
@@ -72,13 +75,13 @@ export class TwoFactorService {
   async disableTwoFactor(userId: string, token: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException("User not found");
     }
 
     // Проверяем токен или резервный код
     const isValidToken = user.twoFactorSecret && speakeasy.totp.verify({
       secret: user.twoFactorSecret,
-      encoding: 'base32',
+      encoding: "base32",
       token,
       window: 2,
     });
@@ -86,12 +89,12 @@ export class TwoFactorService {
     const isValidBackupCode = user.backupCodes?.includes(token);
 
     if (!isValidToken && !isValidBackupCode) {
-      throw new UnauthorizedException('Invalid 2FA token or backup code');
+      throw new UnauthorizedException("Invalid 2FA token or backup code");
     }
 
     // Если использован резервный код, удаляем его
     if (isValidBackupCode) {
-      const updatedBackupCodes = user.backupCodes.filter(code => code !== token);
+      const updatedBackupCodes = (user.backupCodes ?? []).filter(code => code !== token);
       await this.userRepository.update(userId, {
         backupCodes: updatedBackupCodes,
       });
@@ -100,8 +103,8 @@ export class TwoFactorService {
     // Отключаем 2FA
     await this.userRepository.update(userId, {
       twoFactorEnabled: false,
-      twoFactorSecret: null,
-      backupCodes: null,
+      twoFactorSecret: undefined,
+      backupCodes: undefined,
     });
   }
 
@@ -114,7 +117,7 @@ export class TwoFactorService {
     // Проверяем TOTP токен
     const isValidToken = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
-      encoding: 'base32',
+      encoding: "base32",
       token,
       window: 2,
     });
@@ -127,7 +130,7 @@ export class TwoFactorService {
     const isValidBackupCode = user.backupCodes?.includes(token);
     if (isValidBackupCode) {
       // Удаляем использованный резервный код
-      const updatedBackupCodes = user.backupCodes.filter(code => code !== token);
+      const updatedBackupCodes = (user.backupCodes ?? []).filter(code => code !== token);
       await this.userRepository.update(userId, {
         backupCodes: updatedBackupCodes,
       });

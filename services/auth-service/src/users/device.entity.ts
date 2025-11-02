@@ -1,62 +1,62 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { User } from "./user.entity";
 
 export enum DeviceType {
-  WEB = 'web',
-  MOBILE_IOS = 'mobile_ios',
-  MOBILE_ANDROID = 'mobile_android',
-  DESKTOP = 'desktop',
-  API = 'api',
+  WEB = "web",
+  MOBILE_IOS = "mobile_ios",
+  MOBILE_ANDROID = "mobile_android",
+  DESKTOP = "desktop",
+  API = "api",
 }
 
 export enum DeviceStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  BLOCKED = 'blocked',
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  BLOCKED = "blocked",
 }
 
-@Entity('devices')
+@Entity("devices")
 export class Device {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
-  @Column({ type: 'uuid' })
-  userId: string;
+  @Column({ type: "uuid" })
+  userId!: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  name: string; // "iPhone 14", "Chrome on Windows", etc.
+  @Column({ type: "varchar", length: 255 })
+  name!: string;
 
-  @Column({ type: 'enum', enum: DeviceType })
-  type: DeviceType;
+  @Column({ type: "enum", enum: DeviceType })
+  type!: DeviceType;
 
-  @Column({ type: 'enum', enum: DeviceStatus, default: DeviceStatus.ACTIVE })
-  status: DeviceStatus;
+  @Column({ type: "enum", enum: DeviceStatus, default: DeviceStatus.ACTIVE })
+  status!: DeviceStatus;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  userAgent: string;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  userAgent?: string;
 
-  @Column({ type: 'varchar', length: 45, nullable: true })
-  ipAddress: string;
+  @Column({ type: "varchar", length: 45, nullable: true })
+  ipAddress?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  location: string; // "Moscow, Russia"
+  @Column({ type: "varchar", length: 100, nullable: true })
+  location?: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
-  deviceFingerprint: string; // Уникальный отпечаток устройства
+  @Column({ type: "varchar", length: 255, unique: true })
+  deviceFingerprint!: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  lastSeenAt: Date;
+  @Column({ type: "timestamp", nullable: true })
+  lastSeenAt?: Date;
 
-  @Column({ type: 'boolean', default: false })
-  isTrusted: boolean; // Доверенное устройство для 2FA
+  @Column({ type: "boolean", default: false })
+  isTrusted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ManyToOne(() => User, user => user.devices)
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @JoinColumn({ name: "userId" })
+  user!: User;
 }

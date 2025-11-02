@@ -1,12 +1,12 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional } from "class-validator";
 
 export class RegisterDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsString()
@@ -23,10 +23,10 @@ export class RegisterDto {
 
 export class LoginDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsString()
@@ -42,8 +42,8 @@ export class LoginDto {
 }
 
 export class AuthResponseDto {
-  access_token: string;
-  user: {
+  access_token!: string;
+  user!: {
     id: string;
     email: string;
     firstName?: string;

@@ -1,10 +1,10 @@
-import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
-import { User } from './user.entity';
-import { RegisterDto } from '../common/dto/auth.dto';
-import { UpdateProfileDto, ChangePasswordDto } from '../common/dto/profile.dto';
+import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import * as bcrypt from "bcryptjs";
+import { User } from "./user.entity";
+import { RegisterDto } from "../common/dto/auth.dto";
+import { UpdateProfileDto, ChangePasswordDto } from "../common/dto/profile.dto";
 
 @Injectable()
 export class UsersService {
@@ -18,11 +18,14 @@ export class UsersService {
 
     // Check if user already exists
     const existingUser = await this.usersRepository.findOne({
-      where: [{ email }, { phone: phone || null }],
+      where: [
+        { email },
+        { phone: phone ? phone : undefined }
+      ],
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email or phone already exists');
+      throw new ConflictException("User with this email or phone already exists");
     }
 
     // Hash password
@@ -36,7 +39,7 @@ export class UsersService {
       firstName,
       lastName,
       phone,
-      roles: ['user'],
+      roles: ["user"],
     });
 
     return this.usersRepository.save(user);
@@ -60,14 +63,14 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find({
-      select: ['id', 'email', 'firstName', 'lastName', 'isActive', 'roles', 'createdAt'],
+      select: ["id", "email", "firstName", "lastName", "isActive", "roles", "createdAt"],
     });
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
     const user = await this.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     // Обновляем поля профиля
@@ -90,7 +93,7 @@ export class UsersService {
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<void> {
     const user = await this.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     // Проверяем текущий пароль
@@ -100,7 +103,7 @@ export class UsersService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      throw new UnauthorizedException("Current password is incorrect");
     }
 
     // Хешируем новый пароль

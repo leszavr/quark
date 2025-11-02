@@ -1,13 +1,13 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-import Redis from 'ioredis';
-import { connect, StringCodec } from 'nats';
-import axios from 'axios';
-import { EnterpriseJWTMiddleware, EnterpriseJWTConfig } from './middleware/EnterpriseJWTMiddleware';
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
+import Redis from "ioredis";
+import { connect, StringCodec } from "nats";
+import axios from "axios";
+import { EnterpriseJWTMiddleware, EnterpriseJWTConfig } from "./middleware/EnterpriseJWTMiddleware";
 
 // Universal Docking Interface Types
 interface ModuleManifest {
@@ -19,7 +19,7 @@ interface ModuleManifest {
   framework?: string;
   host: string;
   port: number;
-  protocol: 'http' | 'https' | 'grpc' | 'tcp' | 'custom';
+  protocol: "http" | "https" | "grpc" | "tcp" | "custom";
   baseUrl?: string;
   endpoints: {
     health: string;
@@ -34,8 +34,8 @@ interface ModuleManifest {
   author: string;
   tags: string[];
   lifecycle: {
-    startup: 'auto' | 'manual';
-    restart: 'always' | 'on-failure' | 'never';
+    startup: "auto" | "manual";
+    restart: "always" | "on-failure" | "never";
     healthCheckInterval: number;
     timeout: number;
   };
@@ -62,7 +62,7 @@ interface RegistrationResponse {
   configuration?: any;
 }
 
-console.log('🚀 Starting Quark Plugin Hub (МКС Command Module)...');
+console.log("🚀 Starting Quark Plugin Hub (МКС Command Module)...");
 
 class PluginHub {
   private app: express.Application;
@@ -84,8 +84,8 @@ class PluginHub {
       });
     } else {
       this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'redis',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: process.env.REDIS_HOST || "redis",
+        port: parseInt(process.env.REDIS_PORT || "6379"),
         maxRetriesPerRequest: 3,
         lazyConnect: true
       });
@@ -94,19 +94,19 @@ class PluginHub {
     this.initializeJWTMiddleware();
     this.setupMiddleware();
     this.setupRoutes();
-    console.log('PluginHub initialized');
+    console.log("PluginHub initialized");
   }
 
   private initializeJWTMiddleware(): void {
     const jwtConfig: EnterpriseJWTConfig = {
-      authServiceUrl: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+      authServiceUrl: process.env.AUTH_SERVICE_URL || "http://auth-service:3001",
       vaultConfig: {
-        endpoint: process.env.VAULT_URL || 'http://vault:8200',
-        token: process.env.VAULT_TOKEN || 'myroot'
+        endpoint: process.env.VAULT_URL || "http://vault:8200",
+        token: process.env.VAULT_TOKEN || "myroot"
       },
       redis: {
-        url: process.env.REDIS_URL || 'redis://redis:6379',
-        keyPrefix: 'quark:jwt:'
+        url: process.env.REDIS_URL || "redis://redis:6379",
+        keyPrefix: "quark:jwt:"
       },
       cache: {
         memoryTTL: 300,      // 5 minutes
@@ -124,9 +124,9 @@ class PluginHub {
         skipSuccessfulRequests: false
       },
       mtls: {
-        enabled: process.env.MTLS_ENABLED === 'true',
-        pkiPath: 'pki',
-        roleName: 'quark-service'
+        enabled: process.env.MTLS_ENABLED === "true",
+        pkiPath: "pki",
+        roleName: "quark-service"
       }
     };
 
@@ -136,53 +136,53 @@ class PluginHub {
   private setupMiddleware(): void {
     this.app.use(helmet());
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || "*",
       credentials: true
     }));
     this.app.use(compression());
-    this.app.use(morgan('combined'));
-    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(morgan("combined"));
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
   }
 
   private setupRoutes(): void {
     // Health endpoint
-    this.app.get('/health', async (req, res) => {
+    this.app.get("/health", async (req, res) => {
       const natsOk = this.natsConnection && !this.natsConnection.isClosed();
       const redisOk = await this.checkRedis();
 
       res.json({
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date(),
-        version: '1.0.0',
+        version: "1.0.0",
         services: { 
           nats: natsOk, 
           redis: redisOk 
         },
-        architecture: 'mks-command-module'
+        architecture: "mks-command-module"
       });
     });
 
     // Universal Module Registration (UDI compliant) - Protected
-    this.app.post('/modules/register', this.jwtMiddleware.authenticate, async (req, res) => {
+    this.app.post("/modules/register", this.jwtMiddleware.authenticate, async (req, res) => {
       try {
         const { manifest, timestamp, registrationToken } = req.body;
         
         if (!manifest || !this.validateManifest(manifest)) {
           return res.status(400).json({
             success: false,
-            error: 'Invalid or missing module manifest',
-            code: 'QE002'
+            error: "Invalid or missing module manifest",
+            code: "QE002"
           });
         }
 
         // Check if module already exists
-        const existingModule = await this.redis.hget('quark:modules', manifest.id);
+        const existingModule = await this.redis.hget("quark:modules", manifest.id);
         if (existingModule) {
           return res.status(409).json({
             success: false,
-            error: 'Module already registered',
-            code: 'QE003'
+            error: "Module already registered",
+            code: "QE003"
           });
         }
 
@@ -191,10 +191,10 @@ class PluginHub {
           ...manifest,
           lastHeartbeat: new Date().toISOString(),
           registeredAt: new Date().toISOString(),
-          status: 'healthy'
+          status: "healthy"
         };
 
-        await this.redis.hset('quark:modules', manifest.id, JSON.stringify(moduleData));
+        await this.redis.hset("quark:modules", manifest.id, JSON.stringify(moduleData));
 
         // Setup health monitoring
         this.setupHealthMonitoring(manifest);
@@ -203,18 +203,18 @@ class PluginHub {
         if (this.natsConnection && !this.natsConnection.isClosed()) {
           const event = {
             id: this.generateEventId(),
-            type: 'module.registered',
-            source: 'plugin-hub',
+            type: "module.registered",
+            source: "plugin-hub",
             timestamp: new Date().toISOString(),
             data: {
               moduleId: manifest.id,
               moduleName: manifest.name,
               capabilities: manifest.capabilities
             },
-            version: '1.0.0'
+            version: "1.0.0"
           };
           
-          this.natsConnection.publish('quark.module.registered', this.sc.encode(JSON.stringify(event)));
+          this.natsConnection.publish("quark.module.registered", this.sc.encode(JSON.stringify(event)));
         }
 
         console.log(`🚀 Module registered: ${manifest.name} (${manifest.id})`);
@@ -222,7 +222,7 @@ class PluginHub {
         const response: RegistrationResponse = {
           success: true,
           moduleId: manifest.id,
-          message: 'Module successfully registered with МКС',
+          message: "Module successfully registered with МКС",
           hubEndpoints: {
             events: `http://localhost:${process.env.PORT || 3000}/events`,
             discovery: `http://localhost:${process.env.PORT || 3000}/modules/discovery`,
@@ -233,27 +233,27 @@ class PluginHub {
 
         res.json(response);
       } catch (error) {
-        console.error('Module registration error:', error);
+        console.error("Module registration error:", error);
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Registration failed',
-          code: 'QE001'
+          error: error instanceof Error ? error.message : "Registration failed",
+          code: "QE001"
         });
       }
     });
 
     // Module Discovery
-    this.app.get('/modules/discovery', async (req, res) => {
+    this.app.get("/modules/discovery", async (req, res) => {
       try {
-        const modulesData = await this.redis.hgetall('quark:modules');
+        const modulesData = await this.redis.hgetall("quark:modules");
         const modules = Object.values(modulesData).map(data => {
           const module = JSON.parse(data);
           return {
             id: module.id,
             name: module.name,
-            status: module.status || 'unknown',
+            status: module.status || "unknown",
             endpoints: {
-              base: `${module.protocol}://${module.host}:${module.port}${module.baseUrl || ''}`,
+              base: `${module.protocol}://${module.host}:${module.port}${module.baseUrl || ""}`,
               health: `${module.protocol}://${module.host}:${module.port}${module.endpoints.health}`
             },
             capabilities: module.capabilities,
@@ -271,57 +271,57 @@ class PluginHub {
       } catch (error) {
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Discovery failed',
-          code: 'QE201'
+          error: error instanceof Error ? error.message : "Discovery failed",
+          code: "QE201"
         });
       }
     });
 
     // Module Heartbeat
-    this.app.post('/modules/:moduleId/heartbeat', async (req, res) => {
+    this.app.post("/modules/:moduleId/heartbeat", async (req, res) => {
       try {
         const { moduleId } = req.params;
         const { timestamp, status, metrics } = req.body;
 
-        const moduleData = await this.redis.hget('quark:modules', moduleId);
+        const moduleData = await this.redis.hget("quark:modules", moduleId);
         if (!moduleData) {
           return res.status(404).json({
             success: false,
-            error: 'Module not found'
+            error: "Module not found"
           });
         }
 
         const module = JSON.parse(moduleData);
         module.lastHeartbeat = timestamp || new Date().toISOString();
-        module.status = status || 'healthy';
+        module.status = status || "healthy";
         if (metrics) {
           module.lastMetrics = metrics;
         }
 
-        await this.redis.hset('quark:modules', moduleId, JSON.stringify(module));
+        await this.redis.hset("quark:modules", moduleId, JSON.stringify(module));
 
         res.json({
           success: true,
-          message: 'Heartbeat received',
+          message: "Heartbeat received",
           nextHeartbeat: new Date(Date.now() + module.lifecycle.healthCheckInterval * 1000).toISOString()
         });
       } catch (error) {
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Heartbeat failed'
+          error: error instanceof Error ? error.message : "Heartbeat failed"
         });
       }
     });
 
     // Legacy endpoints for backward compatibility
-    this.app.post('/api/services/register', async (req, res) => {
+    this.app.post("/api/services/register", async (req, res) => {
       try {
         const serviceInfo = req.body;
         
         if (!serviceInfo.id || !serviceInfo.name || !serviceInfo.type) {
           return res.status(400).json({
             success: false,
-            error: 'Missing required service information'
+            error: "Missing required service information"
           });
         }
 
@@ -331,38 +331,38 @@ class PluginHub {
           registeredAt: new Date().toISOString()
         };
 
-        await this.redis.hset('quark:services', serviceInfo.id, JSON.stringify(serviceData));
+        await this.redis.hset("quark:services", serviceInfo.id, JSON.stringify(serviceData));
 
         if (this.natsConnection && !this.natsConnection.isClosed()) {
           const event = {
-            type: 'service.registered',
+            type: "service.registered",
             serviceId: serviceInfo.id,
             serviceName: serviceInfo.name,
             timestamp: new Date().toISOString()
           };
           
-          this.natsConnection.publish('quark.service.registered', this.sc.encode(JSON.stringify(event)));
+          this.natsConnection.publish("quark.service.registered", this.sc.encode(JSON.stringify(event)));
         }
 
         console.log(`🔧 Legacy service registered: ${serviceInfo.name} (${serviceInfo.id})`);
 
         res.json({
           success: true,
-          message: 'Service registered successfully',
+          message: "Service registered successfully",
           serviceId: serviceInfo.id
         });
       } catch (error) {
-        console.error('Service registration error:', error);
+        console.error("Service registration error:", error);
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Registration failed'
+          error: error instanceof Error ? error.message : "Registration failed"
         });
       }
     });
 
-    this.app.get('/services', async (req, res) => {
+    this.app.get("/services", async (req, res) => {
       try {
-        const servicesData = await this.redis.hgetall('quark:services');
+        const servicesData = await this.redis.hgetall("quark:services");
         const services = Object.values(servicesData).map(data => JSON.parse(data));
         res.json(services);
       } catch (error) {
@@ -370,9 +370,9 @@ class PluginHub {
       }
     });
 
-    this.app.get('/api/services', async (req, res) => {
+    this.app.get("/api/services", async (req, res) => {
       try {
-        const servicesData = await this.redis.hgetall('quark:services');
+        const servicesData = await this.redis.hgetall("quark:services");
         const services = Object.values(servicesData).map(data => {
           const service = JSON.parse(data);
           service.lastHeartbeat = new Date(service.lastHeartbeat);
@@ -386,44 +386,44 @@ class PluginHub {
       } catch (error) {
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get services'
+          error: error instanceof Error ? error.message : "Failed to get services"
         });
       }
     });
 
-    this.app.post('/api/services/:serviceId/heartbeat', async (req, res) => {
+    this.app.post("/api/services/:serviceId/heartbeat", async (req, res) => {
       try {
         const { serviceId } = req.params;
-        const serviceData = await this.redis.hget('quark:services', serviceId);
+        const serviceData = await this.redis.hget("quark:services", serviceId);
         
         if (serviceData) {
           const service = JSON.parse(serviceData);
           service.lastHeartbeat = new Date().toISOString();
-          await this.redis.hset('quark:services', serviceId, JSON.stringify(service));
+          await this.redis.hset("quark:services", serviceId, JSON.stringify(service));
           
           res.json({
             success: true,
-            message: 'Heartbeat received',
+            message: "Heartbeat received",
             serviceId,
             timestamp: new Date()
           });
         } else {
           res.status(404).json({
             success: false,
-            error: 'Service not found'
+            error: "Service not found"
           });
         }
       } catch (error) {
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Heartbeat failed'
+          error: error instanceof Error ? error.message : "Heartbeat failed"
         });
       }
     });
   }
 
   private validateManifest(manifest: ModuleManifest): boolean {
-    const required = ['id', 'name', 'version', 'technology', 'host', 'port', 'endpoints'];
+    const required = ["id", "name", "version", "technology", "host", "port", "endpoints"];
     for (const field of required) {
       if (!manifest[field as keyof ModuleManifest]) {
         console.error(`Missing required field: ${field}`);
@@ -432,12 +432,12 @@ class PluginHub {
     }
 
     if (!manifest.endpoints.health || !manifest.endpoints.status) {
-      console.error('Missing required endpoints: health and status');
+      console.error("Missing required endpoints: health and status");
       return false;
     }
 
     if (!manifest.lifecycle || !manifest.lifecycle.healthCheckInterval) {
-      console.error('Missing lifecycle configuration');
+      console.error("Missing lifecycle configuration");
       return false;
     }
 
@@ -458,7 +458,7 @@ class PluginHub {
 
   private async performHealthCheck(moduleId: string): Promise<void> {
     try {
-      const moduleData = await this.redis.hget('quark:modules', moduleId);
+      const moduleData = await this.redis.hget("quark:modules", moduleId);
       if (!moduleData) {
         this.clearHealthMonitoring(moduleId);
         return;
@@ -471,31 +471,31 @@ class PluginHub {
         const response = await axios.get(healthUrl, { timeout: 5000 });
         const isHealthy = response.status === 200;
         
-        module.status = isHealthy ? 'healthy' : 'unhealthy';
+        module.status = isHealthy ? "healthy" : "unhealthy";
         module.lastHealthCheck = new Date().toISOString();
         
-        await this.redis.hset('quark:modules', moduleId, JSON.stringify(module));
+        await this.redis.hset("quark:modules", moduleId, JSON.stringify(module));
         
         if (this.natsConnection && !this.natsConnection.isClosed()) {
           const event = {
             id: this.generateEventId(),
-            type: 'module.health',
-            source: 'plugin-hub',
+            type: "module.health",
+            source: "plugin-hub",
             timestamp: new Date().toISOString(),
             data: {
               moduleId,
               status: module.status,
               healthData: response.data
             },
-            version: '1.0.0'
+            version: "1.0.0"
           };
           
-          this.natsConnection.publish('quark.module.health', this.sc.encode(JSON.stringify(event)));
+          this.natsConnection.publish("quark.module.health", this.sc.encode(JSON.stringify(event)));
         }
       } catch (healthError) {
-        module.status = 'unhealthy';
+        module.status = "unhealthy";
         module.lastHealthCheck = new Date().toISOString();
-        await this.redis.hset('quark:modules', moduleId, JSON.stringify(module));
+        await this.redis.hset("quark:modules", moduleId, JSON.stringify(module));
         
         console.warn(`Health check failed for module ${moduleId}`);
       }
@@ -518,7 +518,7 @@ class PluginHub {
   private async checkRedis(): Promise<boolean> {
     try {
       const result = await this.redis.ping();
-      return result === 'PONG';
+      return result === "PONG";
     } catch {
       return false;
     }
@@ -527,25 +527,25 @@ class PluginHub {
   async start(): Promise<void> {
     try {
       await this.redis.connect();
-      console.log('✅ Connected to Redis');
+      console.log("✅ Connected to Redis");
 
       try {
         this.natsConnection = await connect({ 
-          servers: (process.env.NATS_SERVERS || process.env.NATS_URL || 'nats://localhost:4222').split(',') 
+          servers: (process.env.NATS_SERVERS || process.env.NATS_URL || "nats://localhost:4222").split(",") 
         });
-        console.log('✅ Connected to NATS');
+        console.log("✅ Connected to NATS");
       } catch (error) {
-        console.warn('⚠️ NATS connection failed (continuing without NATS):', error);
+        console.warn("⚠️ NATS connection failed (continuing without NATS):", error);
       }
 
-      const existingServices = await this.redis.hgetall('quark:services');
+      const existingServices = await this.redis.hgetall("quark:services");
       console.log(`📚 Loaded ${Object.keys(existingServices).length} existing services`);
 
-      const port = parseInt(process.env.PORT || '3000');
-      const host = process.env.HOST || '0.0.0.0';
+      const port = parseInt(process.env.PORT || "3000");
+      const host = process.env.HOST || "0.0.0.0";
 
       this.server = this.app.listen(port, host, () => {
-        console.log('PluginHub started with full functionality!');
+        console.log("PluginHub started with full functionality!");
         console.log(`✅ Plugin Hub listening on port ${port}`);
         console.log(`🌐 Health check: http://localhost:${port}/health`);
         console.log(`🔗 Service registration: http://localhost:${port}/register`);
@@ -554,7 +554,7 @@ class PluginHub {
       this.setupGracefulShutdown();
 
     } catch (error) {
-      console.error('❌ Failed to start Plugin Hub:', error);
+      console.error("❌ Failed to start Plugin Hub:", error);
       process.exit(1);
     }
   }
@@ -563,17 +563,17 @@ class PluginHub {
     const shutdown = (signal: string) => {
       console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
       this.shutdown().then(() => {
-        console.log('✅ Graceful shutdown completed');
+        console.log("✅ Graceful shutdown completed");
         process.exit(0);
       });
     };
 
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
   }
 
   async shutdown(): Promise<void> {
-    console.log('🔄 Shutting down Plugin Hub...');
+    console.log("🔄 Shutting down Plugin Hub...");
     
     try {
       if (this.server) {
@@ -588,7 +588,7 @@ class PluginHub {
 
       await this.redis.disconnect();
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      console.error("❌ Error during shutdown:", error);
     }
   }
 }
@@ -596,7 +596,7 @@ class PluginHub {
 // Start the Plugin Hub
 const pluginHub = new PluginHub();
 pluginHub.start().catch((error) => {
-  console.error('❌ Fatal error:', error);
+  console.error("❌ Fatal error:", error);
   process.exit(1);
 });
 

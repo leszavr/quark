@@ -1,29 +1,13 @@
-'use client';
+"use client";
 
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Input,
-  IconButton,
-  useColorMode,
-  Image,
-  Badge,
-  Progress,
-  Alert,
-  AlertIcon,
-  CloseButton,
-} from '@chakra-ui/react';
-import { useState, useRef } from 'react';
-import { Paperclip, X, File, Image as ImageIcon, Video, Music } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import { Paperclip, X, File, Image as ImageIcon, Video, Music } from "lucide-react";
 
-interface FileAttachment {
+export interface FileAttachment {
   id: string;
   file: File;
   preview?: string;
-  type: 'image' | 'video' | 'audio' | 'document';
+  type: "image" | "video" | "audio" | "document";
   uploadProgress?: number;
 }
 
@@ -34,46 +18,47 @@ interface FileUploaderProps {
   acceptedTypes?: string[];
 }
 
-const getFileType = (file: File): FileAttachment['type'] => {
-  if (file.type.startsWith('image/')) return 'image';
-  if (file.type.startsWith('video/')) return 'video';
-  if (file.type.startsWith('audio/')) return 'audio';
-  return 'document';
+const getFileType = (file: File): FileAttachment["type"] => {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "document";
 };
 
-const getFileIcon = (type: FileAttachment['type']) => {
+const getFileIcon = (type: FileAttachment["type"]) => {
   switch (type) {
-    case 'image': return ImageIcon;
-    case 'video': return Video;
-    case 'audio': return Music;
+    case "image": return ImageIcon;
+    case "video": return Video;
+    case "audio": return Music;
     default: return File;
   }
 };
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Б';
+  if (bytes === 0) return "0 Б";
   const k = 1024;
-  const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+  const sizes = ["Б", "КБ", "МБ", "ГБ"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
 export function FileUploader({ 
   onFilesChange, 
   maxFiles = 5, 
   maxSizeInMB = 10,
-  acceptedTypes = ['image/*', 'video/*', 'audio/*', 'application/pdf', 'text/*']
+  acceptedTypes = ["image/*", "video/*", "audio/*", "application/pdf", "text/*"]
 }: FileUploaderProps) {
-  const { colorMode } = useColorMode();
+  // Tailwind dark mode
+  const isDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files) return;
     
-    setError('');
+    setError("");
     const newAttachments: FileAttachment[] = [];
     
     for (let i = 0; i < files.length; i++) {
@@ -100,7 +85,7 @@ export function FileUploader({
       };
       
       // Создаем preview для изображений
-      if (fileType === 'image') {
+      if (fileType === "image") {
         const reader = new FileReader();
         reader.onload = (e) => {
           attachment.preview = e.target?.result as string;
@@ -166,174 +151,130 @@ export function FileUploader({
   };
 
   return (
-    <Box>
+    <div className="w-full">
       {/* Кнопка прикрепления файлов */}
-      <IconButton
+      <button
+        type="button"
         aria-label="Прикрепить файл"
-        icon={<Paperclip size={18} />}
-        variant="ghost"
-        size="sm"
-        color="gray.500"
-        _hover={{ color: 'primary.500' }}
+        className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:text-primary-500 focus:outline-none"
         onClick={() => fileInputRef.current?.click()}
-      />
-      
+      >
+        <Paperclip size={18} />
+      </button>
+
       {/* Скрытый input для выбора файлов */}
-      <Input
+      <input
         ref={fileInputRef}
         type="file"
         multiple
-        accept={acceptedTypes.join(',')}
-        display="none"
+        accept={acceptedTypes.join(",")}
+        className="hidden"
         onChange={(e) => handleFileSelect(e.target.files)}
       />
 
       {/* Ошибки */}
       {error && (
-        <Alert status="error" size="sm" mt={2} borderRadius="md">
-          <AlertIcon />
-          <Text fontSize="sm">{error}</Text>
-          <CloseButton
-            size="sm"
-            onClick={() => setError('')}
-            ml="auto"
-          />
-        </Alert>
+        <div className="flex items-center mt-2 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md px-3 py-2 text-sm text-red-700 dark:text-red-200">
+          <span className="mr-2">⚠️</span>
+          <span>{error}</span>
+          <button
+            type="button"
+            className="ml-auto text-red-500 hover:text-red-700"
+            onClick={() => setError("")}
+          >✕</button>
+        </div>
       )}
 
       {/* Превью прикрепленных файлов */}
       {attachments.length > 0 && (
-        <Box
-          mt={2}
-          p={3}
-          bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
-          borderRadius="md"
-          borderWidth="1px"
-          borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
+        <div
+          className={`mt-2 p-3 rounded-md border ${isDark ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200"}`}
         >
-          <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.500">
+          <div className="text-sm font-medium mb-2 text-gray-500">
             Прикрепленные файлы ({attachments.length}):
-          </Text>
-          
-          <VStack spacing={2} align="stretch">
+          </div>
+          <div className="flex flex-col gap-2">
             {attachments.map((attachment) => {
               const Icon = getFileIcon(attachment.type);
               const isUploading = (attachment.uploadProgress || 0) < 100;
-              
               return (
-                <Box key={attachment.id}>
-                  <HStack
-                    spacing={3}
-                    p={2}
-                    bg={colorMode === 'dark' ? 'gray.600' : 'white'}
-                    borderRadius="md"
-                    borderWidth="1px"
-                    borderColor={colorMode === 'dark' ? 'gray.500' : 'gray.200'}
-                  >
+                <div key={attachment.id}>
+                  <div className={`flex items-center gap-3 p-2 rounded-md border ${isDark ? "bg-gray-600 border-gray-500" : "bg-white border-gray-200"}`}>
                     {/* Иконка или превью */}
                     {attachment.preview ? (
-                      <Image
+                      <img
                         src={attachment.preview}
                         alt={attachment.file.name}
-                        boxSize="40px"
-                        objectFit="cover"
-                        borderRadius="md"
+                        className="w-10 h-10 object-cover rounded-md"
                       />
                     ) : (
-                      <Box
-                        w="40px"
-                        h="40px"
-                        bg={colorMode === 'dark' ? 'gray.500' : 'gray.100'}
-                        borderRadius="md"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                      >
+                      <div className={`w-10 h-10 flex items-center justify-center rounded-md ${isDark ? "bg-gray-500" : "bg-gray-100"}`}>
                         <Icon size={20} color="gray" />
-                      </Box>
+                      </div>
                     )}
-                    
+
                     {/* Информация о файле */}
-                    <VStack align="start" spacing={0} flex={1} minW={0}>
-                      <Text fontSize="sm" fontWeight="medium" isTruncated>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
                         {attachment.file.name}
-                      </Text>
-                      <HStack spacing={2}>
-                        <Text fontSize="xs" color="gray.500">
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
                           {formatFileSize(attachment.file.size)}
-                        </Text>
-                        <Badge
-                          size="sm"
-                          colorScheme={attachment.type === 'image' ? 'green' : 'blue'}
-                        >
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${attachment.type === "image" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
                           {attachment.type}
-                        </Badge>
-                      </HStack>
-                    </VStack>
-                    
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Кнопка удаления */}
-                    <IconButton
+                    <button
+                      type="button"
                       aria-label="Удалить файл"
-                      icon={<X size={16} />}
-                      size="sm"
-                      variant="ghost"
-                      colorScheme="red"
+                      className="p-2 text-red-500 hover:text-red-700 rounded-md"
                       onClick={() => removeAttachment(attachment.id)}
-                    />
-                  </HStack>
-                  
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                   {/* Прогресс загрузки */}
                   {isUploading && (
-                    <Progress
-                      value={attachment.uploadProgress || 0}
-                      size="sm"
-                      colorScheme="primary"
-                      mt={1}
-                      borderRadius="md"
-                    />
+                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-md mt-1">
+                      <div
+                        className="h-2 rounded-md bg-primary-500 transition-all"
+                        style={{ width: `${attachment.uploadProgress || 0}%` }}
+                      />
+                    </div>
                   )}
-                </Box>
+                </div>
               );
             })}
-          </VStack>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Зона drag & drop */}
-      <Box
-        mt={2}
-        p={4}
-        border="2px dashed"
-        borderColor={dragOver 
-          ? 'primary.500' 
-          : (colorMode === 'dark' ? 'gray.600' : 'gray.300')
-        }
-        borderRadius="md"
-        bg={dragOver 
-          ? (colorMode === 'dark' ? 'primary.900' : 'primary.50')
-          : 'transparent'
-        }
-        textAlign="center"
-        cursor="pointer"
-        transition="all 0.2s"
+      <div
+        className={`mt-2 p-4 border-2 rounded-md text-center cursor-pointer transition-all ${dragOver ? "border-primary-500 bg-primary-50 dark:bg-primary-900" : isDark ? "border-gray-600" : "border-gray-300"}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <VStack spacing={2}>
+        <div className="flex flex-col items-center gap-2">
           <Paperclip 
             size={24} 
-            color={dragOver ? 'var(--chakra-colors-primary-500)' : 'gray'} 
+            color={dragOver ? "#3b82f6" : "gray"} 
           />
-          <Text fontSize="sm" color="gray.500">
+          <span className="text-sm text-gray-500">
             Перетащите файлы сюда или нажмите для выбора
-          </Text>
-          <Text fontSize="xs" color="gray.400">
+          </span>
+          <span className="text-xs text-gray-400">
             Максимум {maxFiles} файлов по {maxSizeInMB}МБ
-          </Text>
-        </VStack>
-      </Box>
-    </Box>
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

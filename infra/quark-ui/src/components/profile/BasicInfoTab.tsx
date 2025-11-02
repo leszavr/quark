@@ -1,27 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import {
-  Box,
-  VStack,
-  HStack,
-  Heading,
-  Text,
-  Input,
-  Textarea,
-  Button,
-  Avatar,
-  IconButton,
-  FormControl,
-  FormLabel,
-  Card,
-  CardHeader,
-  CardBody,
-  useToast,
-  Divider,
-  Badge,
-} from '@chakra-ui/react';
-import { Camera, Upload, X } from 'lucide-react';
+import { useState, useRef } from "react";
+import { Camera, Upload, X } from "lucide-react";
+import { Card } from "@ui/card";
+import { Button } from "@ui/button";
+import { Input } from "@ui/input";
+import { Textarea } from "@ui/textarea";
+import { Avatar } from "@ui/avatar";
 
 interface UserProfile {
   avatar: string | null;
@@ -31,15 +16,16 @@ interface UserProfile {
 }
 
 export function BasicInfoTab() {
-  const toast = useToast();
+  // Simple toast replacement
+  const showToast = (msg: string) => alert(msg);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Состояние профиля (позже подключим к глобальному стору)
   const [profile, setProfile] = useState<UserProfile>({
     avatar: null,
-    fullName: 'Иван Иванов',
-    email: 'ivan@example.com',
-    bio: 'Разработчик и энтузиаст новых технологий',
+    fullName: "Иван Иванов",
+    email: "ivan@example.com",
+    bio: "Разработчик и энтузиаст новых технологий",
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -50,24 +36,14 @@ export function BasicInfoTab() {
     if (!file) return;
 
     // Проверяем тип файла
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Ошибка',
-        description: 'Пожалуйста, выберите изображение',
-        status: 'error',
-        duration: 3000,
-      });
+    if (!file.type.startsWith("image/")) {
+      showToast("Пожалуйста, выберите изображение");
       return;
     }
 
     // Проверяем размер файла (максимум 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Ошибка',
-        description: 'Размер файла не должен превышать 5MB',
-        status: 'error',
-        duration: 3000,
-      });
+      showToast("Размер файла не должен превышать 5MB");
       return;
     }
 
@@ -83,34 +59,19 @@ export function BasicInfoTab() {
   const handleSave = () => {
     // Валидация
     if (!editProfile.fullName.trim()) {
-      toast({
-        title: 'Ошибка',
-        description: 'Имя пользователя не может быть пустым',
-        status: 'error',
-        duration: 3000,
-      });
+      showToast("Имя пользователя не может быть пустым");
       return;
     }
 
     if (!editProfile.email.trim()) {
-      toast({
-        title: 'Ошибка',
-        description: 'Email не может быть пустым',
-        status: 'error',
-        duration: 3000,
-      });
+      showToast("Email не может быть пустым");
       return;
     }
 
     // Email валидация
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(editProfile.email)) {
-      toast({
-        title: 'Ошибка',
-        description: 'Введите корректный email адрес',
-        status: 'error',
-        duration: 3000,
-      });
+      showToast("Введите корректный email адрес");
       return;
     }
 
@@ -118,12 +79,7 @@ export function BasicInfoTab() {
     setProfile(editProfile);
     setIsEditing(false);
     
-    toast({
-      title: 'Успешно',
-      description: 'Профиль обновлен',
-      status: 'success',
-      duration: 3000,
-    });
+    showToast("Профиль обновлен");
   };
 
   const handleCancel = () => {
@@ -133,52 +89,39 @@ export function BasicInfoTab() {
 
   return (
     <Card>
-      <CardHeader>
-        <HStack justify="space-between">
-          <Box>
-            <Heading size="md">Основная информация</Heading>
-            <Text color="gray.600" _dark={{ color: "gray.400" }} mt={1}>
-              Управляйте своими персональными данными
-            </Text>
-          </Box>
-          <Badge colorScheme="green" variant="subtle">
-            Активный профиль
-          </Badge>
-        </HStack>
-      </CardHeader>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-lg font-semibold">Основная информация</div>
+            <div className="text-gray-600 dark:text-gray-400 mt-1 text-sm">Управляйте своими персональными данными</div>
+          </div>
+          <span className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs">Активный профиль</span>
+        </div>
 
-      <CardBody>
-        <VStack spacing={6} align="stretch">
+        <div className="flex flex-col gap-6">
           {/* Секция аватара */}
-          <Box>
-            <FormLabel fontSize="sm" fontWeight="semibold" mb={3}>
-              Фотография профиля
-            </FormLabel>
-            <HStack spacing={4}>
-              <Box position="relative">
+          <div>
+            <label className="block text-sm font-semibold mb-3">Фотография профиля</label>
+            <div className="flex items-center gap-4">
+              <div className="relative">
                 <Avatar
                   size="xl"
                   src={isEditing ? editProfile.avatar || undefined : profile.avatar || undefined}
                   name={isEditing ? editProfile.fullName : profile.fullName}
                 />
                 {isEditing && (
-                  <IconButton
-                    size="sm"
-                    icon={<Camera size={16} />}
-                    colorScheme="blue"
-                    variant="solid"
-                    position="absolute"
-                    bottom={0}
-                    right={0}
-                    borderRadius="full"
+                  <button
+                    type="button"
+                    className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow"
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="Загрузить фото"
-                  />
+                  >
+                    <Camera size={16} />
+                  </button>
                 )}
-              </Box>
-              
+              </div>
               {isEditing && (
-                <VStack spacing={2} align="stretch">
+                <div className="flex flex-col gap-2">
                   <Button
                     size="sm"
                     leftIcon={<Upload size={16} />}
@@ -198,106 +141,78 @@ export function BasicInfoTab() {
                       Удалить
                     </Button>
                   )}
-                  <Text fontSize="xs" color="gray.500">
-                    JPG, PNG до 5MB
-                  </Text>
-                </VStack>
+                  <span className="text-xs text-gray-500">JPG, PNG до 5MB</span>
+                </div>
               )}
-            </HStack>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleAvatarUpload}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
             />
-          </Box>
+          </div>
 
-          <Divider />
+          <hr className="my-4" />
 
           {/* Основные поля */}
-          <VStack spacing={4} align="stretch">
-            <FormControl>
-              <FormLabel fontSize="sm" fontWeight="semibold">
-                Полное имя
-              </FormLabel>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-semibold mb-1">Полное имя</label>
               <Input
                 value={isEditing ? editProfile.fullName : profile.fullName}
-                onChange={(e) => isEditing && setEditProfile(prev => ({ ...prev, fullName: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => isEditing && setEditProfile(prev => ({ ...prev, fullName: e.target.value }))}
                 placeholder="Введите ваше полное имя"
-                isReadOnly={!isEditing}
-                bg={isEditing ? "white" : "gray.50"}
-                _dark={{
-                  bg: isEditing ? "gray.800" : "gray.700"
-                }}
+                readOnly={!isEditing}
+                className={isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700"}
               />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel fontSize="sm" fontWeight="semibold">
-                Email адрес
-              </FormLabel>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Email адрес</label>
               <Input
                 type="email"
                 value={isEditing ? editProfile.email : profile.email}
-                onChange={(e) => isEditing && setEditProfile(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => isEditing && setEditProfile(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="your@email.com"
-                isReadOnly={!isEditing}
-                bg={isEditing ? "white" : "gray.50"}
-                _dark={{
-                  bg: isEditing ? "gray.800" : "gray.700"
-                }}
+                readOnly={!isEditing}
+                className={isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700"}
               />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel fontSize="sm" fontWeight="semibold">
-                О себе
-              </FormLabel>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">О себе</label>
               <Textarea
                 value={isEditing ? editProfile.bio : profile.bio}
-                onChange={(e) => isEditing && setEditProfile(prev => ({ ...prev, bio: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => isEditing && setEditProfile(prev => ({ ...prev, bio: e.target.value }))}
                 placeholder="Расскажите о себе..."
-                isReadOnly={!isEditing}
-                bg={isEditing ? "white" : "gray.50"}
-                _dark={{
-                  bg: isEditing ? "gray.800" : "gray.700"
-                }}
+                readOnly={!isEditing}
                 rows={4}
+                className={isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700"}
               />
-            </FormControl>
-          </VStack>
+            </div>
+          </div>
 
-          <Divider />
+          <hr className="my-4" />
 
           {/* Кнопки действий */}
-          <HStack justify="flex-end" spacing={3}>
+          <div className="flex justify-end gap-3">
             {isEditing ? (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={handleCancel}
-                >
+                <Button variant="ghost" onClick={handleCancel}>
                   Отмена
                 </Button>
-                <Button
-                  colorScheme="blue"
-                  onClick={handleSave}
-                >
+                <Button variant="default" onClick={handleSave}>
                   Сохранить изменения
                 </Button>
               </>
             ) : (
-              <Button
-                colorScheme="blue"
-                onClick={() => setIsEditing(true)}
-              >
+              <Button variant="default" onClick={() => setIsEditing(true)}>
                 Редактировать профиль
               </Button>
             )}
-          </HStack>
-        </VStack>
-      </CardBody>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }

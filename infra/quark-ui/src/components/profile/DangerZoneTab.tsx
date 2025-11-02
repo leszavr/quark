@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -35,8 +35,8 @@ import {
   Divider,
   useColorMode,
   Code,
-} from '@chakra-ui/react';
-import { useState } from 'react';
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   FiTrash2, 
   FiAlertTriangle, 
@@ -48,44 +48,44 @@ import {
   FiClock,
   FiXCircle,
   FiCheckCircle
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
 interface DeletionStep {
   id: string;
   title: string;
   description: string;
   completed: boolean;
-  icon: any;
+  icon: React.ComponentType<{ size?: number }>
 }
 
-const CONFIRMATION_TEXT = 'DELETE MY ACCOUNT';
+const CONFIRMATION_TEXT = "DELETE MY ACCOUNT";
 const DELETION_STEPS: DeletionStep[] = [
   {
-    id: 'backup',
-    title: 'Экспорт данных',
-    description: 'Скачайте все ваши данные перед удалением',
+    id: "backup",
+    title: "Экспорт данных",
+    description: "Скачайте все ваши данные перед удалением",
     completed: false,
     icon: FiDownload,
   },
   {
-    id: 'confirmation',
-    title: 'Подтверждение',
-    description: 'Введите код подтверждения',
+    id: "confirmation",
+    title: "Подтверждение",
+    description: "Введите код подтверждения",
     completed: false,
     icon: FiShield,
   },
   {
-    id: 'understanding',
-    title: 'Понимание последствий',
-    description: 'Подтвердите понимание необратимости действия',
+    id: "understanding",
+    title: "Понимание последствий",
+    description: "Подтвердите понимание необратимости действия",
     completed: false,
     icon: FiAlertTriangle,
   },
 ];
 
 export function DangerZoneTab() {
-  const [confirmationText, setConfirmationText] = useState('');
-  const [password, setPassword] = useState('');
+  const [confirmationText, setConfirmationText] = useState("");
+  const [password, setPassword] = useState("");
   const [deletionSteps, setDeletionSteps] = useState<DeletionStep[]>(DELETION_STEPS);
   const [currentStep, setCurrentStep] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -114,20 +114,20 @@ export function DangerZoneTab() {
     try {
       // Имитируем экспорт данных
       const userData = {
-        profile: JSON.parse(localStorage.getItem('profileData') || '{}'),
-        personalization: JSON.parse(localStorage.getItem('personalizationData') || '{}'),
-        security: JSON.parse(localStorage.getItem('securitySettings') || '{}'),
-        support: JSON.parse(localStorage.getItem('supportTickets') || '[]'),
+        profile: JSON.parse(localStorage.getItem("profileData") || "{}"),
+        personalization: JSON.parse(localStorage.getItem("personalizationData") || "{}"),
+        security: JSON.parse(localStorage.getItem("securitySettings") || "{}"),
+        support: JSON.parse(localStorage.getItem("supportTickets") || "[]"),
         exportDate: new Date().toISOString(),
       };
 
       // Создаем и скачиваем файл
       const dataStr = JSON.stringify(userData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `quark-ui-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `quark-ui-data-export-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -135,17 +135,17 @@ export function DangerZoneTab() {
 
       setIsDataExported(true);
       toast({
-        title: 'Данные экспортированы',
-        description: 'Файл с вашими данными загружен',
-        status: 'success',
+        title: "Данные экспортированы",
+        description: "Файл с вашими данными загружен",
+        status: "success",
         duration: 4000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Ошибка экспорта',
-        description: 'Не удалось экспортировать данные',
-        status: 'error',
+        title: "Ошибка экспорта",
+        description: "Не удалось экспортировать данные",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -156,9 +156,9 @@ export function DangerZoneTab() {
   const startDeletion = () => {
     if (!isReadyToDelete) {
       toast({
-        title: 'Не все требования выполнены',
-        description: 'Пожалуйста, выполните все необходимые шаги',
-        status: 'warning',
+        title: "Не все требования выполнены",
+        description: "Пожалуйста, выполните все необходимые шаги",
+        status: "warning",
         duration: 4000,
         isClosable: true,
       });
@@ -195,9 +195,9 @@ export function DangerZoneTab() {
       localStorage.clear();
       
       toast({
-        title: 'Аккаунт удален',
-        description: 'Ваш аккаунт был безвозвратно удален',
-        status: 'info',
+        title: "Аккаунт удален",
+        description: "Ваш аккаунт был безвозвратно удален",
+        status: "info",
         duration: 5000,
         isClosable: true,
       });
@@ -207,14 +207,14 @@ export function DangerZoneTab() {
       
       // Имитируем выход из системы
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 2000);
       
     } catch (error) {
       toast({
-        title: 'Ошибка удаления',
-        description: 'Не удалось удалить аккаунт',
-        status: 'error',
+        title: "Ошибка удаления",
+        description: "Не удалось удалить аккаунт",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -302,7 +302,7 @@ export function DangerZoneTab() {
                   onClick={handleDataExport}
                   isDisabled={isDataExported}
                 >
-                  {isDataExported ? 'Экспортировано' : 'Экспортировать'}
+                  {isDataExported ? "Экспортировано" : "Экспортировать"}
                 </Button>
               </HStack>
               <Text fontSize="xs" color="gray.500" ml={6}>

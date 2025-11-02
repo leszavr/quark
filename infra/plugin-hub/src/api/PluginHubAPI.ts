@@ -1,12 +1,12 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-import { ServiceRegistry } from '../core/ServiceRegistry.js';
-import { EventBus } from '../core/EventBus.js';
-import { HealthMonitor } from '../core/HealthMonitor.js';
-import { ApiResponse, ServiceInfo, ModuleDefinition, HealthCheck } from '../types/index.js';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
+import { ServiceRegistry } from "../core/ServiceRegistry.js";
+import { EventBus } from "../core/EventBus.js";
+import { HealthMonitor } from "../core/HealthMonitor.js";
+import { ApiResponse, ServiceInfo, ModuleDefinition, HealthCheck } from "../types/index.js";
 
 export class PluginHubAPI {
   private app: express.Application;
@@ -33,7 +33,7 @@ export class PluginHubAPI {
     
     // CORS
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || "*",
       credentials: true
     }));
 
@@ -41,20 +41,20 @@ export class PluginHubAPI {
     this.app.use(compression());
 
     // Logging
-    this.app.use(morgan('combined'));
+    this.app.use(morgan("combined"));
 
     // Body parsing
-    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
   }
 
   private setupRoutes(): void {
     // Health endpoint
-    this.app.get('/health', (req, res) => {
+    this.app.get("/health", (req, res) => {
       res.json(this.createResponse({
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date(),
-        version: '1.0.0'
+        version: "1.0.0"
       }));
     });
 
@@ -81,7 +81,7 @@ export class PluginHubAPI {
     const router = express.Router();
 
     // Register service
-    router.post('/register', async (req, res) => {
+    router.post("/register", async (req, res) => {
       try {
         const serviceInfo: ServiceInfo = req.body;
         
@@ -89,44 +89,44 @@ export class PluginHubAPI {
         if (!serviceInfo.id || !serviceInfo.name || !serviceInfo.type) {
           return res.status(400).json(this.createResponse(
             null, 
-            'Missing required service information'
+            "Missing required service information"
           ));
         }
 
         await this.registry.registerService(serviceInfo);
         
         res.json(this.createResponse({
-          message: 'Service registered successfully',
+          message: "Service registered successfully",
           serviceId: serviceInfo.id
         }));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null, 
-          error instanceof Error ? error.message : 'Registration failed'
+          error instanceof Error ? error.message : "Registration failed"
         ));
       }
     });
 
     // Unregister service
-    router.delete('/:serviceId', async (req, res) => {
+    router.delete("/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         await this.registry.unregisterService(serviceId);
         
         res.json(this.createResponse({
-          message: 'Service unregistered successfully',
+          message: "Service unregistered successfully",
           serviceId
         }));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Unregistration failed'
+          error instanceof Error ? error.message : "Unregistration failed"
         ));
       }
     });
 
     // Get service
-    router.get('/:serviceId', async (req, res) => {
+    router.get("/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         const service = await this.registry.getService(serviceId);
@@ -134,7 +134,7 @@ export class PluginHubAPI {
         if (!service) {
           return res.status(404).json(this.createResponse(
             null,
-            'Service not found'
+            "Service not found"
           ));
         }
 
@@ -142,19 +142,19 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get service'
+          error instanceof Error ? error.message : "Failed to get service"
         ));
       }
     });
 
     // Get all services
-    router.get('/', async (req, res) => {
+    router.get("/", async (req, res) => {
       try {
         const { type } = req.query;
         
         let services: ServiceInfo[];
         if (type) {
-          services = await this.registry.getServicesByType(type as ServiceInfo['type']);
+          services = await this.registry.getServicesByType(type as ServiceInfo["type"]);
         } else {
           services = await this.registry.getAllServices();
         }
@@ -163,45 +163,45 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get services'
+          error instanceof Error ? error.message : "Failed to get services"
         ));
       }
     });
 
     // Heartbeat
-    router.post('/:serviceId/heartbeat', async (req, res) => {
+    router.post("/:serviceId/heartbeat", async (req, res) => {
       try {
         const { serviceId } = req.params;
         await this.registry.heartbeat(serviceId);
         
         res.json(this.createResponse({
-          message: 'Heartbeat received',
+          message: "Heartbeat received",
           serviceId,
           timestamp: new Date()
         }));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Heartbeat failed'
+          error instanceof Error ? error.message : "Heartbeat failed"
         ));
       }
     });
 
     // Service discovery
-    router.get('/discover/all', async (req, res) => {
+    router.get("/discover/all", async (req, res) => {
       try {
         const services = await this.registry.discoverServices();
         res.json(this.createResponse(services));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Discovery failed'
+          error instanceof Error ? error.message : "Discovery failed"
         ));
       }
     });
 
     // Search services
-    router.get('/search/:pattern', async (req, res) => {
+    router.get("/search/:pattern", async (req, res) => {
       try {
         const { pattern } = req.params;
         const services = await this.registry.findServicesByPattern(pattern);
@@ -209,45 +209,45 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Search failed'
+          error instanceof Error ? error.message : "Search failed"
         ));
       }
     });
 
-    this.app.use('/api/services', router);
+    this.app.use("/api/services", router);
   }
 
   private setupModuleRoutes(): void {
     const router = express.Router();
 
     // Register module
-    router.post('/register', async (req, res) => {
+    router.post("/register", async (req, res) => {
       try {
         const moduleDefinition: ModuleDefinition = req.body;
         
         if (!moduleDefinition.id || !moduleDefinition.name) {
           return res.status(400).json(this.createResponse(
             null,
-            'Missing required module information'
+            "Missing required module information"
           ));
         }
 
         await this.registry.registerModule(moduleDefinition);
         
         res.json(this.createResponse({
-          message: 'Module registered successfully',
+          message: "Module registered successfully",
           moduleId: moduleDefinition.id
         }));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Module registration failed'
+          error instanceof Error ? error.message : "Module registration failed"
         ));
       }
     });
 
     // Get module
-    router.get('/:moduleId', async (req, res) => {
+    router.get("/:moduleId", async (req, res) => {
       try {
         const { moduleId } = req.params;
         const module = await this.registry.getModule(moduleId);
@@ -255,7 +255,7 @@ export class PluginHubAPI {
         if (!module) {
           return res.status(404).json(this.createResponse(
             null,
-            'Module not found'
+            "Module not found"
           ));
         }
 
@@ -263,45 +263,45 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get module'
+          error instanceof Error ? error.message : "Failed to get module"
         ));
       }
     });
 
     // Get all modules
-    router.get('/', async (req, res) => {
+    router.get("/", async (req, res) => {
       try {
         const modules = await this.registry.getAllModules();
         res.json(this.createResponse(modules));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get modules'
+          error instanceof Error ? error.message : "Failed to get modules"
         ));
       }
     });
 
-    this.app.use('/api/modules', router);
+    this.app.use("/api/modules", router);
   }
 
   private setupHealthRoutes(): void {
     const router = express.Router();
 
     // Get health summary
-    router.get('/summary', async (req, res) => {
+    router.get("/summary", async (req, res) => {
       try {
         const summary = await this.healthMonitor.getHealthSummary();
         res.json(this.createResponse(summary));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get health summary'
+          error instanceof Error ? error.message : "Failed to get health summary"
         ));
       }
     });
 
     // Get service health
-    router.get('/service/:serviceId', async (req, res) => {
+    router.get("/service/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         const health = await this.registry.getHealth(serviceId);
@@ -309,7 +309,7 @@ export class PluginHubAPI {
         if (!health) {
           return res.status(404).json(this.createResponse(
             null,
-            'Health information not found'
+            "Health information not found"
           ));
         }
 
@@ -317,13 +317,13 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get health information'
+          error instanceof Error ? error.message : "Failed to get health information"
         ));
       }
     });
 
     // Check service health
-    router.post('/check/:serviceId', async (req, res) => {
+    router.post("/check/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         const health = await this.healthMonitor.checkService(serviceId);
@@ -331,7 +331,7 @@ export class PluginHubAPI {
         if (!health) {
           return res.status(404).json(this.createResponse(
             null,
-            'Service not found'
+            "Service not found"
           ));
         }
 
@@ -339,59 +339,59 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Health check failed'
+          error instanceof Error ? error.message : "Health check failed"
         ));
       }
     });
 
     // Get all health information
-    router.get('/', async (req, res) => {
+    router.get("/", async (req, res) => {
       try {
         const healthChecks = await this.registry.getAllHealth();
         res.json(this.createResponse(healthChecks));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get health information'
+          error instanceof Error ? error.message : "Failed to get health information"
         ));
       }
     });
 
-    this.app.use('/api/health', router);
+    this.app.use("/api/health", router);
   }
 
   private setupEventRoutes(): void {
     const router = express.Router();
 
     // Publish event
-    router.post('/publish', async (req, res) => {
+    router.post("/publish", async (req, res) => {
       try {
         const { subject, event } = req.body;
         
         if (!subject || !event) {
           return res.status(400).json(this.createResponse(
             null,
-            'Subject and event are required'
+            "Subject and event are required"
           ));
         }
 
         await this.eventBus.publishEvent(subject, event);
         
         res.json(this.createResponse({
-          message: 'Event published successfully',
+          message: "Event published successfully",
           subject,
           eventId: event.id
         }));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to publish event'
+          error instanceof Error ? error.message : "Failed to publish event"
         ));
       }
     });
 
     // Get event history
-    router.get('/history/:subject', async (req, res) => {
+    router.get("/history/:subject", async (req, res) => {
       try {
         const { subject } = req.params;
         const { limit, startTime, endTime } = req.query;
@@ -406,19 +406,19 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get event history'
+          error instanceof Error ? error.message : "Failed to get event history"
         ));
       }
     });
 
-    this.app.use('/api/events', router);
+    this.app.use("/api/events", router);
   }
 
   private setupSystemRoutes(): void {
     const router = express.Router();
 
     // Get system status
-    router.get('/status', async (req, res) => {
+    router.get("/status", async (req, res) => {
       try {
         const [serviceStats, healthSummary, eventBusInfo] = await Promise.all([
           this.registry.getServiceStats(),
@@ -436,25 +436,25 @@ export class PluginHubAPI {
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get system status'
+          error instanceof Error ? error.message : "Failed to get system status"
         ));
       }
     });
 
     // Get system metrics
-    router.get('/metrics', async (req, res) => {
+    router.get("/metrics", async (req, res) => {
       try {
         const stats = await this.registry.getServiceStats();
         res.json(this.createResponse(stats));
       } catch (error) {
         res.status(500).json(this.createResponse(
           null,
-          error instanceof Error ? error.message : 'Failed to get metrics'
+          error instanceof Error ? error.message : "Failed to get metrics"
         ));
       }
     });
 
-    this.app.use('/api/system', router);
+    this.app.use("/api/system", router);
   }
 
   private setupErrorHandling(): void {
@@ -468,11 +468,11 @@ export class PluginHubAPI {
 
     // Global error handler
     this.app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.error('Unhandled error:', error);
+      console.error("Unhandled error:", error);
       
       res.status(500).json(this.createResponse(
         null,
-        'Internal server error'
+        "Internal server error"
       ));
     });
   }

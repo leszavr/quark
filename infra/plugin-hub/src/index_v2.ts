@@ -1,11 +1,11 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
 
-console.log('🚀 Starting Quark Plugin Hub (МКС Command Module)...');
+console.log("🚀 Starting Quark Plugin Hub (МКС Command Module)...");
 
 class PluginHub {
   private app: express.Application;
@@ -15,7 +15,7 @@ class PluginHub {
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
-    console.log('PluginHub initialized');
+    console.log("PluginHub initialized");
   }
 
   private setupMiddleware(): void {
@@ -24,7 +24,7 @@ class PluginHub {
     
     // CORS
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || "*",
       credentials: true
     }));
 
@@ -32,31 +32,31 @@ class PluginHub {
     this.app.use(compression());
     
     // JSON parsing
-    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
     
     // Logging
-    this.app.use(morgan('combined'));
+    this.app.use(morgan("combined"));
   }
 
   private setupRoutes(): void {
     // Health check
-    this.app.get('/health', (req, res) => {
+    this.app.get("/health", (req, res) => {
       res.json({
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date().toISOString(),
-        service: 'plugin-hub',
-        version: '1.0.0'
+        service: "plugin-hub",
+        version: "1.0.0"
       });
     });
 
     // Basic info endpoint
-    this.app.get('/', (req, res) => {
+    this.app.get("/", (req, res) => {
       res.json({
-        name: 'Quark Plugin Hub',
-        description: 'МКС Command Module - Central service management',
-        version: '1.0.0',
-        endpoints: ['/health', '/services', '/register']
+        name: "Quark Plugin Hub",
+        description: "МКС Command Module - Central service management",
+        version: "1.0.0",
+        endpoints: ["/health", "/services", "/register"]
       });
     });
   }
@@ -69,7 +69,7 @@ class PluginHub {
       console.log(`🌐 Health check: http://localhost:${PORT}/health`);
     });
 
-    console.log('PluginHub started!');
+    console.log("PluginHub started!");
   }
 }
 

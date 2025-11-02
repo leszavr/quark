@@ -1,13 +1,13 @@
-import * as cron from 'node-cron';
-import { ServiceRegistry } from './ServiceRegistry.js';
-import { EventBus } from './EventBus.js';
-import { ServiceInfo, HealthCheck } from '../types/index.js';
+import * as cron from "node-cron";
+import { ServiceRegistry } from "./ServiceRegistry.js";
+import { EventBus } from "./EventBus.js";
+import { ServiceInfo, HealthCheck } from "../types/index.js";
 
 export class HealthMonitor {
   private registry: ServiceRegistry;
   private eventBus: EventBus;
-  private monitoringInterval: string = '*/30 * * * * *'; // Every 30 seconds
-  private cleanupInterval: string = '0 */5 * * * *'; // Every 5 minutes
+  private monitoringInterval: string = "*/30 * * * * *"; // Every 30 seconds
+  private cleanupInterval: string = "0 */5 * * * *"; // Every 5 minutes
   private task: cron.ScheduledTask | null = null;
   private cleanupTask: cron.ScheduledTask | null = null;
 
@@ -18,7 +18,7 @@ export class HealthMonitor {
 
   start(): void {
     if (this.task) {
-      console.warn('Health monitor is already running');
+      console.warn("Health monitor is already running");
       return;
     }
 
@@ -32,7 +32,7 @@ export class HealthMonitor {
       await this.cleanupStaleServices();
     });
 
-    console.log('Health monitor started');
+    console.log("Health monitor started");
   }
 
   stop(): void {
@@ -46,7 +46,7 @@ export class HealthMonitor {
       this.cleanupTask = null;
     }
 
-    console.log('Health monitor stopped');
+    console.log("Health monitor stopped");
   }
 
   private async performHealthCheck(): Promise<void> {
@@ -57,7 +57,7 @@ export class HealthMonitor {
         await this.checkServiceHealth(service);
       }
     } catch (error) {
-      console.error('Error during health check:', error);
+      console.error("Error during health check:", error);
     }
   }
 
@@ -73,7 +73,7 @@ export class HealthMonitor {
       if (isResponsive) {
         healthCheck = {
           serviceId: service.id,
-          status: 'healthy',
+          status: "healthy",
           timestamp: new Date(),
           details: {
             responseTime,
@@ -83,32 +83,32 @@ export class HealthMonitor {
         };
 
         // Update service status if it was previously unhealthy
-        if (service.health !== 'healthy') {
-          await this.registry.updateServiceStatus(service.id, 'active');
+        if (service.health !== "healthy") {
+          await this.registry.updateServiceStatus(service.id, "active");
           await this.eventBus.publishServiceHealthChanged(
             service.id, 
-            'healthy', 
+            "healthy", 
             { responseTime, recovered: true }
           );
         }
       } else {
         healthCheck = {
           serviceId: service.id,
-          status: 'unhealthy',
+          status: "unhealthy",
           timestamp: new Date(),
           details: {
             responseTime,
-            errors: ['Service not responding'],
+            errors: ["Service not responding"],
             warnings: [`Last seen: ${service.lastHeartbeat}`]
           }
         };
 
         // Update service status to error if it's not responsive
-        await this.registry.updateServiceStatus(service.id, 'error');
+        await this.registry.updateServiceStatus(service.id, "error");
         await this.eventBus.publishServiceHealthChanged(
           service.id, 
-          'unhealthy', 
-          { error: 'Service not responding', responseTime }
+          "unhealthy", 
+          { error: "Service not responding", responseTime }
         );
       }
 
@@ -120,16 +120,16 @@ export class HealthMonitor {
       
       healthCheck = {
         serviceId: service.id,
-        status: 'unhealthy',
+        status: "unhealthy",
         timestamp: new Date(),
         details: {
-          errors: [error instanceof Error ? error.message : 'Unknown error'],
+          errors: [error instanceof Error ? error.message : "Unknown error"],
           warnings: [`Last seen: ${service.lastHeartbeat}`]
         }
       };
 
       await this.registry.updateHealth(healthCheck);
-      await this.registry.updateServiceStatus(service.id, 'error');
+      await this.registry.updateServiceStatus(service.id, "error");
     }
   }
 
@@ -150,7 +150,7 @@ export class HealthMonitor {
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
         const response = await fetch(`${service.endpoint}/health`, {
-          method: 'GET',
+          method: "GET",
           signal: controller.signal
         });
         
@@ -183,8 +183,8 @@ export class HealthMonitor {
         
         await this.eventBus.publishServiceHealthChanged(
           service.id, 
-          'stale', 
-          { reason: 'No heartbeat received', lastSeen: service.lastHeartbeat }
+          "stale", 
+          { reason: "No heartbeat received", lastSeen: service.lastHeartbeat }
         );
         
         await this.registry.unregisterService(service.id);
@@ -194,7 +194,7 @@ export class HealthMonitor {
         console.log(`Cleaned up ${staleServices.length} stale services`);
       }
     } catch (error) {
-      console.error('Error during stale service cleanup:', error);
+      console.error("Error during stale service cleanup:", error);
     }
   }
 
@@ -233,7 +233,7 @@ export class HealthMonitor {
       const health = healthMap[service.id];
       if (!health) {
         unknown++;
-      } else if (health.status === 'healthy') {
+      } else if (health.status === "healthy") {
         healthy++;
       } else {
         unhealthy++;

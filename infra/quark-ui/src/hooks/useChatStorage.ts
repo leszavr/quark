@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 export interface MessageAttachment {
   id: string;
   name: string;
   size: number;
-  type: 'image' | 'video' | 'audio' | 'document';
+  type: "image" | "video" | "audio" | "document";
   url?: string;
   preview?: string; // для изображений
   mimeType: string;
@@ -16,10 +16,10 @@ export interface Message {
   id: string;
   content: string;
   timestamp: string;
-  sender: 'user' | 'other';
+  sender: "user" | "other";
   senderId: string; // ID отправителя сообщения
   isRead: boolean; // прочитано ли сообщение
-  type?: 'text' | 'image' | 'file' | 'audio';
+  type?: "text" | "image" | "file" | "audio";
   attachments?: MessageAttachment[]; // новое поле для файлов
   // Оставляем старые поля для совместимости
   fileUrl?: string;
@@ -46,132 +46,132 @@ export interface Chat {
 // Моковые данные чатов с правильной структурой
 const initialChats: Chat[] = [
   {
-    id: 'chat-1',
+    id: "chat-1",
     user: {
-      id: 'user-anna',
-      name: 'Анна Смирнова',
-      username: '@anna_dev',
-      avatar: '👩‍💻',
+      id: "user-anna",
+      name: "Анна Смирнова",
+      username: "@anna_dev",
+      avatar: "👩‍💻",
       isOnline: true,
     },
-    lastActivity: '2024-01-15T14:30:00',
+    lastActivity: "2024-01-15T14:30:00",
     messages: [
       {
-        id: 'msg-1',
-        sender: 'other',
-        senderId: 'user-anna',
-        content: 'Привет! Как дела с новым проектом?',
-        timestamp: '10:30',
+        id: "msg-1",
+        sender: "other",
+        senderId: "user-anna",
+        content: "Привет! Как дела с новым проектом?",
+        timestamp: "10:30",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-2',
-        sender: 'user',
-        senderId: 'current-user',
-        content: 'Всё отлично! Уже настроил базовую структуру',
-        timestamp: '10:32',
+        id: "msg-2",
+        sender: "user",
+        senderId: "current-user",
+        content: "Всё отлично! Уже настроил базовую структуру",
+        timestamp: "10:32",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-3',
-        sender: 'other',
-        senderId: 'user-anna',
-        content: 'Супер! Можешь показать что получилось?',
-        timestamp: '10:35',
+        id: "msg-3",
+        sender: "other",
+        senderId: "user-anna",
+        content: "Супер! Можешь показать что получилось?",
+        timestamp: "10:35",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-4',
-        sender: 'user',
-        senderId: 'current-user',
-        content: '**Конечно!** Вот что уже сделано:\n\n- ✅ Настроил Next.js 15 с TypeScript\n- ✅ Подключил Chakra UI\n- ✅ Создал систему чатов\n- 🚧 Работаю над блог-системой\n\nКод можно посмотреть здесь: [GitHub Repository](https://github.com/example/quark-ui)',
-        timestamp: '10:36',
+        id: "msg-4",
+        sender: "user",
+        senderId: "current-user",
+        content: "**Конечно!** Вот что уже сделано:\n\n- ✅ Настроил Next.js 15 с TypeScript\n- ✅ Подключил Chakra UI\n- ✅ Создал систему чатов\n- 🚧 Работаю над блог-системой\n\nКод можно посмотреть здесь: [GitHub Repository](https://github.com/example/quark-ui)",
+        timestamp: "10:36",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-5',
-        sender: 'other',
-        senderId: 'user-anna',
-        content: 'Вау, круто! А `markdown` в чате работает? 😮',
-        timestamp: '10:38',
+        id: "msg-5",
+        sender: "other",
+        senderId: "user-anna",
+        content: "Вау, круто! А `markdown` в чате работает? 😮",
+        timestamp: "10:38",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-6',
-        sender: 'user',
-        senderId: 'current-user',
-        content: '## 🎉 Сюрприз!\n\nДа, это **пасхальное яичко**! Попробуй написать:\n\n```javascript\nconst magic = "markdown в чате!"\nconsole.log(magic)\n```\n\nИли просто используй *курсив* и **жирный** текст! 🚀',
-        timestamp: '10:40',
+        id: "msg-6",
+        sender: "user",
+        senderId: "current-user",
+        content: "## 🎉 Сюрприз!\n\nДа, это **пасхальное яичко**! Попробуй написать:\n\n```javascript\nconst magic = \"markdown в чате!\"\nconsole.log(magic)\n```\n\nИли просто используй *курсив* и **жирный** текст! 🚀",
+        timestamp: "10:40",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-7',
-        sender: 'other',
-        senderId: 'user-anna',
-        content: 'Отлично! Когда планируешь релиз?',
-        timestamp: '14:30',
+        id: "msg-7",
+        sender: "other",
+        senderId: "user-anna",
+        content: "Отлично! Когда планируешь релиз?",
+        timestamp: "14:30",
         isRead: false,
-        type: 'text'
+        type: "text"
       },
     ]
   },
   {
-    id: 'chat-2',
+    id: "chat-2",
     user: {
-      id: 'user-mike',
-      name: 'Михаил Петров',
-      username: '@mike_design',
-      avatar: '🎨',
+      id: "user-mike",
+      name: "Михаил Петров",
+      username: "@mike_design",
+      avatar: "🎨",
       isOnline: true,
     },
-    lastActivity: '2024-01-15T13:45:00',
+    lastActivity: "2024-01-15T13:45:00",
     messages: [
       {
-        id: 'msg-2-1',
-        sender: 'other',
-        senderId: 'user-mike',
-        content: 'Посмотри новый дизайн в Figma',
-        timestamp: '13:45',
+        id: "msg-2-1",
+        sender: "other",
+        senderId: "user-mike",
+        content: "Посмотри новый дизайн в Figma",
+        timestamp: "13:45",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
       {
-        id: 'msg-2-2',
-        sender: 'user',
-        senderId: 'current-user',
-        content: 'Отличный дизайн! Особенно нравится цветовая схема',
-        timestamp: '13:50',
+        id: "msg-2-2",
+        sender: "user",
+        senderId: "current-user",
+        content: "Отличный дизайн! Особенно нравится цветовая схема",
+        timestamp: "13:50",
         isRead: true,
-        type: 'text'
+        type: "text"
       },
     ]
   },
   {
-    id: 'chat-3',
+    id: "chat-3",
     user: {
-      id: 'user-elena',
-      name: 'Елена Козлова',
-      username: '@elena_pm',
-      avatar: '👩‍💼',
+      id: "user-elena",
+      name: "Елена Козлова",
+      username: "@elena_pm",
+      avatar: "👩‍💼",
       isOnline: false,
-      lastSeen: 'вчера в 18:30',
+      lastSeen: "вчера в 18:30",
     },
-    lastActivity: '2024-01-14T18:30:00',
+    lastActivity: "2024-01-14T18:30:00",
     messages: [
       {
-        id: 'msg-3-1',
-        sender: 'other',
-        senderId: 'user-elena',
-        content: 'Нужно обсудить техзадание',
-        timestamp: 'Вчера',
+        id: "msg-3-1",
+        sender: "other",
+        senderId: "user-elena",
+        content: "Нужно обсудить техзадание",
+        timestamp: "Вчера",
         isRead: false,
-        type: 'text'
+        type: "text"
       },
     ]
   },
@@ -179,10 +179,10 @@ const initialChats: Chat[] = [
 
 // Текущий пользователь
 const currentUser = {
-  id: 'current-user',
-  name: 'Вы',
-  username: '@you',
-  avatar: '🚀',
+  id: "current-user",
+  name: "Вы",
+  username: "@you",
+  avatar: "🚀",
 };
 
 export function useChatStorage() {
@@ -192,22 +192,22 @@ export function useChatStorage() {
   // Загрузка чатов из localStorage (только в браузере)
   useEffect(() => {
     // Проверяем, что мы в браузере
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       setLoading(false);
       return;
     }
 
     const loadChats = () => {
       try {
-        const stored = localStorage.getItem('quark-chats');
+        const stored = localStorage.getItem("quark-chats");
         if (stored) {
           const parsedChats = JSON.parse(stored);
           setChats(parsedChats);
         } else {
-          localStorage.setItem('quark-chats', JSON.stringify(initialChats));
+          localStorage.setItem("quark-chats", JSON.stringify(initialChats));
         }
       } catch (error) {
-        console.error('Ошибка загрузки чатов:', error);
+        console.error("Ошибка загрузки чатов:", error);
         // Оставляем initialChats, которые уже в state
       } finally {
         setLoading(false);
@@ -220,11 +220,11 @@ export function useChatStorage() {
   // Сохранение чатов в localStorage
   const saveChats = useCallback((newChats: Chat[]) => {
     setChats(newChats);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.setItem('quark-chats', JSON.stringify(newChats));
+        localStorage.setItem("quark-chats", JSON.stringify(newChats));
       } catch (error) {
-        console.error('Ошибка сохранения чатов:', error);
+        console.error("Ошибка сохранения чатов:", error);
       }
     }
   }, []);
@@ -233,17 +233,17 @@ export function useChatStorage() {
   const sendMessage = useCallback((chatId: string, content: string, attachments?: MessageAttachment[]): Message => {
     const hasAttachments = attachments && attachments.length > 0;
     const messageType = hasAttachments 
-      ? (attachments[0].type === 'image' ? 'image' : 'file')
-      : 'text';
+      ? (attachments[0].type === "image" ? "image" : "file")
+      : "text";
     
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
       content,
-      timestamp: new Date().toLocaleTimeString('ru-RU', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      timestamp: new Date().toLocaleTimeString("ru-RU", { 
+        hour: "2-digit", 
+        minute: "2-digit" 
       }),
-      sender: 'user',
+      sender: "user",
       senderId: currentUser.id,
       isRead: true,
       type: messageType,
@@ -266,11 +266,11 @@ export function useChatStorage() {
     // Симуляция ответа через 1-3 секунды
     setTimeout(() => {
       const responses = [
-        'Интересно! Расскажи подробнее 🤔',
-        'Круто! 🎉',
-        'Понятно, спасибо за информацию',
-        'А что ты думаешь об этом? 💭',
-        'Хорошая идея! 💡',
+        "Интересно! Расскажи подробнее 🤔",
+        "Круто! 🎉",
+        "Понятно, спасибо за информацию",
+        "А что ты думаешь об этом? 💭",
+        "Хорошая идея! 💡",
       ];
 
       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
@@ -278,14 +278,14 @@ export function useChatStorage() {
       const replyMessage: Message = {
         id: `msg-${Date.now()}-reply`,
         content: randomResponse,
-        timestamp: new Date().toLocaleTimeString('ru-RU', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        timestamp: new Date().toLocaleTimeString("ru-RU", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
         }),
-        sender: 'other',
-        senderId: chats.find(c => c.id === chatId)?.user.id || 'unknown',
+        sender: "other",
+        senderId: chats.find(c => c.id === chatId)?.user.id || "unknown",
         isRead: false,
-        type: 'text',
+        type: "text",
       };
 
       setChats(prevChats => 
@@ -322,11 +322,11 @@ export function useChatStorage() {
       });
 
       // Сохраняем в localStorage (только в браузере)
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         try {
-          localStorage.setItem('quark-chats', JSON.stringify(newChats));
+          localStorage.setItem("quark-chats", JSON.stringify(newChats));
         } catch (error) {
-          console.error('Ошибка сохранения чатов:', error);
+          console.error("Ошибка сохранения чатов:", error);
         }
       }
 

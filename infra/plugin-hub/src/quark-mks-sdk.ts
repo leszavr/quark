@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from "axios";
 
 export interface ModuleManifest {
   id: string;
@@ -9,7 +9,7 @@ export interface ModuleManifest {
   framework?: string;
   host: string;
   port: number;
-  protocol: 'http' | 'https' | 'grpc' | 'tcp' | 'custom';
+  protocol: "http" | "https" | "grpc" | "tcp" | "custom";
   baseUrl?: string;
   endpoints: {
     health: string;
@@ -24,8 +24,8 @@ export interface ModuleManifest {
   author: string;
   tags: string[];
   lifecycle: {
-    startup: 'auto' | 'manual';
-    restart: 'always' | 'on-failure' | 'never';
+    startup: "auto" | "manual";
+    restart: "always" | "on-failure" | "never";
     healthCheckInterval: number;
     timeout: number;
   };
@@ -64,13 +64,13 @@ export interface Module {
 }
 
 export interface HealthCheck {
-  status: 'pass' | 'fail' | 'warn';
+  status: "pass" | "fail" | "warn";
   message?: string;
   duration?: number;
 }
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   uptime: number;
   checks: { [key: string]: HealthCheck };
@@ -105,26 +105,26 @@ export class QuarkModule {
   private startTime: number = Date.now();
 
   constructor(config: ModuleConfig) {
-    this.pluginHubUrl = config.pluginHub?.url || process.env.QUARK_HUB_URL || 'http://localhost:3000';
+    this.pluginHubUrl = config.pluginHub?.url || process.env.QUARK_HUB_URL || "http://localhost:3000";
     this.httpClient = axios.create({
       timeout: 10000,
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       }
     });
 
     // Создание манифеста с значениями по умолчанию
     this.manifest = {
       ...config,
-      host: config.host || 'localhost',
+      host: config.host || "localhost",
       port: config.port || 3000,
-      protocol: config.protocol || 'http',
-      baseUrl: config.baseUrl || '',
+      protocol: config.protocol || "http",
+      baseUrl: config.baseUrl || "",
       endpoints: {
-        health: '/health',
-        status: '/status',
-        metrics: '/metrics',
-        docs: '/docs',
+        health: "/health",
+        status: "/status",
+        metrics: "/metrics",
+        docs: "/docs",
         ...config.endpoints
       },
       capabilities: config.capabilities || [],
@@ -132,8 +132,8 @@ export class QuarkModule {
       provides: config.provides || [],
       tags: config.tags || [],
       lifecycle: {
-        startup: 'auto',
-        restart: 'on-failure',
+        startup: "auto",
+        restart: "on-failure",
         healthCheckInterval: 30,
         timeout: 10000,
         ...config.lifecycle
@@ -146,16 +146,16 @@ export class QuarkModule {
   }
 
   private setupDefaultHealthChecks(): void {
-    this.addHealthCheck('self', async () => ({
-      status: 'pass',
-      message: 'Module is running',
+    this.addHealthCheck("self", async () => ({
+      status: "pass",
+      message: "Module is running",
       duration: 0
     }));
   }
 
   private setupDefaultMetrics(): void {
-    this.addMetric('uptime', () => Math.floor((Date.now() - this.startTime) / 1000));
-    this.addMetric('memory_usage', () => process.memoryUsage().heapUsed / 1024 / 1024);
+    this.addMetric("uptime", () => Math.floor((Date.now() - this.startTime) / 1000));
+    this.addMetric("memory_usage", () => process.memoryUsage().heapUsed / 1024 / 1024);
   }
 
   async dock(): Promise<void> {
@@ -179,7 +179,7 @@ export class QuarkModule {
       if (response.data.success) {
         this.isRegistered = true;
         console.log(`✅ Module ${this.manifest.name} successfully docked to МКС`);
-        console.log(`🌐 Hub endpoints:`, response.data.hubEndpoints);
+        console.log("🌐 Hub endpoints:", response.data.hubEndpoints);
         
         // Запуск heartbeat
         this.startHeartbeat();
@@ -212,7 +212,7 @@ export class QuarkModule {
       this.isRegistered = false;
       console.log(`✅ Module ${this.manifest.name} successfully undocked from МКС`);
     } catch (error) {
-      console.error(`❌ Undocking error:`, error);
+      console.error("❌ Undocking error:", error);
     }
   }
 
@@ -234,7 +234,7 @@ export class QuarkModule {
         heartbeatData
       );
     } catch (error) {
-      console.warn(`⚠️ Heartbeat failed:`, error);
+      console.warn("⚠️ Heartbeat failed:", error);
     }
   }
 
@@ -243,7 +243,7 @@ export class QuarkModule {
       const response = await this.httpClient.get(`${this.pluginHubUrl}/modules/discovery`);
       return response.data.modules || [];
     } catch (error) {
-      console.error('Discovery failed:', error);
+      console.error("Discovery failed:", error);
       return [];
     }
   }
@@ -258,7 +258,7 @@ export class QuarkModule {
       id: this.generateEventId(),
       source: this.manifest.id,
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: "1.0.0",
       ...event
     };
 
@@ -266,7 +266,7 @@ export class QuarkModule {
       await this.httpClient.post(`${this.pluginHubUrl}/events`, fullEvent);
       console.log(`📡 Event published: ${fullEvent.type}`);
     } catch (error) {
-      console.error('Event publishing failed:', error);
+      console.error("Event publishing failed:", error);
     }
   }
 
@@ -287,7 +287,7 @@ export class QuarkModule {
 
   async performHealthChecks(): Promise<HealthStatus> {
     const checks: { [key: string]: HealthCheck } = {};
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    let overallStatus: "healthy" | "degraded" | "unhealthy" = "healthy";
 
     for (const [name, check] of this.healthChecks) {
       try {
@@ -296,17 +296,17 @@ export class QuarkModule {
         result.duration = Date.now() - start;
         checks[name] = result;
 
-        if (result.status === 'fail') {
-          overallStatus = 'unhealthy';
-        } else if (result.status === 'warn' && overallStatus === 'healthy') {
-          overallStatus = 'degraded';
+        if (result.status === "fail") {
+          overallStatus = "unhealthy";
+        } else if (result.status === "warn" && overallStatus === "healthy") {
+          overallStatus = "degraded";
         }
       } catch (error) {
         checks[name] = {
-          status: 'fail',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          status: "fail",
+          message: error instanceof Error ? error.message : "Unknown error"
         };
-        overallStatus = 'unhealthy';
+        overallStatus = "unhealthy";
       }
     }
 
@@ -335,8 +335,8 @@ export class QuarkModule {
   healthEndpoint() {
     return async (req: any, res: any) => {
       const health = await this.performHealthChecks();
-      const statusCode = health.status === 'healthy' ? 200 : 
-                        health.status === 'degraded' ? 200 : 503;
+      const statusCode = health.status === "healthy" ? 200 : 
+                        health.status === "degraded" ? 200 : 503;
       res.status(statusCode).json(health);
     };
   }
@@ -351,7 +351,7 @@ export class QuarkModule {
           technology: this.manifest.technology,
           framework: this.manifest.framework
         },
-        status: this.isRegistered ? 'docked' : 'undocked',
+        status: this.isRegistered ? "docked" : "undocked",
         uptime: Math.floor((Date.now() - this.startTime) / 1000),
         timestamp: new Date().toISOString()
       });
@@ -391,8 +391,8 @@ export class QuarkModule {
       });
     };
 
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
   }
 
   private generateEventId(): string {
@@ -401,15 +401,15 @@ export class QuarkModule {
 
   static fromEnv(): QuarkModule {
     return new QuarkModule({
-      id: process.env.QUARK_MODULE_ID || 'unknown-module',
-      name: process.env.QUARK_MODULE_NAME || 'Unknown Module',
-      version: process.env.QUARK_MODULE_VERSION || '1.0.0',
-      technology: process.env.QUARK_MODULE_TECHNOLOGY || 'Node.js',
-      language: process.env.QUARK_MODULE_LANGUAGE || 'JavaScript',
-      description: process.env.QUARK_MODULE_DESCRIPTION || 'Module created from environment',
-      author: process.env.QUARK_MODULE_AUTHOR || 'Unknown Author',
-      host: process.env.QUARK_MODULE_HOST || 'localhost',
-      port: parseInt(process.env.QUARK_MODULE_PORT || '3000'),
+      id: process.env.QUARK_MODULE_ID || "unknown-module",
+      name: process.env.QUARK_MODULE_NAME || "Unknown Module",
+      version: process.env.QUARK_MODULE_VERSION || "1.0.0",
+      technology: process.env.QUARK_MODULE_TECHNOLOGY || "Node.js",
+      language: process.env.QUARK_MODULE_LANGUAGE || "JavaScript",
+      description: process.env.QUARK_MODULE_DESCRIPTION || "Module created from environment",
+      author: process.env.QUARK_MODULE_AUTHOR || "Unknown Author",
+      host: process.env.QUARK_MODULE_HOST || "localhost",
+      port: parseInt(process.env.QUARK_MODULE_PORT || "3000"),
       pluginHub: {
         url: process.env.QUARK_HUB_URL
       }
@@ -421,13 +421,13 @@ export class QuarkModule {
 export function withQuarkMiddleware(module: QuarkModule) {
   return (req: any, res: any, next: any) => {
     // Добавляем стандартные endpoints
-    if (req.path === '/health') {
+    if (req.path === "/health") {
       return module.healthEndpoint()(req, res);
     }
-    if (req.path === '/status') {
+    if (req.path === "/status") {
       return module.statusEndpoint()(req, res);
     }
-    if (req.path === '/metrics') {
+    if (req.path === "/metrics") {
       return module.metricsEndpoint()(req, res);
     }
     next();

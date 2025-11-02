@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Device, DeviceStatus } from './device.entity';
-import { RegisterDeviceDto, DeviceResponseDto } from '../common/dto/profile.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Device, DeviceStatus } from "./device.entity";
+import { RegisterDeviceDto, DeviceResponseDto } from "../common/dto/profile.dto";
 
 @Injectable()
 export class DeviceService {
@@ -46,7 +46,7 @@ export class DeviceService {
   async getUserDevices(userId: string, currentDeviceId?: string): Promise<DeviceResponseDto[]> {
     const devices = await this.deviceRepository.find({
       where: { userId },
-      order: { lastSeenAt: 'DESC' }
+      order: { lastSeenAt: "DESC" }
     });
 
     return devices.map(device => ({

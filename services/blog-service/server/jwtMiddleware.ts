@@ -1,9 +1,13 @@
+// Тип для аутентифицированного запроса
+interface AuthenticatedRequest extends Request {
+  user: Express.User;
+}
 /**
  * JWT Middleware для интеграции с Plugin Hub Enterprise JWT Middleware
  * Реализует правильную архитектуру МКС: Blog Service → Plugin Hub → auth-service/validate
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 interface UserContext {
   id: string;
@@ -16,6 +20,8 @@ interface UserContext {
   avatar?: string;
 }
 
+export type { UserContext };
+
 interface JWTValidationResponse {
   valid: boolean;
   user?: UserContext;
@@ -26,9 +32,20 @@ interface JWTValidationResponse {
 // Расширяем Request для включения user context
 declare global {
   namespace Express {
+    // Тип User из @types/passport
+    interface User {
+      id?: string;
+      username?: string;
+      email?: string;
+      roles?: string[];
+      permissions?: string[];
+      firstName?: string;
+      lastName?: string;
+      avatar?: string;
+    }
     interface Request {
-      user?: UserContext;
-      isAuthenticated?: boolean;
+      user?: User;
+  isAuthenticated: () => this is AuthenticatedRequest;
     }
   }
 }
@@ -47,14 +64,16 @@ export class PluginHubJWTMiddleware {
   validateJWT = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Читаем заголовки, установленные Traefik ForwardAuth middleware
-      const userId = req.headers['x-user-id'] as string;
-      const userRoles = req.headers['x-user-roles'] as string;
-      const userPermissions = req.headers['x-user-permissions'] as string;
-      const userSubject = req.headers['x-subject'] as string;
+      const userId = req.headers["x-user-id"] as string;
+      const userRoles = req.headers["x-user-roles"] as string;
+      const userPermissions = req.headers["x-user-permissions"] as string;
+      const userSubject = req.headers["x-subject"] as string;
 
       if (!userId || !userSubject) {
         // Заголовки отсутствуют - пользователь не аутентифицирован
-        req.isAuthenticated = false;
+        req.isAuthenticated = function(): this is AuthenticatedRequest {
+          return !!this.user;
+        };
         return next();
       }
 
@@ -69,57 +88,61 @@ export class PluginHubJWTMiddleware {
           
           // Если элементы массива - строки с JSON, парсим их дополнительно
           roles = parsedRoles.flatMap((role: string) => {
-            if (typeof role === 'string' && role.includes('"')) {
+            if (typeof role === "string" && role.includes("\"")) {
               // Это экранированный JSON внутри строки
               try {
                 return JSON.parse(role);
               } catch {
-                return role.replace(/[{}"]/g, '').split(',').map((r: string) => r.trim());
+                return role.replace(/[{}"]/g, "").split(",").map((r: string) => r.trim());
               }
             }
             return role;
           }).filter((r: string) => r && r.trim());
         }
         if (userPermissions) {
-          permissions = userPermissions.startsWith('[') ? JSON.parse(userPermissions) : userPermissions.split(',');
+          permissions = userPermissions.startsWith("[") ? JSON.parse(userPermissions) : userPermissions.split(",");
         }
       } catch (parseError) {
-        console.warn('Failed to parse user roles/permissions from headers:', parseError);
+        console.warn("Failed to parse user roles/permissions from headers:", parseError);
         // Fallback - попробуем простой парсинг
         if (userRoles) {
-          roles = userRoles.replace(/[\[\]{}",]/g, '').split(/\s+/).filter(r => r.trim());
+          roles = userRoles.replace(/[[\]{}",]/g, "").split(/\s+/).filter((r: string) => r.trim());
         }
       }
 
       // Устанавливаем данные пользователя из доверенных заголовков
       req.user = {
         id: userId,
-        username: req.headers['x-username'] as string || userId,
-        email: req.headers['x-email'] as string || '',
+        username: req.headers["x-username"] as string || userId,
+        email: req.headers["x-email"] as string || "",
         roles: roles,
         permissions: permissions,
-        firstName: req.headers['x-first-name'] as string || '',
-        lastName: req.headers['x-last-name'] as string || '',
-        avatar: req.headers['x-avatar'] as string || ''
+        firstName: req.headers["x-first-name"] as string || "",
+        lastName: req.headers["x-last-name"] as string || "",
+        avatar: req.headers["x-avatar"] as string || ""
       };
 
-      req.isAuthenticated = true;
+      req.isAuthenticated = function(): this is AuthenticatedRequest {
+        return !!this.user;
+      };
       next();
 
     } catch (error) {
-      console.error('Error reading ForwardAuth headers:', error instanceof Error ? error.message : String(error));
-      req.isAuthenticated = false;
+      console.error("Error reading ForwardAuth headers:", error instanceof Error ? error.message : String(error));
+      req.isAuthenticated = function(): this is AuthenticatedRequest {
+        return !!this.user;
+      };
       next();
     }
   };  /**
    * Middleware для обязательной аутентификации
    */
   requireAuth = (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.isAuthenticated || !req.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       res.status(401).json({
-        error: 'Authentication required',
-        message: 'This endpoint requires valid JWT token',
-        loginUrl: '/auth/login'
+        error: "Authentication required",
+        message: "This endpoint requires valid JWT token",
+        loginUrl: "/auth/login"
       });
       return;
     }
@@ -131,21 +154,21 @@ export class PluginHubJWTMiddleware {
    */
   requirePermission = (permission: string) => {
     return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.isAuthenticated || !req.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
         res.status(401).json({
-          error: 'Authentication required',
-          message: 'This endpoint requires authentication'
+          error: "Authentication required",
+          message: "This endpoint requires authentication"
         });
         return;
       }
 
       // Администраторы имеют все разрешения
-      const isAdmin = req.user.roles.includes('admin');
-      const hasPermission = req.user.permissions.includes(permission);
+  const isAdmin = Array.isArray(req.user.roles) && req.user.roles.includes("admin");
+  const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes(permission);
 
       if (!isAdmin && !hasPermission) {
         res.status(403).json({
-          error: 'Insufficient permissions',
+          error: "Insufficient permissions",
           message: `This endpoint requires '${permission}' permission`,
           userPermissions: req.user.permissions,
           userRoles: req.user.roles
@@ -162,17 +185,17 @@ export class PluginHubJWTMiddleware {
    */
   requireRole = (role: string) => {
     return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.isAuthenticated || !req.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
         res.status(401).json({
-          error: 'Authentication required',
-          message: 'This endpoint requires authentication'
+          error: "Authentication required",
+          message: "This endpoint requires authentication"
         });
         return;
       }
 
-      if (!req.user.roles.includes(role)) {
+  if (!Array.isArray(req.user.roles) || !req.user.roles.includes(role)) {
         res.status(403).json({
-          error: 'Insufficient privileges',
+          error: "Insufficient privileges",
           message: `This endpoint requires '${role}' role`,
           userRoles: req.user.roles
         });
@@ -202,10 +225,10 @@ export class PluginHubJWTMiddleware {
    * Получение информации о текущем пользователе
    */
   getCurrentUser = (req: Request, res: Response): void => {
-    if (!req.isAuthenticated || !req.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       res.status(401).json({
-        error: 'Not authenticated',
-        message: 'No valid authentication found'
+        error: "Not authenticated",
+        message: "No valid authentication found"
       });
       return;
     }

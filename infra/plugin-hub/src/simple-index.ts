@@ -1,5 +1,5 @@
-import express from 'express';
-import Redis from 'ioredis';
+import express from "express";
+import Redis from "ioredis";
 
 interface ServiceInfo {
   id: string;
@@ -14,13 +14,13 @@ interface ServiceInfo {
 class SimplePluginHub {
   private app: express.Application;
   private redis: Redis;
-  private readonly SERVICES_KEY = 'quark:services';
+  private readonly SERVICES_KEY = "quark:services";
 
   constructor() {
     this.app = express();
     this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'redis',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      host: process.env.REDIS_HOST || "redis",
+      port: parseInt(process.env.REDIS_PORT || "6379"),
       maxRetriesPerRequest: 3,
     });
     
@@ -38,16 +38,16 @@ class SimplePluginHub {
 
   private setupRoutes(): void {
     // Health check
-    this.app.get('/health', (req, res) => {
+    this.app.get("/health", (req, res) => {
       res.json({ 
-        status: 'ok', 
+        status: "ok", 
         timestamp: new Date().toISOString(),
-        services: 'Plugin Hub Core' 
+        services: "Plugin Hub Core" 
       });
     });
 
     // Регистрация сервиса
-    this.app.post('/api/register', async (req, res) => {
+    this.app.post("/api/register", async (req, res) => {
       try {
         const { name, host, port, version } = req.body;
         
@@ -66,25 +66,25 @@ class SimplePluginHub {
         
         res.json({ success: true, serviceId: service.id });
       } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
+        console.error("Registration error:", error);
+        res.status(500).json({ error: "Registration failed" });
       }
     });
 
     // Получить все сервисы
-    this.app.get('/api/services', async (req, res) => {
+    this.app.get("/api/services", async (req, res) => {
       try {
         const services = await this.redis.hgetall(this.SERVICES_KEY);
         const serviceList = Object.values(services).map(data => JSON.parse(data));
         res.json(serviceList);
       } catch (error) {
-        console.error('Get services error:', error);
-        res.status(500).json({ error: 'Failed to get services' });
+        console.error("Get services error:", error);
+        res.status(500).json({ error: "Failed to get services" });
       }
     });
 
     // Heartbeat
-    this.app.post('/api/heartbeat/:serviceId', async (req, res) => {
+    this.app.post("/api/heartbeat/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         const serviceData = await this.redis.hget(this.SERVICES_KEY, serviceId);
@@ -95,16 +95,16 @@ class SimplePluginHub {
           await this.redis.hset(this.SERVICES_KEY, serviceId, JSON.stringify(service));
           res.json({ success: true });
         } else {
-          res.status(404).json({ error: 'Service not found' });
+          res.status(404).json({ error: "Service not found" });
         }
       } catch (error) {
-        console.error('Heartbeat error:', error);
-        res.status(500).json({ error: 'Heartbeat failed' });
+        console.error("Heartbeat error:", error);
+        res.status(500).json({ error: "Heartbeat failed" });
       }
     });
 
     // Отмена регистрации
-    this.app.delete('/api/unregister/:serviceId', async (req, res) => {
+    this.app.delete("/api/unregister/:serviceId", async (req, res) => {
       try {
         const { serviceId } = req.params;
         const result = await this.redis.hdel(this.SERVICES_KEY, serviceId);
@@ -113,11 +113,11 @@ class SimplePluginHub {
           console.log(`🗑️ Service unregistered: ${serviceId}`);
           res.json({ success: true });
         } else {
-          res.status(404).json({ error: 'Service not found' });
+          res.status(404).json({ error: "Service not found" });
         }
       } catch (error) {
-        console.error('Unregister error:', error);
-        res.status(500).json({ error: 'Unregister failed' });
+        console.error("Unregister error:", error);
+        res.status(500).json({ error: "Unregister failed" });
       }
     });
   }
@@ -127,20 +127,20 @@ class SimplePluginHub {
   }
 
   async start(): Promise<void> {
-    const port = parseInt(process.env.PORT || '3000');
+    const port = parseInt(process.env.PORT || "3000");
     
     try {
       // Проверяем подключение к Redis
       await this.redis.ping();
-      console.log('✅ Redis connected successfully');
+      console.log("✅ Redis connected successfully");
       
-      this.app.listen(port, '0.0.0.0', () => {
+      this.app.listen(port, "0.0.0.0", () => {
         console.log(`🚀 Plugin Hub started on port ${port}`);
-        console.log(`📡 Service Registry ready`);
+        console.log("📡 Service Registry ready");
         console.log(`🔗 Health check: http://localhost:${port}/health`);
       });
     } catch (error) {
-      console.error('❌ Failed to start Plugin Hub:', error);
+      console.error("❌ Failed to start Plugin Hub:", error);
       process.exit(1);
     }
   }

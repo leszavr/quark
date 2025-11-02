@@ -1,125 +1,147 @@
-'use client';
+"use client";
 
 import {
   VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
   Heading, Badge, Stat, StatLabel, StatNumber, Avatar, IconButton, 
   Tooltip, Grid, Input, Select, Table, Thead, Tbody, Tr, Th, Td, 
-  useColorModeValue, useDisclosure, Modal, ModalOverlay, ModalContent, 
+  useColorMode, useColorModeValue, useDisclosure, Modal, ModalOverlay, ModalContent, 
   ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Box
-} from '@chakra-ui/react'
-import { useState } from 'react'
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Code, Search, Filter, Download, Eye, CheckCircle, XCircle, 
   Clock, GitBranch
-} from 'lucide-react'
+} from "lucide-react";
+
+interface Module {
+  id: number;
+  name: string;
+  version: string;
+  status: "approved" | "pending" | "rejected";
+  author: string;
+  description: string;
+  dependencies: string[];
+  lastUpdate: string;
+  rating: number;
+  downloads?: number;
+  category?: string;
+}
 
 export function ModulesContent() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedModule, setSelectedModule] = useState<any>(null)
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { colorMode } = useColorMode();
+  const tableHeaderBg = useColorModeValue("gray.50", "gray.700");
+  const rowHoverBg = useColorModeValue("gray.50", "gray.700");
 
   // Тестовые данные модулей
   const [modules] = useState([
     {
       id: 1,
-      name: 'User Authentication',
-      version: '2.1.0',
-      status: 'approved',
-      author: 'system',
-      description: 'Core authentication module with JWT tokens',
-      dependencies: ['crypto-utils', 'jwt-lib'],
-      lastUpdate: '2024-01-15',
+      name: "User Authentication",
+      version: "2.1.0",
+      status: "approved" as const,
+      author: "system",
+      description: "Core authentication module with JWT tokens",
+      dependencies: ["crypto-utils", "jwt-lib"],
+      lastUpdate: "2024-01-15",
+      rating: 4.8,
       downloads: 1248,
-      category: 'Security'
+      category: "Security"
     },
     {
       id: 2,
-      name: 'Data Validator',
-      version: '1.5.2',
-      status: 'pending',
-      author: 'user123',
-      description: 'Advanced data validation with custom rules',
-      dependencies: ['lodash', 'joi'],
-      lastUpdate: '2024-01-14',
+      name: "Data Validator",
+      version: "1.5.2",
+      status: "pending" as const,
+      author: "user123",
+      description: "Advanced data validation with custom rules",
+      dependencies: ["lodash", "joi"],
+      lastUpdate: "2024-01-14",
+      rating: 4.2,
       downloads: 842,
-      category: 'Utilities'
+      category: "Utilities"
     },
     {
       id: 3,
-      name: 'API Gateway',
-      version: '3.0.1',
-      status: 'rejected',
-      author: 'developer456',
-      description: 'HTTP API gateway with rate limiting',
-      dependencies: ['express', 'redis'],
-      lastUpdate: '2024-01-13',
+      name: "API Gateway",
+      version: "3.0.1",
+      status: "rejected" as const,
+      author: "developer456",
+      description: "HTTP API gateway with rate limiting",
+      dependencies: ["express", "redis"],
+      lastUpdate: "2024-01-13",
+      rating: 3.7,
       downloads: 0,
-      category: 'Network'
+      category: "Network"
     },
     {
       id: 4,
-      name: 'Cache Manager',
-      version: '1.2.0',
-      status: 'approved',
-      author: 'system',
-      description: 'Multi-level caching solution',
-      dependencies: ['redis', 'memory-cache'],
-      lastUpdate: '2024-01-12',
+      name: "Notification Service",
+      version: "1.0.5",
+      status: "approved" as const,
+      author: "dev-team",
+      description: "Multi-channel notification service (email, SMS, push)",
+      dependencies: ["nodemailer", "twilio"],
+      lastUpdate: "2024-01-12",
+      rating: 4.5,
       downloads: 567,
-      category: 'Performance'
+      category: "Communication"
     },
     {
       id: 5,
-      name: 'Email Service',
-      version: '2.3.0',
-      status: 'pending',
-      author: 'emaildev',
-      description: 'Email delivery service with templates',
-      dependencies: ['nodemailer', 'handlebars'],
-      lastUpdate: '2024-01-11',
-      downloads: 234,
-      category: 'Communication'
+      name: "File Storage",
+      version: "3.2.1",
+      status: "approved" as const,
+      author: "system",
+      description: "Cloud file storage with compression",
+      dependencies: ["minio", "sharp"],
+      lastUpdate: "2024-01-10",
+      rating: 4.9,
+      downloads: 2103,
+      category: "Storage"
     }
-  ])
+  ]);
 
   const filteredModules = modules.filter(module => {
     const matchesSearch = module.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         module.author.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || module.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+                         module.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || module.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'green'
-      case 'pending': return 'yellow' 
-      case 'rejected': return 'red'
-      default: return 'gray'
+      case "approved": return "green";
+      case "pending": return "yellow"; 
+      case "rejected": return "red";
+      default: return "gray";
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return CheckCircle
-      case 'pending': return Clock
-      case 'rejected': return XCircle
-      default: return Clock
+      case "approved": return CheckCircle;
+      case "pending": return Clock;
+      case "rejected": return XCircle;
+      default: return Clock;
     }
-  }
+  };
 
-  const handleViewModule = (module: any) => {
-    setSelectedModule(module)
-    onOpen()
-  }
+  const handleViewModule = (module: Module) => {
+    setSelectedModule(module);
+    onOpen();
+  };
 
   const handleApproveModule = (moduleId: number) => {
-    console.log('Approving module:', moduleId)
-  }
+    console.log("Approving module:", moduleId);
+  };
 
   const handleRejectModule = (moduleId: number) => {
-    console.log('Rejecting module:', moduleId)
-  }
+    console.log("Rejecting module:", moduleId);
+  };
 
   return (
     <VStack spacing={6} align="stretch">
@@ -138,12 +160,12 @@ export function ModulesContent() {
               <Search 
                 size={18} 
                 style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
+                  position: "absolute",
+                  left: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
                   zIndex: 1,
-                  color: 'gray'
+                  color: "gray"
                 }} 
               />
               <Input
@@ -192,7 +214,7 @@ export function ModulesContent() {
             <VStack spacing={2}>
               <CheckCircle size={32} color="green" />
               <Stat>
-                <StatNumber>{modules.filter(m => m.status === 'approved').length}</StatNumber>
+                <StatNumber>{modules.filter(m => m.status === "approved").length}</StatNumber>
                 <StatLabel>Одобрено</StatLabel>
               </Stat>
             </VStack>
@@ -203,7 +225,7 @@ export function ModulesContent() {
             <VStack spacing={2}>
               <Clock size={32} color="orange" />
               <Stat>
-                <StatNumber>{modules.filter(m => m.status === 'pending').length}</StatNumber>
+                <StatNumber>{modules.filter(m => m.status === "pending").length}</StatNumber>
                 <StatLabel>На рассмотрении</StatLabel>
               </Stat>
             </VStack>
@@ -230,7 +252,7 @@ export function ModulesContent() {
         <CardBody p={0}>
           <Box overflowX="auto">
             <Table variant="simple">
-              <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+              <Thead bg={tableHeaderBg}>
                 <Tr>
                   <Th>Модуль</Th>
                   <Th>Автор</Th>
@@ -244,9 +266,9 @@ export function ModulesContent() {
               </Thead>
               <Tbody>
                 {filteredModules.map((module) => {
-                  const StatusIcon = getStatusIcon(module.status)
+                  const StatusIcon = getStatusIcon(module.status);
                   return (
-                    <Tr key={module.id} _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}>
+                    <Tr key={module.id} _hover={{ bg: rowHoverBg }}>
                       <Td>
                         <VStack align="start" spacing={1}>
                           <Text fontWeight="semibold">{module.name}</Text>
@@ -274,8 +296,8 @@ export function ModulesContent() {
                           w="fit-content"
                         >
                           <StatusIcon size={12} />
-                          {module.status === 'approved' ? 'Одобрено' :
-                           module.status === 'pending' ? 'На рассмотрении' : 'Отклонено'}
+                          {module.status === "approved" ? "Одобрено" :
+                           module.status === "pending" ? "На рассмотрении" : "Отклонено"}
                         </Badge>
                       </Td>
                       <Td>
@@ -296,7 +318,7 @@ export function ModulesContent() {
                               onClick={() => handleViewModule(module)}
                             />
                           </Tooltip>
-                          {module.status === 'pending' && (
+                          {module.status === "pending" && (
                             <>
                               <Tooltip label="Одобрить модуль">
                                 <IconButton
@@ -323,7 +345,7 @@ export function ModulesContent() {
                         </HStack>
                       </Td>
                     </Tr>
-                  )
+                  );
                 })}
               </Tbody>
             </Table>
@@ -364,8 +386,8 @@ export function ModulesContent() {
                   <Box>
                     <Text fontWeight="semibold" mb={2}>Статус</Text>
                     <Badge colorScheme={getStatusColor(selectedModule.status)}>
-                      {selectedModule.status === 'approved' ? 'Одобрено' :
-                       selectedModule.status === 'pending' ? 'На рассмотрении' : 'Отклонено'}
+                      {selectedModule.status === "approved" ? "Одобрено" :
+                       selectedModule.status === "pending" ? "На рассмотрении" : "Отклонено"}
                     </Badge>
                   </Box>
                 </Grid>
@@ -375,7 +397,7 @@ export function ModulesContent() {
                   <HStack wrap="wrap" spacing={2}>
                     {selectedModule.dependencies.map((dep: string) => (
                       <Badge key={dep} variant="outline" colorScheme="blue">
-                        <GitBranch size={12} style={{ marginRight: '4px' }} />
+                        <GitBranch size={12} style={{ marginRight: "4px" }} />
                         {dep}
                       </Badge>
                     ))}
@@ -385,7 +407,7 @@ export function ModulesContent() {
                 <Grid templateColumns="1fr 1fr" gap={4}>
                   <Box>
                     <Text fontWeight="semibold" mb={2}>Загрузки</Text>
-                    <Text>{selectedModule.downloads.toLocaleString()}</Text>
+                    <Text>{(selectedModule.downloads || 0).toLocaleString()}</Text>
                   </Box>
                   <Box>
                     <Text fontWeight="semibold" mb={2}>Последнее обновление</Text>
@@ -397,14 +419,14 @@ export function ModulesContent() {
           </ModalBody>
           <ModalFooter>
             <HStack spacing={3}>
-              {selectedModule?.status === 'pending' && (
+              {selectedModule?.status === "pending" && (
                 <>
                   <Button 
                     colorScheme="green" 
                     leftIcon={<CheckCircle size={16} />}
                     onClick={() => {
-                      handleApproveModule(selectedModule.id)
-                      onClose()
+                      handleApproveModule(selectedModule.id);
+                      onClose();
                     }}
                   >
                     Одобрить
@@ -414,8 +436,8 @@ export function ModulesContent() {
                     variant="outline"
                     leftIcon={<XCircle size={16} />}
                     onClick={() => {
-                      handleRejectModule(selectedModule.id)
-                      onClose()
+                      handleRejectModule(selectedModule.id);
+                      onClose();
                     }}
                   >
                     Отклонить
@@ -430,5 +452,5 @@ export function ModulesContent() {
         </ModalContent>
       </Modal>
     </VStack>
-  )
+  );
 }

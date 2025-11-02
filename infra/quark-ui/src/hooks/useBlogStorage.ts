@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface BlogPost {
   id: string;
@@ -41,17 +41,17 @@ export interface Comment {
 }
 
 const STORAGE_KEYS = {
-  POSTS: 'quark-ui-blog-posts',
-  COMMENTS: 'quark-ui-blog-comments',
-  DRAFTS: 'quark-ui-blog-drafts',
+  POSTS: "quark-ui-blog-posts",
+  COMMENTS: "quark-ui-blog-comments",
+  DRAFTS: "quark-ui-blog-drafts",
 };
 
 // Дефолтные посты, если localStorage пуст
 const defaultPosts: BlogPost[] = [
   {
-    id: '1',
-    title: 'Будущее веб-разработки: тенденции 2025',
-    preview: 'Исследуем новые технологии и подходы, которые формируют будущее веб-разработки. От ИИ-интеграции до новых фреймворков...',
+    id: "1",
+    title: "Будущее веб-разработки: тенденции 2025",
+    preview: "Исследуем новые технологии и подходы, которые формируют будущее веб-разработки. От ИИ-интеграции до новых фреймворков...",
     content: `# Будущее веб-разработки: тенденции 2025
 
 Веб-разработка стремительно развивается, и 2025 год обещает стать поворотным моментом в индустрии. Давайте рассмотрим ключевые тенденции, которые будут формировать будущее.
@@ -90,14 +90,14 @@ async function BlogPost({ id }) {
 Будущее веб-разработки светлое и полно возможностей. Главное - оставаться в курсе трендов и не бояться экспериментировать с новыми технологиями.
 
 *Что думаете об этих тенденциях? Поделитесь в комментариях!*`,
-    tags: ['веб-разработка', 'тренды', 'ИИ', 'фреймворки'],
+    tags: ["веб-разработка", "тренды", "ИИ", "фреймворки"],
     author: {
-      name: 'Анна Смирнова',
-      avatar: '',
-      username: '@anna_dev',
+      name: "Анна Смирнова",
+      avatar: "",
+      username: "@anna_dev",
     },
-    date: '2 часа назад',
-    readTime: '5 мин',
+    date: "2 часа назад",
+    readTime: "5 мин",
     likes: 24,
     comments: 8,
     isLiked: false,
@@ -106,9 +106,9 @@ async function BlogPost({ id }) {
     updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: '2',
-    title: 'Дизайн-системы в современных продуктах',
-    preview: 'Как создать масштабируемую дизайн-систему, которая будет работать для всей команды и продукта...',
+    id: "2",
+    title: "Дизайн-системы в современных продуктах",
+    preview: "Как создать масштабируемую дизайн-систему, которая будет работать для всей команды и продукта...",
     content: `# Дизайн-системы в современных продуктах
 
 Создание успешного цифрового продукта невозможно без четко организованной дизайн-системы. Рассмотрим, как построить систему, которая будет служить годами.
@@ -165,14 +165,14 @@ export default {
 ## 🚀 Заключение
 
 Инвестиции в дизайн-систему окупаются многократно. Начинайте с малого, развивайте постепенно, и ваша команда скажет вам спасибо!`,
-    tags: ['дизайн-система', 'UI/UX', 'Figma', 'Storybook'],
+    tags: ["дизайн-система", "UI/UX", "Figma", "Storybook"],
     author: {
-      name: 'Михаил Петров',
-      avatar: '',
-      username: '@mike_design',
+      name: "Михаил Петров",
+      avatar: "",
+      username: "@mike_design",
     },
-    date: '1 день назад',
-    readTime: '8 мин',
+    date: "1 день назад",
+    readTime: "8 мин",
     likes: 42,
     comments: 15,
     isLiked: true,
@@ -204,7 +204,7 @@ export function useBlogStorage() {
         setComments(JSON.parse(storedComments));
       }
     } catch (error) {
-      console.error('Error loading data from localStorage:', error);
+      console.error("Error loading data from localStorage:", error);
       setPosts(defaultPosts);
     } finally {
       setLoading(false);
@@ -217,7 +217,7 @@ export function useBlogStorage() {
       localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(newPosts));
       setPosts(newPosts);
     } catch (error) {
-      console.error('Error saving posts to localStorage:', error);
+      console.error("Error saving posts to localStorage:", error);
     }
   };
 
@@ -227,7 +227,7 @@ export function useBlogStorage() {
       localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(newComments));
       setComments(newComments);
     } catch (error) {
-      console.error('Error saving comments to localStorage:', error);
+      console.error("Error saving comments to localStorage:", error);
     }
   };
 
@@ -236,17 +236,17 @@ export function useBlogStorage() {
     const now = new Date().toISOString();
     const newPost: BlogPost = {
       id: `post-${Date.now()}`,
-      title: postData.title || 'Untitled Post',
-      preview: postData.preview || '',
-      content: postData.content || '',
+      title: postData.title || "Untitled Post",
+      preview: postData.preview || "",
+      content: postData.content || "",
       tags: postData.tags || [],
       author: postData.author || {
-        name: 'Anonymous',
-        avatar: '',
-        username: '@anonymous',
+        name: "Anonymous",
+        avatar: "",
+        username: "@anonymous",
       },
-      date: 'Только что',
-      readTime: `${Math.max(1, Math.ceil((postData.content || '').length / 1000))} мин`,
+      date: "Только что",
+      readTime: `${Math.max(1, Math.ceil((postData.content || "").length / 1000))} мин`,
       likes: 0,
       comments: 0,
       isLiked: false,
@@ -314,11 +314,11 @@ export function useBlogStorage() {
       postId,
       content,
       author: {
-        name: 'Вы',
-        avatar: '',
-        username: '@you',
+        name: "Вы",
+        avatar: "",
+        username: "@you",
       },
-      date: 'Только что',
+      date: "Только что",
       likes: 0,
       isLiked: false,
       parentId,
@@ -380,23 +380,23 @@ export function useBlogStorage() {
     const errors: string[] = [];
     
     if (!postData.title?.trim()) {
-      errors.push('Заголовок обязателен');
+      errors.push("Заголовок обязателен");
     }
     
     if (postData.title && postData.title.length > 100) {
-      errors.push('Заголовок не должен превышать 100 символов');
+      errors.push("Заголовок не должен превышать 100 символов");
     }
     
     if (!postData.content?.trim()) {
-      errors.push('Содержание поста обязательно');
+      errors.push("Содержание поста обязательно");
     }
     
     if (postData.content && postData.content.length < 10) {
-      errors.push('Содержание должно быть не менее 10 символов');
+      errors.push("Содержание должно быть не менее 10 символов");
     }
     
     if (!postData.preview?.trim()) {
-      errors.push('Краткое описание обязательно');
+      errors.push("Краткое описание обязательно");
     }
 
     return {
@@ -408,7 +408,7 @@ export function useBlogStorage() {
   // Сохранение черновика
   const saveDraft = (postData: Partial<BlogPost>) => {
     try {
-      const drafts = JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFTS) || '[]');
+      const drafts = JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFTS) || "[]");
       const draftId = `draft-${Date.now()}`;
       const draft = {
         id: draftId,
@@ -420,7 +420,7 @@ export function useBlogStorage() {
       localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(updatedDrafts));
       return draft;
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error("Error saving draft:", error);
     }
   };
 

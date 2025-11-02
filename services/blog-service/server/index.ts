@@ -5,10 +5,10 @@ import PluginHubClient from "./pluginHubClient";
 
 // Plugin Hub интеграция
 const pluginHubClient = new PluginHubClient({
-  hubUrl: process.env.PLUGIN_HUB_URL || 'http://localhost:3000',
-  moduleId: 'blog-service',
-  moduleName: 'Blog Service',
-  manifestPath: './module-manifest.yaml',
+  hubUrl: process.env.PLUGIN_HUB_URL || "http://localhost:3000",
+  moduleId: "blog-service",
+  moduleName: "Blog Service",
+  manifestPath: "./module-manifest.yaml",
   heartbeatInterval: 30,
   retryAttempts: 3,
   retryDelay: 5
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 3004 for Quark integration.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3004', 10);
+  const port = parseInt(process.env.PORT || "3004", 10);
   server.listen({
     port,
     host: "0.0.0.0",
@@ -85,7 +85,7 @@ app.use((req, res, next) => {
     setTimeout(async () => {
       try {
         await pluginHubClient.register();
-        log('✅ Successfully integrated with Plugin Hub МКС Command Module');
+        log("✅ Successfully integrated with Plugin Hub МКС Command Module");
       } catch (error) {
         log(`⚠️ Plugin Hub registration failed: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -93,20 +93,20 @@ app.use((req, res, next) => {
   });
 
   // Graceful shutdown - ЗОЛОТОЕ ПРАВИЛО
-  process.on('SIGINT', async () => {
-    log('🛑 Received SIGINT, shutting down gracefully...');
+  process.on("SIGINT", async () => {
+    log("🛑 Received SIGINT, shutting down gracefully...");
     await pluginHubClient.shutdown();
     server.close(() => {
-      log('✅ Server closed');
+      log("✅ Server closed");
       process.exit(0);
     });
   });
 
-  process.on('SIGTERM', async () => {
-    log('🛑 Received SIGTERM, shutting down gracefully...');
+  process.on("SIGTERM", async () => {
+    log("🛑 Received SIGTERM, shutting down gracefully...");
     await pluginHubClient.shutdown();
     server.close(() => {
-      log('✅ Server closed');
+      log("✅ Server closed");
       process.exit(0);
     });
   });

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -40,8 +40,8 @@ import {
   Tab,
   TabPanel,
   useColorMode,
-} from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+} from "@chakra-ui/react";
+import { useState, useEffect } from "react";
 import { 
   FiSave, 
   FiCpu, 
@@ -52,7 +52,7 @@ import {
   FiEdit3,
   FiRefreshCw,
   FiChevronRight
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
 interface AISettings {
   // Основные настройки
@@ -86,21 +86,21 @@ interface AISettings {
 }
 
 const defaultSettings: AISettings = {
-  model: 'gpt-4-turbo',
+  model: "gpt-4-turbo",
   temperature: 0.7,
   maxTokens: 2048,
   topP: 0.9,
   frequencyPenalty: 0.0,
   presencePenalty: 0.0,
   
-  personality: 'professional',
-  writingStyle: 'clear',
-  tone: 'friendly',
-  language: 'ru',
+  personality: "professional",
+  writingStyle: "clear",
+  tone: "friendly",
+  language: "ru",
   
-  systemPrompt: 'Ты - полезный AI ассистент, который помогает создавать качественный контент.',
-  postPrompt: 'Помоги создать интересный и информативный пост на заданную тему.',
-  chatPrompt: 'Отвечай естественно и дружелюбно, как опытный собеседник.',
+  systemPrompt: "Ты - полезный AI ассистент, который помогает создавать качественный контент.",
+  postPrompt: "Помоги создать интересный и информативный пост на заданную тему.",
+  chatPrompt: "Отвечай естественно и дружелюбно, как опытный собеседник.",
   
   useContext: true,
   maxContextLength: 4000,
@@ -108,45 +108,45 @@ const defaultSettings: AISettings = {
   autoSuggestions: true,
   
   contentFiltering: true,
-  safetyLevel: 'moderate',
+  safetyLevel: "moderate",
 };
 
 const models = [
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo (Recommended)', description: 'Самая мощная модель' },
-  { value: 'gpt-4', label: 'GPT-4', description: 'Высокое качество' },
-  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', description: 'Быстро и экономично' },
-  { value: 'claude-3-opus', label: 'Claude 3 Opus', description: 'Отлично для творчества' },
-  { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet', description: 'Сбалансированный выбор' },
+  { value: "gpt-4-turbo", label: "GPT-4 Turbo (Recommended)", description: "Самая мощная модель" },
+  { value: "gpt-4", label: "GPT-4", description: "Высокое качество" },
+  { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo", description: "Быстро и экономично" },
+  { value: "claude-3-opus", label: "Claude 3 Opus", description: "Отлично для творчества" },
+  { value: "claude-3-sonnet", label: "Claude 3 Sonnet", description: "Сбалансированный выбор" },
 ];
 
 const personalities = [
-  { value: 'professional', label: 'Профессиональный', description: 'Деловой и точный' },
-  { value: 'creative', label: 'Творческий', description: 'Креативный и вдохновляющий' },
-  { value: 'casual', label: 'Неформальный', description: 'Дружелюбный и простой' },
-  { value: 'expert', label: 'Экспертный', description: 'Глубокие знания и анализ' },
-  { value: 'humorous', label: 'С юмором', description: 'Легкий и остроумный' },
+  { value: "professional", label: "Профессиональный", description: "Деловой и точный" },
+  { value: "creative", label: "Творческий", description: "Креативный и вдохновляющий" },
+  { value: "casual", label: "Неформальный", description: "Дружелюбный и простой" },
+  { value: "expert", label: "Экспертный", description: "Глубокие знания и анализ" },
+  { value: "humorous", label: "С юмором", description: "Легкий и остроумный" },
 ];
 
 const writingStyles = [
-  { value: 'clear', label: 'Ясный' },
-  { value: 'detailed', label: 'Подробный' },
-  { value: 'concise', label: 'Краткий' },
-  { value: 'academic', label: 'Академический' },
-  { value: 'conversational', label: 'Разговорный' },
+  { value: "clear", label: "Ясный" },
+  { value: "detailed", label: "Подробный" },
+  { value: "concise", label: "Краткий" },
+  { value: "academic", label: "Академический" },
+  { value: "conversational", label: "Разговорный" },
 ];
 
 const tones = [
-  { value: 'friendly', label: 'Дружелюбный' },
-  { value: 'formal', label: 'Формальный' },
-  { value: 'enthusiastic', label: 'Восторженный' },
-  { value: 'calm', label: 'Спокойный' },
-  { value: 'authoritative', label: 'Авторитетный' },
+  { value: "friendly", label: "Дружелюбный" },
+  { value: "formal", label: "Формальный" },
+  { value: "enthusiastic", label: "Восторженный" },
+  { value: "calm", label: "Спокойный" },
+  { value: "authoritative", label: "Авторитетный" },
 ];
 
 const safetyLevels = [
-  { value: 'strict', label: 'Строгий', description: 'Максимальная фильтрация' },
-  { value: 'moderate', label: 'Умеренный', description: 'Сбалансированная фильтрация' },
-  { value: 'relaxed', label: 'Свободный', description: 'Минимальная фильтрация' },
+  { value: "strict", label: "Строгий", description: "Максимальная фильтрация" },
+  { value: "moderate", label: "Умеренный", description: "Сбалансированная фильтрация" },
+  { value: "relaxed", label: "Свободный", description: "Минимальная фильтрация" },
 ];
 
 export function AIAgentTab() {
@@ -158,35 +158,35 @@ export function AIAgentTab() {
 
   // Загружаем настройки из localStorage при монтировании
   useEffect(() => {
-    const saved = localStorage.getItem('aiSettings');
+    const saved = localStorage.getItem("aiSettings");
     if (saved) {
       try {
         const parsedSettings = JSON.parse(saved);
         setSettings(parsedSettings);
         setOriginalSettings(parsedSettings);
       } catch (error) {
-        console.error('Ошибка парсинга настроек AI:', error);
+        console.error("Ошибка парсинга настроек AI:", error);
       }
     }
   }, []);
 
   const handleSave = () => {
     try {
-      localStorage.setItem('aiSettings', JSON.stringify(settings));
+      localStorage.setItem("aiSettings", JSON.stringify(settings));
       setOriginalSettings(settings);
       setIsEditing(false);
       toast({
-        title: 'Настройки AI сохранены',
-        description: 'Новые параметры агента будут применены для следующих запросов',
-        status: 'success',
+        title: "Настройки AI сохранены",
+        description: "Новые параметры агента будут применены для следующих запросов",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Ошибка сохранения',
-        description: 'Не удалось сохранить настройки AI',
-        status: 'error',
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить настройки AI",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -205,18 +205,18 @@ export function AIAgentTab() {
   const handleReset = () => {
     setSettings(defaultSettings);
     setOriginalSettings(defaultSettings);
-    localStorage.removeItem('aiSettings');
+    localStorage.removeItem("aiSettings");
     toast({
-      title: 'Настройки сброшены',
-      description: 'Все параметры AI агента восстановлены по умолчанию',
-      status: 'info',
+      title: "Настройки сброшены",
+      description: "Все параметры AI агента восстановлены по умолчанию",
+      status: "info",
       duration: 3000,
       isClosable: true,
     });
   };
 
   const getModelDescription = (modelValue: string) => {
-    return models.find(m => m.value === modelValue)?.description || '';
+    return models.find(m => m.value === modelValue)?.description || "";
   };
 
   return (
@@ -564,7 +564,7 @@ export function AIAgentTab() {
                       placeholder="Опишите роль и поведение AI агента..."
                       minH="100px"
                       isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50'}
+                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
                     />
                     <FormHelperText>
                       Базовые инструкции для AI агента, определяющие его роль и поведение
@@ -586,7 +586,7 @@ export function AIAgentTab() {
                       placeholder="Инструкции для создания постов..."
                       minH="80px"
                       isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50'}
+                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
                     />
                     <FormHelperText>
                       Специальные инструкции для генерации постов в социальных сетях
@@ -608,7 +608,7 @@ export function AIAgentTab() {
                       placeholder="Инструкции для общения в чате..."
                       minH="80px"
                       isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50'}
+                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
                     />
                     <FormHelperText>
                       Инструкции для ответов в чате и диалогах

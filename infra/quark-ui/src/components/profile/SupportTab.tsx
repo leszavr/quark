@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -27,8 +27,8 @@ import {
   AccordionPanel,
   AccordionIcon,
   useColorMode,
-} from '@chakra-ui/react';
-import { useState } from 'react';
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   FiSend, 
   FiPhone, 
@@ -38,7 +38,7 @@ import {
   FiHelpCircle,
   FiAlertTriangle,
   FiTool,
-} from 'react-icons/fi';
+} from "react-icons/fi";
 
 interface SupportTicket {
   subject: string;
@@ -49,46 +49,46 @@ interface SupportTicket {
 }
 
 const categories = [
-  { value: 'technical', label: 'Техническая проблема' },
-  { value: 'account', label: 'Проблемы с аккаунтом' },
-  { value: 'feature', label: 'Предложение улучшений' },
-  { value: 'billing', label: 'Вопросы по оплате' },
-  { value: 'other', label: 'Другое' },
+  { value: "technical", label: "Техническая проблема" },
+  { value: "account", label: "Проблемы с аккаунтом" },
+  { value: "feature", label: "Предложение улучшений" },
+  { value: "billing", label: "Вопросы по оплате" },
+  { value: "other", label: "Другое" },
 ];
 
 const priorities = [
-  { value: 'low', label: 'Низкий' },
-  { value: 'medium', label: 'Средний' },
-  { value: 'high', label: 'Высокий' },
-  { value: 'urgent', label: 'Критический' },
+  { value: "low", label: "Низкий" },
+  { value: "medium", label: "Средний" },
+  { value: "high", label: "Высокий" },
+  { value: "urgent", label: "Критический" },
 ];
 
 const faqItems = [
   {
-    question: 'Как изменить пароль?',
-    answer: 'Перейдите в раздел "Безопасность" в настройках профиля и нажмите "Изменить пароль". Следуйте инструкциям на экране.',
+    question: "Как изменить пароль?",
+    answer: "Перейдите в раздел \"Безопасность\" в настройках профиля и нажмите \"Изменить пароль\". Следуйте инструкциям на экране.",
   },
   {
-    question: 'Как загрузить аватар?',
-    answer: 'В разделе "Основная информация" нажмите на текущий аватар или кнопку "Загрузить фото". Выберите изображение размером не более 5 МБ.',
+    question: "Как загрузить аватар?",
+    answer: "В разделе \"Основная информация\" нажмите на текущий аватар или кнопку \"Загрузить фото\". Выберите изображение размером не более 5 МБ.",
   },
   {
-    question: 'Почему я не получаю уведомления?',
-    answer: 'Проверьте настройки уведомлений в разделе "Персонализация". Убедитесь, что браузер не блокирует уведомления от сайта.',
+    question: "Почему я не получаю уведомления?",
+    answer: "Проверьте настройки уведомлений в разделе \"Персонализация\". Убедитесь, что браузер не блокирует уведомления от сайта.",
   },
   {
-    question: 'Как удалить аккаунт?',
-    answer: 'Удаление аккаунта находится в разделе "Danger Zone". Это действие необратимо и требует подтверждения.',
+    question: "Как удалить аккаунт?",
+    answer: "Удаление аккаунта находится в разделе \"Danger Zone\". Это действие необратимо и требует подтверждения.",
   },
 ];
 
 export function SupportTab() {
   const [ticket, setTicket] = useState<SupportTicket>({
-    subject: '',
-    category: '',
-    priority: 'medium',
-    description: '',
-    email: '',
+    subject: "",
+    category: "",
+    priority: "medium",
+    description: "",
+    email: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { colorMode } = useColorMode();
@@ -99,9 +99,9 @@ export function SupportTab() {
     
     if (!ticket.subject.trim() || !ticket.category || !ticket.description.trim() || !ticket.email.trim()) {
       toast({
-        title: 'Ошибка',
-        description: 'Пожалуйста, заполните все обязательные поля',
-        status: 'error',
+        title: "Ошибка",
+        description: "Пожалуйста, заполните все обязательные поля",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -115,37 +115,37 @@ export function SupportTab() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Сохраняем в localStorage для демонстрации
-      const tickets = JSON.parse(localStorage.getItem('supportTickets') || '[]');
+      const tickets = JSON.parse(localStorage.getItem("supportTickets") || "[]");
       const newTicket = {
         ...ticket,
         id: Date.now(),
         createdAt: new Date().toISOString(),
-        status: 'pending',
+        status: "pending",
       };
       tickets.push(newTicket);
-      localStorage.setItem('supportTickets', JSON.stringify(tickets));
+      localStorage.setItem("supportTickets", JSON.stringify(tickets));
       
       toast({
-        title: 'Обращение отправлено',
-        description: 'Мы получили ваше сообщение и ответим в ближайшее время',
-        status: 'success',
+        title: "Обращение отправлено",
+        description: "Мы получили ваше сообщение и ответим в ближайшее время",
+        status: "success",
         duration: 5000,
         isClosable: true,
       });
       
       // Очищаем форму
       setTicket({
-        subject: '',
-        category: '',
-        priority: 'medium',
-        description: '',
-        email: '',
+        subject: "",
+        category: "",
+        priority: "medium",
+        description: "",
+        email: "",
       });
     } catch (error) {
       toast({
-        title: 'Ошибка отправки',
-        description: 'Не удалось отправить обращение. Попробуйте позже.',
-        status: 'error',
+        title: "Ошибка отправки",
+        description: "Не удалось отправить обращение. Попробуйте позже.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -282,8 +282,8 @@ export function SupportTab() {
                       {categories.find(c => c.value === ticket.category)?.label}
                     </AlertTitle>
                     <AlertDescription fontSize="xs">
-                      Среднее время ответа: {ticket.category === 'urgent' ? '2-4 часа' : 
-                                           ticket.category === 'technical' ? '1-2 дня' : '2-3 дня'}
+                      Среднее время ответа: {ticket.category === "urgent" ? "2-4 часа" : 
+                                           ticket.category === "technical" ? "1-2 дня" : "2-3 дня"}
                     </AlertDescription>
                   </Box>
                 </Alert>
@@ -316,7 +316,7 @@ export function SupportTab() {
             {faqItems.map((item, index) => (
               <AccordionItem key={index} border="none">
                 <AccordionButton
-                  _hover={{ bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' }}
+                  _hover={{ bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" }}
                   borderRadius="md"
                   px={3}
                 >

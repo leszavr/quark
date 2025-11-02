@@ -1,74 +1,69 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
+import { Device } from "./device.entity";
+import { UserSession } from "./user-session.entity";
 
-@Entity('users')
+@Entity("users")
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ unique: true, nullable: true })
-  phone: string;
+  phone?: string;
 
   @Column()
-  password: string;
+  password!: string;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ default: false })
-  isEmailVerified: boolean;
+  isEmailVerified!: boolean;
 
   @Column({ default: false })
-  isPhoneVerified: boolean;
+  isPhoneVerified!: boolean;
 
-  @Column({ type: 'simple-array', default: '' })
-  roles: string[];
-
-  @Column({ nullable: true })
-  firstName: string;
+  @Column({ type: "simple-array", default: "" })
+  roles!: string[];
 
   @Column({ nullable: true })
-  lastName: string;
+  firstName?: string;
 
   @Column({ nullable: true })
-  avatar: string;
+  lastName?: string;
+
+  @Column({ nullable: true })
+  avatar?: string;
 
   // Настройки профиля
-  @Column({ type: 'json', nullable: true })
-  profileSettings: {
-    isPublic?: boolean;
-    showEmail?: boolean;
-    showPhone?: boolean;
-    allowMessages?: boolean;
-    timezone?: string;
-    language?: string;
-  };
+  @Column({ type: "json", nullable: true })
+  profileSettings?: Record<string, any>;
 
   // 2FA настройки  
   @Column({ default: false })
-  twoFactorEnabled: boolean;
+  twoFactorEnabled!: boolean;
 
   @Column({ nullable: true })
-  twoFactorSecret: string;
+  twoFactorSecret?: string;
 
-  @Column({ type: 'simple-array', nullable: true })
-  backupCodes: string[];
+  @Column({ type: "simple-array", nullable: true })
+  backupCodes?: string[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column({ nullable: true })
-  lastLoginAt: Date;
+  lastLoginAt?: Date;
 
   // Связи
-  @OneToMany('Device', 'user')
-  devices: any[];
+  @OneToMany(() => Device, device => device.user)
+  devices!: Device[];
 
-  @OneToMany('UserSession', 'user')
-  sessions: any[];
+  @OneToMany(() => UserSession, session => session.user)
+  sessions!: UserSession[];
 }

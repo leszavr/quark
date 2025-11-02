@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Quark МКС Service Manager v2.0
+# Quark МКС Service Manager v2.1
 # Унифицированный скрипт управления всеми микросервисами платформы Quark
 # Автор: Quark Development Team
 # Дата: 2 октября 2025
@@ -54,19 +54,16 @@ declare -A SERVICES=(
     ["vault"]="HashiCorp Vault Secrets Manager (port 8200)"
     ["traefik"]="Traefik API Gateway (ports 80/443/8080)"
     ["minio"]="MinIO Object Storage (ports 9000/9001)"
-    
+    ["swagger-ui"]="Swagger UI - интерактивная документация API (port 8081)"
+
     # Микросервисы (порты 3000-3020)
     ["plugin-hub"]="Plugin Hub - МКС Command Module (port 3000)"
     ["auth-service"]="Auth Service - JWT Authentication & User Management (port 3001)"
     ["blog-service"]="Blog Service - Interface Integration (Blog + Messaging) (port 3004)"
     ["monitoring"]="Monitoring Dashboard (port 3900)"
-    ["quark-ui"]="Quark Platform UI - Admin Console (port 3100)"
-    
-    # Планируемые микросервисы
-    # ["user"]="User Service (port 3002)"
-    # ["media"]="Media Service (port 3003)"
-    # ["messaging"]="Messaging Service (port 3005)"
-)
+    ["quark-ui"]="Quark Platform UI - Admin Console (port 3101)"
+    ["quark-landing"]="Quark Landing - Main Landing Page (port 3200)"
+    ["swagger-ui"]="Swagger UI - интерактивная документация API (port 8081)")
 
 # Порядок запуска сервисов (критически важно!)
 STARTUP_ORDER=(
@@ -81,6 +78,8 @@ STARTUP_ORDER=(
     "blog-service"
     "monitoring"
     "quark-ui"
+    "quark-landing"
+    "swagger-ui"
 )
 
 # Функция отображения логотипа
@@ -176,14 +175,14 @@ check_outdated_packages() {
     print_log "$BLUE" "INFO" "🔍 Проверка пакетов на устаревшие версии..."
     
     local has_outdated=false
-    local services_with_packages=("plugin-hub" "auth-service" "blog-service" "quark-ui" "monitoring")
+    local services_with_packages=("plugin-hub" "auth-service" "blog-service" "quark-ui" "quark-landing" "monitoring")
     
     for service in "${services_with_packages[@]}"; do
         local service_path="$SCRIPT_DIR"
         
         # Определяем путь к сервису
         case $service in
-            "plugin-hub"|"monitoring"|"quark-ui")
+            "plugin-hub"|"monitoring"|"quark-ui"|"quark-landing")
                 service_path="$SCRIPT_DIR/infra/$service"
                 ;;
             "auth-service"|"blog-service")
@@ -195,9 +194,9 @@ check_outdated_packages() {
             print_log "$BLUE" "INFO" "📦 Проверка $service..."
             
             # Переходим в директорию сервиса и проверяем устаревшие пакеты
-            if (cd "$service_path" && npm outdated --depth=0 2>/dev/null | grep -q .); then
+            if (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null | grep -q .); then
                 print_log "$YELLOW" "WARN" "⚠️  В $service найдены устаревшие пакеты:"
-                (cd "$service_path" && npm outdated --depth=0 2>/dev/null || true)
+                (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
                 has_outdated=true
             else
                 print_log "$GREEN" "SUCCESS" "✅ $service - все пакеты актуальны"
@@ -211,22 +210,27 @@ check_outdated_packages() {
         echo ""
         print_log "$RED" "ERROR" "❌ ВНИМАНИЕ: Обнаружены устаревшие пакеты!"
         print_log "$YELLOW" "WARN" "📋 Для обновления пакетов выполните в каждом сервисе:"
-        print_log "$CYAN" "INFO" "   cd services/[service-name] && npm update"
-        print_log "$CYAN" "INFO" "   Или используйте: npm install package@latest"
+        print_log "$CYAN" "INFO" "   cd services/[service-name] && pnpm update"
+        print_log "$CYAN" "INFO" "   Или используйте: pnpm install package@latest"
         echo ""
         
-        # Предлагаем пользователю выбор
-        echo -e "${WHITE}Продолжить запуск с устаревшими пакетами? [y/N]:${NC}"
-        read -r choice
-        case $choice in
-            [Yy]|[Yy][Ee][Ss])
-                print_log "$YELLOW" "WARN" "⚠️  Продолжаем с устаревшими пакетами..."
-                ;;
-            *)
-                print_log "$RED" "ERROR" "❌ Остановка для обновления пакетов. Обновите пакеты и повторите запуск."
-                exit 1
-                ;;
-        esac
+        # Предлагаем пользователю выбор с таймером 10 секунд
+        echo -e "${WHITE}Остановить запуск для установки обновленией? [y/N]: (по умолчанию N через 10 секунд)${NC}"
+        
+        # Чтение с таймером 10 секунд
+        if read -t 10 -r choice; then
+            case $choice in
+                [Yy]|[Yy][Ee][Ss])
+                    print_log "$RED" "ERROR" "❌ Остановка для обновления пакетов. Обновите пакеты и повторите запуск."
+                    exit 1
+                    ;;
+                *)
+                    print_log "$YELLOW" "WARN" "⚠️  Продолжаем с устаревшими пакетами..."
+                    ;;
+            esac
+        else
+            print_log "$YELLOW" "WARN" "⚠️  Время ожидания истекло. Продолжаем с устаревшими пакетами..."
+        fi
     else
         print_log "$GREEN" "SUCCESS" "✅ Все пакеты актуальны!"
     fi
@@ -409,9 +413,9 @@ health_check() {
         fi
         
         if curl -s http://localhost:3100/health &> /dev/null; then
-            print_log "$GREEN" "SUCCESS" "✅ Quark Platform UI - доступен (port 3100)"
+            print_log "$GREEN" "SUCCESS" "✅ Quark Platform UI - доступен (port 3101)"
         else
-            print_log "$RED" "ERROR" "❌ Quark Platform UI - недоступен (port 3100)"
+            print_log "$RED" "ERROR" "❌ Quark Platform UI - недоступен (port 3101)"
         fi
     else
         print_log "$YELLOW" "WARN" "⚠️  curl не установлен, пропускаем API проверки"
@@ -420,27 +424,16 @@ health_check() {
 
 # UI функции
 ui_dev() {
-    print_log "$PURPLE" "UI" "🎨 Запуск Quark Platform UI в режиме разработки..."
-    
-    if [ ! -d "$SCRIPT_DIR/infra/quark-ui" ]; then
-        print_log "$RED" "ERROR" "❌ Директория quark-ui не найдена"
-        return 1
-    fi
-    
-    cd "$SCRIPT_DIR/infra/quark-ui"
-    
-    if [ ! -f "package.json" ]; then
-        print_log "$RED" "ERROR" "❌ package.json не найден в quark-ui"
-        return 1
-    fi
-    
+    print_header "🚀 Запуск Quark UI в режиме разработки..."
+    cd "$PROJECT_ROOT/infra/quark-ui" || exit 1
+
     if [ ! -d "node_modules" ]; then
-        print_log "$YELLOW" "WARN" "⚠️  node_modules не найден, устанавливаем зависимости..."
-        npm install
+        print_log "$BLUE" "INFO" "📥 Установка зависимостей..."
+        pnpm install
     fi
-    
-    print_log "$GREEN" "SUCCESS" "🚀 Запуск dev сервера на http://localhost:3100"
-    npm run dev
+
+    print_log "$GREEN" "SUCCESS" "🚀 Запуск dev сервера на http://localhost:3101"
+    pnpm run dev
 }
 
 ui_build() {
@@ -455,56 +448,40 @@ ui_build() {
     
     if [ ! -d "node_modules" ]; then
         print_log "$YELLOW" "WARN" "⚠️  node_modules не найден, устанавливаем зависимости..."
-        npm install
+            pnpm install
     fi
     
     print_log "$GREEN" "SUCCESS" "✅ Сборка завершена в директории dist/"
-    npm run build
+        pnpm run build
 }
 
 ui_start() {
-    print_log "$PURPLE" "UI" "🐳 Запуск Quark Platform UI через Docker..."
+    print_header "🚀 Запуск Quark UI..."
+    cd "$PROJECT_ROOT/infra/quark-ui" || exit 1
     
-    # Останавливаем существующий контейнер если есть
-    if docker ps -q -f name=quark-ui > /dev/null 2>&1; then
-        print_log "$YELLOW" "WARN" "⚠️  Останавливаем существующий контейнер quark-ui"
-        docker stop quark-ui > /dev/null 2>&1
-        docker rm quark-ui > /dev/null 2>&1
+    if [ ! -d "node_modules" ]; then
+        print_log "$BLUE" "INFO" "📥 Установка зависимостей..."
+            pnpm install
     fi
     
-    # Запускаем через docker-compose
-    docker-compose up -d quark-ui
-    
-    print_log "$GREEN" "SUCCESS" "✅ UI запущен на http://localhost:3100"
+    print_log "$GREEN" "SUCCESS" "✅ UI запущен на http://localhost:3101"
+        pnpm start
 }
 
 ui_open() {
-    print_log "$PURPLE" "UI" "🌐 Открытие Quark Platform UI в браузере..."
+    print_header "🌍 Открытие Quark UI в браузере..."
+    local url="http://localhost:3101"
     
-    local url="http://localhost:3100"
-    
-    # Проверяем доступность UI
-    if command -v curl &> /dev/null; then
-        if ! curl -s "$url" > /dev/null 2>&1; then
-            print_log "$YELLOW" "WARN" "⚠️  UI недоступен, попытка запуска..."
-            ui_start
-            sleep 3
-        fi
-    fi
-    
-    # Определяем команду для открытия браузера
-    if command -v xdg-open &> /dev/null; then
-        xdg-open "$url"
-    elif command -v open &> /dev/null; then
-        open "$url"
-    elif command -v start &> /dev/null; then
-        start "$url"
-    else
-        print_log "$YELLOW" "WARN" "⚠️  Не удалось определить команду для открытия браузера"
-        print_log "$CYAN" "INFO" "🌐 Откройте браузер и перейдите по адресу: $url"
-    fi
-    
-    print_log "$GREEN" "SUCCESS" "✅ UI открыт по адресу: $url"
+    case "$OSTYPE" in
+        darwin*)
+            open "$url" ;;
+        linux*)
+            xdg-open "$url" ;;
+        msys*|cygwin*)
+            start "$url" ;;
+        *)
+            print_log "$YELLOW" "WARN" "Не удалось определить ОС. Откройте вручную: $url" ;;
+    esac
 }
 
 # Функция полной перезагрузки системы
@@ -570,6 +547,40 @@ hard_reboot() {
     show_status
     
     print_log "$GREEN" "SUCCESS" "🎉 Hard reboot завершён! Все сервисы перезапущены с чистого листа."
+}
+
+# Функция проверки состояния Quark UI
+check_ui_health() {
+    print_header "🔍 Проверка состояния Quark UI..."
+    
+    if [ "$1" = "dev" ]; then
+        if curl -s http://localhost:3000/health &> /dev/null; then
+            print_log "$GREEN" "SUCCESS" "✅ Quark Platform UI (dev) - доступен (port 3000)"
+        else
+            print_log "$RED" "ERROR" "❌ Quark Platform UI (dev) - недоступен (port 3000)"
+        fi
+    else
+        if curl -s http://localhost:3101/health &> /dev/null; then
+            print_log "$GREEN" "SUCCESS" "✅ Quark Platform UI - доступен (port 3101)"
+        else
+            print_log "$RED" "ERROR" "❌ Quark Platform UI - недоступен (port 3101)"
+        fi
+    fi
+}
+
+# Функция проверки сетевых портов
+check_ports() {
+    print_header "📡 Проверка сетевых портов..."
+    local ports=(80 443 8080 3000 3001 5432 6379 8086 8088 3101 3003 9090 9093)
+    local port_names=("Traefik HTTP" "Traefik HTTPS" "Traefik Dashboard" "Plugin Hub" "Auth Service" "PostgreSQL" "Redis" "InfluxDB" "Chronograf" "Quark UI" "Blog Service" "Prometheus" "Alertmanager")
+    
+    for i in "${!ports[@]}"; do
+        if nc -z localhost "${ports[$i]}" &> /dev/null; then
+            print_log "$GREEN" "OPEN" "🔓 ${port_names[$i]} (${ports[$i]})"
+        else
+            print_log "$RED" "CLOSED" "🔒 ${port_names[$i]} (${ports[$i]})"
+        fi
+    done
 }
 
 # Основная функция

@@ -2,28 +2,28 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMessageSchema, insertBlogPostSchema, insertCommentSchema } from "@shared/schema";
-import PluginHubJWTMiddleware from "./jwtMiddleware";
+import PluginHubJWTMiddleware, { UserContext } from "./jwtMiddleware";
 
 // Initialize JWT middleware
 const jwtMiddleware = new PluginHubJWTMiddleware(
-  process.env.PLUGIN_HUB_URL || 'http://localhost:3000'
+  process.env.PLUGIN_HUB_URL || "http://localhost:3000"
 );
 
 // Simple YAML parser for manifest
 function parseManifestYaml(yamlContent: string): any {
-  const lines = yamlContent.split('\n');
+  const lines = yamlContent.split("\n");
   const result: any = {};
   
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith("#")) continue;
     
-    if (trimmed.includes(':')) {
-      const [key, ...valueParts] = trimmed.split(':');
-      const value = valueParts.join(':').trim();
+    if (trimmed.includes(":")) {
+      const [key, ...valueParts] = trimmed.split(":");
+      const value = valueParts.join(":").trim();
       
       if (value) {
-        result[key.trim()] = value.replace(/['"]/g, '');
+        result[key.trim()] = value.replace(/['"]/g, "");
       }
     }
   }
@@ -91,12 +91,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/manifest", async (req, res) => {
     try {
-      const fs = await import('fs');
-      const path = await import('path');
+      const fs = await import("fs");
+      const path = await import("path");
       
-      const manifestPath = path.join(process.cwd(), 'module-manifest.yaml');
+      const manifestPath = path.join(process.cwd(), "module-manifest.yaml");
       if (fs.existsSync(manifestPath)) {
-        const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+        const manifestContent = fs.readFileSync(manifestPath, "utf8");
         // Simple YAML parsing for manifest
         const manifest = parseManifestYaml(manifestContent);
         res.json(manifest);
@@ -138,12 +138,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Proxy registration request through Plugin Hub → auth-service
-      const response = await fetch(`${process.env.PLUGIN_HUB_URL || 'http://localhost:3000'}/api/auth/register`, {
-        method: 'POST',
+      const response = await fetch(`${process.env.PLUGIN_HUB_URL || "http://localhost:3000"}/api/auth/register`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Module-ID': 'blog-service',
-          'X-Forwarded-For': req.ip || 'unknown'
+          "Content-Type": "application/json",
+          "X-Module-ID": "blog-service",
+          "X-Forwarded-For": req.ip || "unknown"
         },
         body: JSON.stringify({
           username,
@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password,
           firstName,
           lastName,
-          source: 'blog-service'
+          source: "blog-service"
         })
       });
 
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
     } catch (error) {
-      console.error('Registration proxy error:', error instanceof Error ? error.message : String(error));
+      console.error("Registration proxy error:", error instanceof Error ? error.message : String(error));
       res.status(500).json({
         error: "Registration service unavailable",
         message: "Unable to connect to authentication service"
@@ -199,17 +199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Proxy login request through Plugin Hub → auth-service
-      const response = await fetch(`${process.env.PLUGIN_HUB_URL || 'http://localhost:3000'}/api/auth/login`, {
-        method: 'POST',
+      const response = await fetch(`${process.env.PLUGIN_HUB_URL || "http://localhost:3000"}/api/auth/login`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-Module-ID': 'blog-service',
-          'X-Forwarded-For': req.ip || 'unknown'
+          "Content-Type": "application/json",
+          "X-Module-ID": "blog-service",
+          "X-Forwarded-For": req.ip || "unknown"
         },
         body: JSON.stringify({
           username,
           password,
-          source: 'blog-service'
+          source: "blog-service"
         })
       });
 
@@ -217,10 +217,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (response.ok && result.token) {
         // Устанавливаем cookie для web интерфейса
-        res.cookie('auth-token', result.token, {
+        res.cookie("auth-token", result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
           maxAge: 24 * 60 * 60 * 1000 // 24 часа
         });
 
@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
     } catch (error) {
-      console.error('Login proxy error:', error instanceof Error ? error.message : String(error));
+      console.error("Login proxy error:", error instanceof Error ? error.message : String(error));
       res.status(500).json({
         error: "Authentication service unavailable",
         message: "Unable to connect to authentication service"
@@ -258,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/auth/logout", (req, res) => {
     // Очищаем cookie
-    res.clearCookie('auth-token');
+    res.clearCookie("auth-token");
     res.json({
       success: true,
       message: "Logged out successfully",
@@ -276,12 +276,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      const posts = await storage.getBlogPostsByAuthor(req.user.id);
+  const posts = await storage.getBlogPostsByAuthor((req.user as UserContext).id);
       
       res.json({
         posts,
         total: posts.length,
-        user: req.user.username
+  user: (req.user as UserContext).username
       });
     } catch (error) {
       res.status(500).json({ 
@@ -382,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Blog Posts API
   app.get("/api/posts", async (req, res) => {
     try {
-      const published = req.query.published === 'true' ? true : req.query.published === 'false' ? false : undefined;
+      const published = req.query.published === "true" ? true : req.query.published === "false" ? false : undefined;
       const posts = await storage.getBlogPosts(published);
       
       // Enrich posts with author data
@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission('blog.write'), async (req, res) => {
+  app.post("/api/posts", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission("blog.write"), async (req, res) => {
     try {
       const validation = insertBlogPostSchema.safeParse(req.body);
       
@@ -447,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/posts/:id", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission('blog.write'), async (req, res) => {
+  app.put("/api/posts/:id", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission("blog.write"), async (req, res) => {
     try {
       const post = await storage.updateBlogPost(req.params.id, req.body);
       if (!post) {
@@ -459,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/posts/:id", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission('blog.delete'), async (req, res) => {
+  app.delete("/api/posts/:id", jwtMiddleware.requireAuth, jwtMiddleware.requirePermission("blog.delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteBlogPost(req.params.id);
       if (!deleted) {
@@ -523,7 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       // Don't return password
-      const { password, ...safeUser } = user;
+      const { password: _password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch user" });
@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/users/:id", async (req, res) => {
     try {
       // Don't allow password updates through this endpoint
-      const { password, ...updates } = req.body;
+      const { _password: password, ...updates } = req.body;
       const user = await storage.updateUser(req.params.id, updates);
       if (!user) {
         return res.status(404).json({ error: "User not found" });

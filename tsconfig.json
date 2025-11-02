@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "esnext",
+    "lib": ["ES2020", "DOM"],
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "paths": {
+  "@/*": ["services/blog-service/client/src/*", "infra/quark-ui/src/*"],
+  "@api/*": ["services/blog-service/api/*"],
+  "@ui/*": ["infra/quark-ui/shared/ui/*"]
+    }
+  },
+  "include": [
+  "services/**/*",
+  "infra/**/*",
+  "dialog_example.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "logs"
+  ]
+}

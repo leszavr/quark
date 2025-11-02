@@ -1,0 +1,7 @@
+{
+  "name": "@quark-ui/textarea",
+  "main": "./Textarea.tsx",
+  "exports": {
+    ".": "./Textarea.tsx"
+  }
+}

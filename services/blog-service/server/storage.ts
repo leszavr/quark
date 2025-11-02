@@ -10,34 +10,34 @@ import { randomUUID } from "crypto";
 // Storage interface with all CRUD methods
 export interface IStorage {
   // Users
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  getUser(_id: string): Promise<User | undefined>;
+  getUserByUsername(_username: string): Promise<User | undefined>;
+  createUser(_user: InsertUser): Promise<User>;
+  updateUser(_id: string, _updates: Partial<User>): Promise<User | undefined>;
   
   // Channels
-  getChannel(id: string): Promise<Channel | undefined>;
+  getChannel(_id: string): Promise<Channel | undefined>;
   getChannels(): Promise<Channel[]>;
-  createChannel(channel: InsertChannel): Promise<Channel>;
+  createChannel(_channel: InsertChannel): Promise<Channel>;
   
   // Messages
-  getMessage(id: string): Promise<Message | undefined>;
-  getMessagesByChannel(channelId: string): Promise<Message[]>;
-  createMessage(message: InsertMessage): Promise<Message>;
+  getMessage(_id: string): Promise<Message | undefined>;
+  getMessagesByChannel(_channelId: string): Promise<Message[]>;
+  createMessage(_message: InsertMessage): Promise<Message>;
   
   // Blog Posts
-  getBlogPost(id: string): Promise<BlogPost | undefined>;
-  getBlogPosts(published?: boolean): Promise<BlogPost[]>;
-  getBlogPostsByAuthor(authorId: string): Promise<BlogPost[]>;
-  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
-  updateBlogPost(id: string, updates: Partial<BlogPost>): Promise<BlogPost | undefined>;
-  deleteBlogPost(id: string): Promise<boolean>;
+  getBlogPost(_id: string): Promise<BlogPost | undefined>;
+  getBlogPosts(_published?: boolean): Promise<BlogPost[]>;
+  getBlogPostsByAuthor(_authorId: string): Promise<BlogPost[]>;
+  createBlogPost(_post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(_id: string, _updates: Partial<BlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(_id: string): Promise<boolean>;
   
   // Comments
-  getComment(id: string): Promise<Comment | undefined>;
-  getCommentsByPost(postId: string): Promise<Comment[]>;
-  createComment(comment: InsertComment): Promise<Comment>;
-  deleteComment(id: string): Promise<boolean>;
+  getComment(_id: string): Promise<Comment | undefined>;
+  getCommentsByPost(_postId: string): Promise<Comment[]>;
+  createComment(_comment: InsertComment): Promise<Comment>;
+  deleteComment(_id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -136,17 +136,19 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      firstName: null,
-      lastName: null,
-      middleName: null,
-      email: null,
-      phone: null,
-      avatar: null,
-      role: "user"
-    };
+      const user: User = {
+        ...insertUser,
+        id,
+        firstName: null,
+        lastName: null,
+        middleName: null,
+        email: null,
+        phone: null,
+        avatar: null,
+        role: "user",
+        password: "",
+        username: "",
+      };
     this.users.set(id, user);
     return user;
   }
@@ -271,10 +273,13 @@ export class MemStorage implements IStorage {
 
   async createComment(insertComment: InsertComment): Promise<Comment> {
     const id = randomUUID();
-    const comment: Comment = { 
-      ...insertComment, 
+    const comment: Comment = {
+      ...insertComment,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      content: "",
+      authorId: "",
+      postId: "",
     };
     this.comments.set(id, comment);
     return comment;

@@ -1,6 +1,6 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type ViewMode = 'blog-only' | 'chat-only' | 'both' | 'home';
+export type ViewMode = "blog-only" | "chat-only" | "both" | "home";
 
 interface WindowState {
   isOpen: boolean;
@@ -41,8 +41,8 @@ interface AppState {
   // Действия для окон
   setBlogWindow: (state: Partial<WindowState>) => void;
   setChatWindow: (state: Partial<WindowState>) => void;
-  toggleWindow: (window: 'blog' | 'chat') => void;
-  minimizeWindow: (window: 'blog' | 'chat') => void;
+  toggleWindow: (window: "blog" | "chat") => void;
+  minimizeWindow: (window: "blog" | "chat") => void;
   
   // UI действия
   toggleSidebar: () => void;
@@ -60,7 +60,7 @@ interface AppState {
 }
 
 const initialState = {
-  viewMode: 'home' as ViewMode,
+  viewMode: "home" as ViewMode,
   
   blogWindow: {
     isOpen: true,
@@ -108,7 +108,7 @@ export const useAppStore = create<AppState>((set) => ({
     
   toggleWindow: (window) =>
     set((state) => {
-      if (window === 'blog') {
+      if (window === "blog") {
         return { blogWindow: { ...state.blogWindow, isOpen: !state.blogWindow.isOpen } };
       } else {
         return { chatWindow: { ...state.chatWindow, isOpen: !state.chatWindow.isOpen } };
@@ -117,7 +117,7 @@ export const useAppStore = create<AppState>((set) => ({
     
   minimizeWindow: (window) =>
     set((state) => {
-      if (window === 'blog') {
+      if (window === "blog") {
         return { blogWindow: { ...state.blogWindow, isMinimized: !state.blogWindow.isMinimized } };
       } else {
         return { chatWindow: { ...state.chatWindow, isMinimized: !state.chatWindow.isMinimized } };

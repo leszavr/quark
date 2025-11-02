@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
@@ -7,116 +7,116 @@ import {
   Alert, AlertIcon, AlertTitle, AlertDescription, Progress,
   Table, Thead, Tbody, Tr, Th, Td, useColorModeValue, Divider,
   IconButton, Tooltip
-} from '@chakra-ui/react'
-import { useState } from 'react'
+} from "@chakra-ui/react";
+import { useState } from "react";
 import { 
   Shield, Lock, Eye, AlertTriangle, Users, Activity,
   Globe, Database, Key, Settings, RefreshCw, Download,
   CheckCircle, XCircle, Clock, Zap, FileText, Search
-} from 'lucide-react'
+} from "lucide-react";
 
 export function SecurityContent() {
-  const [autoLockout, setAutoLockout] = useState(true)
-  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
-  const [sessionTimeout, setSessionTimeout] = useState('30')
-  const [passwordComplexity, setPasswordComplexity] = useState('medium')
+  const [autoLockout, setAutoLockout] = useState(true);
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [sessionTimeout, setSessionTimeout] = useState("30");
+  const [passwordComplexity, setPasswordComplexity] = useState("medium");
 
   // Статистика безопасности
   const securityStats = {
     activeThreats: 2,
     blockedAttempts: 1247,
     secureConnections: 99.8,
-    lastSecurityScan: '2024-01-15T10:30:00Z'
-  }
+    lastSecurityScan: "2024-01-15T10:30:00Z"
+  };
 
   // Последние события безопасности
   const securityEvents = [
     {
       id: 1,
-      type: 'warning',
-      title: 'Подозрительная активность',
-      description: 'Множественные попытки входа с IP 192.168.1.100',
-      timestamp: '2024-01-15T14:30:00Z',
-      severity: 'medium',
+      type: "warning",
+      title: "Подозрительная активность",
+      description: "Множественные попытки входа с IP 192.168.1.100",
+      timestamp: "2024-01-15T14:30:00Z",
+      severity: "medium",
       resolved: false
     },
     {
       id: 2,
-      type: 'success',
-      title: 'Успешное обновление безопасности',
-      description: 'Обновлены правила файрвола',
-      timestamp: '2024-01-15T12:15:00Z',
-      severity: 'low',
+      type: "success",
+      title: "Успешное обновление безопасности",
+      description: "Обновлены правила файрвола",
+      timestamp: "2024-01-15T12:15:00Z",
+      severity: "low",
       resolved: true
     },
     {
       id: 3,
-      type: 'error',
-      title: 'Обнаружена уязвимость',
-      description: 'Найдена потенциальная уязвимость в модуле аутентификации',
-      timestamp: '2024-01-15T09:45:00Z',
-      severity: 'high',
+      type: "error",
+      title: "Обнаружена уязвимость",
+      description: "Найдена потенциальная уязвимость в модуле аутентификации",
+      timestamp: "2024-01-15T09:45:00Z",
+      severity: "high",
       resolved: false
     },
     {
       id: 4,
-      type: 'info',
-      title: 'Плановое сканирование',
-      description: 'Завершено плановое сканирование системы безопасности',
-      timestamp: '2024-01-15T08:00:00Z',
-      severity: 'low',
+      type: "info",
+      title: "Плановое сканирование",
+      description: "Завершено плановое сканирование системы безопасности",
+      timestamp: "2024-01-15T08:00:00Z",
+      severity: "low",
       resolved: true
     }
-  ]
+  ];
 
   // Попытки входа
   const loginAttempts = [
     {
       id: 1,
-      ip: '192.168.1.100',
-      user: 'admin@example.com',
-      status: 'blocked',
+      ip: "192.168.1.100",
+      user: "admin@example.com",
+      status: "blocked",
       attempts: 15,
-      lastAttempt: '2024-01-15T14:25:00Z',
-      location: 'Неизвестно'
+      lastAttempt: "2024-01-15T14:25:00Z",
+      location: "Неизвестно"
     },
     {
       id: 2,
-      ip: '10.0.0.45',
-      user: 'user@example.com',
-      status: 'success',
+      ip: "10.0.0.45",
+      user: "user@example.com",
+      status: "success",
       attempts: 1,
-      lastAttempt: '2024-01-15T13:10:00Z',
-      location: 'Москва, Россия'
+      lastAttempt: "2024-01-15T13:10:00Z",
+      location: "Москва, Россия"
     },
     {
       id: 3,
-      ip: '203.0.113.42',
-      user: 'test@example.com',
-      status: 'failed',
+      ip: "203.0.113.42",
+      user: "test@example.com",
+      status: "failed",
       attempts: 3,
-      lastAttempt: '2024-01-15T11:30:00Z',
-      location: 'Санкт-Петербург, Россия'
+      lastAttempt: "2024-01-15T11:30:00Z",
+      location: "Санкт-Петербург, Россия"
     }
-  ]
+  ];
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'high': return 'red'
-      case 'medium': return 'orange'
-      case 'low': return 'green'
-      default: return 'gray'
+      case "high": return "red";
+      case "medium": return "orange";
+      case "low": return "green";
+      default: return "gray";
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'green'
-      case 'failed': return 'orange'
-      case 'blocked': return 'red'
-      default: return 'gray'
+      case "success": return "green";
+      case "failed": return "orange";
+      case "blocked": return "red";
+      default: return "gray";
     }
-  }
+  };
 
   return (
     <VStack spacing={6} align="stretch">
@@ -182,13 +182,13 @@ export function SecurityContent() {
               <Activity size={32} color="purple" />
               <Stat>
                 <StatNumber fontSize="lg">
-                  {new Date(securityStats.lastSecurityScan).toLocaleDateString('ru-RU')}
+                  {new Date(securityStats.lastSecurityScan).toLocaleDateString("ru-RU")}
                 </StatNumber>
                 <StatLabel>Последнее сканирование</StatLabel>
                 <StatHelpText>
-                  {new Date(securityStats.lastSecurityScan).toLocaleTimeString('ru-RU', {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                  {new Date(securityStats.lastSecurityScan).toLocaleTimeString("ru-RU", {
+                    hour: "2-digit",
+                    minute: "2-digit"
                   })}
                 </StatHelpText>
               </Stat>
@@ -324,7 +324,7 @@ export function SecurityContent() {
             {securityEvents.map((event) => (
               <Alert 
                 key={event.id}
-                status={event.type === 'error' ? 'error' : event.type === 'warning' ? 'warning' : event.type === 'success' ? 'success' : 'info'}
+                status={event.type === "error" ? "error" : event.type === "warning" ? "warning" : event.type === "success" ? "success" : "info"}
                 borderRadius="md"
                 opacity={event.resolved ? 0.7 : 1}
               >
@@ -337,8 +337,8 @@ export function SecurityContent() {
                       colorScheme={getSeverityColor(event.severity)} 
                       size="sm"
                     >
-                      {event.severity === 'high' ? 'Высокий' :
-                       event.severity === 'medium' ? 'Средний' : 'Низкий'}
+                      {event.severity === "high" ? "Высокий" :
+                       event.severity === "medium" ? "Средний" : "Низкий"}
                     </Badge>
                   </AlertTitle>
                   <AlertDescription fontSize="sm">
@@ -347,7 +347,7 @@ export function SecurityContent() {
                 </Box>
                 <VStack spacing={1} align="end">
                   <Text fontSize="xs" color="gray.500">
-                    {new Date(event.timestamp).toLocaleString('ru-RU')}
+                    {new Date(event.timestamp).toLocaleString("ru-RU")}
                   </Text>
                   {event.resolved && (
                     <Badge colorScheme="green" size="sm">Решено</Badge>
@@ -367,7 +367,7 @@ export function SecurityContent() {
         <CardBody p={0}>
           <Box overflowX="auto">
             <Table variant="simple">
-              <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+              <Thead bg={useColorModeValue("gray.50", "gray.700")}>
                 <Tr>
                   <Th>IP-адрес</Th>
                   <Th>Пользователь</Th>
@@ -385,17 +385,17 @@ export function SecurityContent() {
                     <Td>{attempt.user}</Td>
                     <Td>
                       <Badge colorScheme={getStatusColor(attempt.status)}>
-                        {attempt.status === 'success' ? 'Успешно' :
-                         attempt.status === 'failed' ? 'Неудачно' : 'Заблокировано'}
+                        {attempt.status === "success" ? "Успешно" :
+                         attempt.status === "failed" ? "Неудачно" : "Заблокировано"}
                       </Badge>
                     </Td>
                     <Td>
-                      <Text color={attempt.attempts > 5 ? 'red.500' : 'inherit'}>
+                      <Text color={attempt.attempts > 5 ? "red.500" : "inherit"}>
                         {attempt.attempts}
                       </Text>
                     </Td>
                     <Td>{attempt.location}</Td>
-                    <Td>{new Date(attempt.lastAttempt).toLocaleString('ru-RU')}</Td>
+                    <Td>{new Date(attempt.lastAttempt).toLocaleString("ru-RU")}</Td>
                     <Td>
                       <HStack spacing={1}>
                         <Tooltip label="Подробности">
@@ -406,7 +406,7 @@ export function SecurityContent() {
                             variant="ghost"
                           />
                         </Tooltip>
-                        {attempt.status === 'blocked' ? (
+                        {attempt.status === "blocked" ? (
                           <Tooltip label="Разблокировать IP">
                             <IconButton
                               aria-label="Разблокировать"
@@ -437,5 +437,5 @@ export function SecurityContent() {
         </CardBody>
       </Card>
     </VStack>
-  )
+  );
 }

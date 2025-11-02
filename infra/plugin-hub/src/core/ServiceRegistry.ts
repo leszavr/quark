@@ -1,11 +1,11 @@
-import Redis from 'ioredis';
-import { ServiceInfo, HealthCheck, ModuleDefinition } from '../types/index.js';
+import Redis from "ioredis";
+import { ServiceInfo, HealthCheck, ModuleDefinition } from "../types/index.js";
 
 export class ServiceRegistry {
   private redis: Redis;
-  private readonly SERVICES_KEY = 'quark:services';
-  private readonly MODULES_KEY = 'quark:modules';
-  private readonly HEALTH_KEY = 'quark:health';
+  private readonly SERVICES_KEY = "quark:services";
+  private readonly MODULES_KEY = "quark:modules";
+  private readonly HEALTH_KEY = "quark:health";
 
   constructor(redis: Redis) {
     this.redis = redis;
@@ -26,8 +26,8 @@ export class ServiceRegistry {
     );
 
     // Publish service registration event
-    await this.redis.publish('quark:events:service:registered', JSON.stringify({
-      type: 'service.registered',
+    await this.redis.publish("quark:events:service:registered", JSON.stringify({
+      type: "service.registered",
       serviceId: service.id,
       serviceName: service.name,
       timestamp: new Date().toISOString()
@@ -43,8 +43,8 @@ export class ServiceRegistry {
       await this.redis.hdel(this.HEALTH_KEY, serviceId);
 
       // Publish service unregistration event
-      await this.redis.publish('quark:events:service:unregistered', JSON.stringify({
-        type: 'service.unregistered',
+      await this.redis.publish("quark:events:service:unregistered", JSON.stringify({
+        type: "service.unregistered",
         serviceId,
         serviceName: service.name,
         timestamp: new Date().toISOString()
@@ -73,12 +73,12 @@ export class ServiceRegistry {
     });
   }
 
-  async getServicesByType(type: ServiceInfo['type']): Promise<ServiceInfo[]> {
+  async getServicesByType(type: ServiceInfo["type"]): Promise<ServiceInfo[]> {
     const services = await this.getAllServices();
     return services.filter(service => service.type === type);
   }
 
-  async updateServiceStatus(serviceId: string, status: ServiceInfo['status']): Promise<void> {
+  async updateServiceStatus(serviceId: string, status: ServiceInfo["status"]): Promise<void> {
     const service = await this.getService(serviceId);
     if (service) {
       service.status = status;
@@ -124,8 +124,8 @@ export class ServiceRegistry {
     );
 
     // Publish module registration event
-    await this.redis.publish('quark:events:module:registered', JSON.stringify({
-      type: 'module.registered',
+    await this.redis.publish("quark:events:module:registered", JSON.stringify({
+      type: "module.registered",
       moduleId: module.id,
       moduleName: module.name,
       timestamp: new Date().toISOString()
@@ -160,7 +160,7 @@ export class ServiceRegistry {
     // Update service health status
     const service = await this.getService(healthCheck.serviceId);
     if (service) {
-      service.health = healthCheck.status === 'healthy' ? 'healthy' : 'unhealthy';
+      service.health = healthCheck.status === "healthy" ? "healthy" : "unhealthy";
       await this.registerService(service);
     }
   }
@@ -191,7 +191,7 @@ export class ServiceRegistry {
 
   async findServicesByPattern(pattern: string): Promise<ServiceInfo[]> {
     const services = await this.getAllServices();
-    const regex = new RegExp(pattern, 'i');
+    const regex = new RegExp(pattern, "i");
     
     return services.filter(service => 
       regex.test(service.name) || 
@@ -213,10 +213,10 @@ export class ServiceRegistry {
     
     const stats = {
       total: services.length,
-      active: services.filter(s => s.status === 'active').length,
-      inactive: services.filter(s => s.status === 'inactive').length,
-      healthy: services.filter(s => s.health === 'healthy').length,
-      unhealthy: services.filter(s => s.health === 'unhealthy').length,
+      active: services.filter(s => s.status === "active").length,
+      inactive: services.filter(s => s.status === "inactive").length,
+      healthy: services.filter(s => s.health === "healthy").length,
+      unhealthy: services.filter(s => s.health === "unhealthy").length,
       byType: {} as Record<string, number>
     };
 

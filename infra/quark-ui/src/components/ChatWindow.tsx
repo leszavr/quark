@@ -1,32 +1,17 @@
-'use client';
+"use client";
 
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Avatar,
-  Input,
-  InputGroup,
-  InputRightElement,
-  IconButton,
-  useColorMode,
-  Textarea,
-  Button,
-  Badge,
-  Icon,
-} from '@chakra-ui/react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Send, Smile, Mic, Check, CheckCheck } from 'lucide-react';
-import { MarkdownRenderer } from './MarkdownRenderer';
-import { EmojiPicker } from './EmojiPicker';
-import { FileUploader } from './FileUploader';
-import { MessageAttachments } from './MessageAttachments';
-import { useState, useRef, useEffect } from 'react';
-import { useChatStorage } from '../hooks/useChatStorage';
-import type { Message, Chat, ChatUser, MessageAttachment } from '../hooks/useChatStorage';
+import { motion } from "framer-motion";
+import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Send, Smile, Mic, Check, CheckCheck } from "lucide-react";
+import { MarkdownRenderer } from "./MarkdownRenderer";
+import { EmojiPicker } from "./EmojiPicker";
+import { FileUploader } from "./FileUploader";
+import { MessageAttachments } from "./MessageAttachments";
+import { useState, useRef, useEffect } from "react";
+import { useChatStorage } from "../hooks/useChatStorage";
+import type { FileAttachment } from "./FileUploader";
+import type { Message, Chat, ChatUser, MessageAttachment } from "../hooks/useChatStorage";
 
-const MotionBox = motion.create(Box);
+const MotionBox = motion.create("div");
 
 // Компонент для рендеринга сообщений с поддержкой Markdown (пасхалка!)
 interface MessageContentProps {
@@ -34,62 +19,20 @@ interface MessageContentProps {
 }
 
 function MessageContent({ content }: MessageContentProps) {
-  const { colorMode } = useColorMode();
-  
   // Проверяем, содержит ли сообщение Markdown синтаксис
-  const hasMarkdown = /(\*\*.*\*\*|\*.*\*|`.*`|#+ |^\s*[\-\*\+]\s+|^\s*\d+\.\s+|\[.*\]\(.*\)|```[\s\S]*```)/gm.test(content);
+  const hasMarkdown = /(\*\*|\*|`|#|\[|\]|```|^\s*[-+*]|^\s*\d+\.)/m.test(content);
   
   if (hasMarkdown) {
     // Если есть Markdown - рендерим через MarkdownRenderer
     return (
-      <Box 
-        sx={{
-          '& h1, & h2, & h3, & h4, & h5, & h6': {
-            fontSize: 'sm',
-            fontWeight: 'bold',
-            margin: '0.25rem 0',
-          },
-          '& p': {
-            margin: '0.25rem 0',
-            fontSize: 'sm',
-          },
-          '& ul, & ol': {
-            margin: '0.25rem 0',
-            paddingLeft: '1rem',
-          },
-          '& li': {
-            fontSize: 'sm',
-            margin: '0.1rem 0',
-          },
-          '& code': {
-            fontSize: 'xs',
-            padding: '0.1rem 0.25rem',
-            borderRadius: '0.25rem',
-            backgroundColor: colorMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-          },
-          '& pre': {
-            fontSize: 'xs',
-            padding: '0.5rem',
-            borderRadius: '0.5rem',
-            margin: '0.5rem 0',
-            backgroundColor: colorMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-          },
-          '& blockquote': {
-            borderLeft: '3px solid',
-            borderColor: 'primary.400',
-            paddingLeft: '0.5rem',
-            margin: '0.5rem 0',
-            fontStyle: 'italic',
-          }
-        }}
-      >
+      <div className="prose prose-sm max-w-none dark:prose-invert">
         <MarkdownRenderer>{content}</MarkdownRenderer>
-      </Box>
+      </div>
     );
   }
   
   // Обычное текстовое сообщение
-  return <Text fontSize="sm">{content}</Text>;
+  return <span className="text-sm">{content}</span>;
 }
 
 // Типы импортированы из useChatStorage
@@ -103,9 +46,8 @@ interface ChatWindowProps {
   onBack?: () => void; // функция возврата к списку чатов
 }
 
-export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false, onBack }: ChatWindowProps) {
-  const { colorMode } = useColorMode();
-  const [message, setMessage] = useState('');
+export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false, onBack }: ChatWindowProps) {
+  const [message, setMessage] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<MessageAttachment[]>([]);
   const [showFileUploader, setShowFileUploader] = useState(false);
   const { 
@@ -123,7 +65,7 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -140,11 +82,11 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
   const handleSend = () => {
     if (message.trim() || attachedFiles.length > 0) {
       sendMessage(chatId, message, attachedFiles);
-      setMessage('');
+      setMessage("");
       setAttachedFiles([]);
       setShowFileUploader(false);
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = "auto";
       }
     }
   };
@@ -157,8 +99,7 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
     }
   };
 
-  const handleFilesChange = (files: any[]) => {
-    // Конвертируем FileAttachment в MessageAttachment
+  const handleFilesChange = (files: FileAttachment[]) => {
     const messageAttachments: MessageAttachment[] = files.map(file => ({
       id: file.id,
       name: file.file.name,
@@ -172,7 +113,7 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -183,7 +124,7 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
     
     // Автоматическое изменение высоты textarea
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   };
@@ -191,218 +132,164 @@ export function ChatWindow({ chatId = 'chat-1', onClose, showBackButton = false,
   // Статус сообщений теперь определяется через isRead в Message
 
   return (
-    <Box h="full" display="flex" flexDirection="column">
+    <div className="h-full flex flex-col">
       {/* Шапка чата */}
-      <Box
-        p={4}
-        borderBottom="1px solid"
-        borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-        bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-      >
-        <HStack justify="space-between">
-          <HStack spacing={3}>
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="flex justify-between">
+          <div className="flex gap-3">
             {/* Кнопка назад (только в мобильном режиме) */}
             {showBackButton && (
-              <IconButton
-                aria-label="Назад к списку чатов"
-                icon={<ArrowLeft size={18} />}
-                size="sm"
-                variant="ghost"
+              <button
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={onBack}
-                _hover={{ bg: colorMode === 'dark' ? 'gray.700' : 'gray.100' }}
-              />
+                aria-label="Назад к списку чатов"
+              >
+                <ArrowLeft size={18} />
+              </button>
             )}
-            <Box position="relative">
-              <Avatar 
-                size="sm" 
-                name={user?.name || 'Пользователь'}
+            <div className="relative">
+              <img
+                className="w-8 h-8 rounded-full object-cover"
                 src={user?.avatar}
+                alt={user?.name || "Пользователь"}
               />
               {user?.isOnline && (
-                <Box
-                  position="absolute"
-                  bottom={0}
-                  right={0}
-                  w={3}
-                  h={3}
-                  bg="green.400"
-                  borderRadius="full"
-                  border="2px solid"
-                  borderColor={colorMode === 'dark' ? 'gray.800' : 'white'}
-                />
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
               )}
-            </Box>
-            <Box>
-              <Text fontWeight="semibold" fontSize="sm">
-                {user?.name || 'Пользователь'}
-              </Text>
-              <Text fontSize="xs" color="gray.500">
-                {user?.isOnline ? 'онлайн' : user?.lastSeen || 'не в сети'}
-              </Text>
-            </Box>
-          </HStack>
+            </div>
+            <div>
+              <span className="font-semibold text-sm">
+                {user?.name || "Пользователь"}
+              </span>
+              <span className="text-xs text-gray-500 block">
+                {user?.isOnline ? "онлайн" : user?.lastSeen || "не в сети"}
+              </span>
+            </div>
+          </div>
 
-          <HStack spacing={1}>
-            <IconButton
+          <div className="flex gap-1">
+            <button
+              className="p-2 rounded hover:text-cyan-500 text-gray-500"
               aria-label="Voice call"
-              icon={<Phone size={16} />}
-              variant="ghost"
-              size="sm"
-              color="gray.500"
-              _hover={{ color: 'primary.500' }}
-            />
-            <IconButton
+            >
+              <Phone size={16} />
+            </button>
+            <button
+              className="p-2 rounded hover:text-cyan-500 text-gray-500"
               aria-label="Video call"
-              icon={<Video size={16} />}
-              variant="ghost"
-              size="sm"
-              color="gray.500"
-              _hover={{ color: 'primary.500' }}
-            />
-            <IconButton
+            >
+              <Video size={16} />
+            </button>
+            <button
+              className="p-2 rounded hover:text-cyan-500 text-gray-500"
               aria-label="More options"
-              icon={<MoreVertical size={16} />}
-              variant="ghost"
-              size="sm"
-              color="gray.500"
-              _hover={{ color: 'primary.500' }}
-            />
-          </HStack>
-        </HStack>
-      </Box>
+            >
+              <MoreVertical size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Сообщения */}
-      <Box flex={1} overflowY="auto" p={4}>
-        <VStack spacing={3} align="stretch">
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex flex-col gap-3">
           {messages.map((msg: Message, index: number) => (
             <MotionBox
               key={msg.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              alignSelf={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
-              maxW="70%"
+              className={`self-${msg.sender === "user" ? "end" : "start"} max-w-[70%]`}
             >
-              <Box
-                bg={msg.sender === 'user' 
-                  ? (colorMode === 'dark' ? 'primary.600' : 'primary.500')
-                  : (colorMode === 'dark' ? 'gray.700' : 'gray.100')
-                }
-                color={msg.sender === 'user' ? 'white' : 'inherit'}
-                p={3}
-                borderRadius="xl"
-                borderBottomRightRadius={msg.sender === 'user' ? 'md' : 'xl'}
-                borderBottomLeftRadius={msg.sender === 'other' ? 'md' : 'xl'}
-                position="relative"
+              <div
+                className={`p-3 rounded-2xl ${
+                  msg.sender === "user" 
+                    ? "bg-cyan-500 dark:bg-cyan-600 text-white rounded-br-md"
+                    : "bg-gray-100 dark:bg-gray-700 text-inherit rounded-bl-md"
+                }`}
               >
-                <Box fontSize="sm" mb={1}>
+                <div className="text-sm mb-1">
                   <MessageContent content={msg.content} />
-                </Box>
+                </div>
                 
                 {/* Отображение вложений */}
                 {msg.attachments && msg.attachments.length > 0 && (
                   <MessageAttachments 
                     attachments={msg.attachments} 
-                    isOwn={msg.sender === 'user'}
+                    isOwn={msg.sender === "user"}
                   />
                 )}
                 
-                <HStack justify="flex-end" spacing={1} mt={1}>
-                  <Text fontSize="xs" opacity={0.7}>
+                <div className="flex justify-end gap-1 mt-1">
+                  <span className="text-xs opacity-70">
                     {msg.timestamp}
-                  </Text>
-                  {msg.sender === 'user' && (
-                    <Icon
-                      as={msg.isRead ? CheckCheck : Check}
-                      boxSize={3}
-                      opacity={0.7}
-                      color={msg.isRead ? 'cyan.300' : 'gray.300'}
-                    />
+                  </span>
+                  {msg.sender === "user" && (
+                    <div className={`w-3 h-3 opacity-70 ${msg.isRead ? "text-cyan-300" : "text-gray-300"}`}>
+                      {msg.isRead ? <CheckCheck size={12} /> : <Check size={12} />}
+                    </div>
                   )}
-                </HStack>
-              </Box>
+                </div>
+              </div>
             </MotionBox>
           ))}
           <div ref={messagesEndRef} />
-        </VStack>
-      </Box>
+        </div>
+      </div>
 
       {/* Поле ввода */}
-      <Box
-        p={4}
-        borderTop="1px solid"
-        borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-        bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-      >
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         {/* Область загрузки файлов */}
         {showFileUploader && (
-          <Box mb={4}>
+          <div className="mb-4">
             <FileUploader onFilesChange={handleFilesChange} />
-          </Box>
+          </div>
         )}
 
-        <HStack spacing={2} align="flex-end">
-          <IconButton
-            aria-label="Прикрепить файл"
-            icon={<Paperclip size={18} />}
-            variant="ghost"
-            size="sm"
-            color={showFileUploader ? 'primary.500' : 'gray.500'}
-            _hover={{ color: 'primary.500' }}
+        <div className="flex gap-2 items-end">
+          <button
+            className={`p-2 rounded hover:text-cyan-500 ${showFileUploader ? "text-cyan-500" : "text-gray-500"}`}
             onClick={() => setShowFileUploader(!showFileUploader)}
-          />
+            aria-label="Прикрепить файл"
+          >
+            <Paperclip size={18} />
+          </button>
 
-          <Box flex={1}>
-            <Textarea
+          <div className="flex-1">
+            <textarea
               ref={textareaRef}
               value={message}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder="Введите сообщение..."
-              resize="none"
               rows={1}
-              minH="40px"
-              maxH="120px"
-              bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
-              border="1px solid"
-              borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-              borderRadius="xl"
-              _focus={{
-                borderColor: 'primary.500',
-                boxShadow: '0 0 0 1px rgba(0, 240, 255, 0.5)',
-              }}
-              _placeholder={{
-                color: 'gray.500',
-              }}
+              className="w-full min-h-10 max-h-30 resize-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl px-3 py-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-gray-500"
             />
-          </Box>
+          </div>
 
           <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
-          <IconButton
+          <button
+            className="p-2 rounded hover:text-red-400 text-gray-500"
             aria-label="Voice message"
-            icon={<Mic size={18} />}
-            variant="ghost"
-            size="sm"
-            color="gray.500"
-            _hover={{ color: 'red.400' }}
-          />
+          >
+            <Mic size={18} />
+          </button>
 
-          <IconButton
-            aria-label="Send message"
-            icon={<Send size={18} />}
-            colorScheme="cyan"
-            size="sm"
+          <button
+            className={`p-2 rounded text-sm ${
+              (message.trim() || attachedFiles.length > 0) 
+                ? "bg-cyan-500 text-white hover:scale-105 transform" 
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
             onClick={handleSend}
-            isDisabled={!message.trim() && attachedFiles.length === 0}
-            bg={(message.trim() || attachedFiles.length > 0) ? (colorMode === 'dark' ? '#00f0ff' : '#1a202c') : undefined}
-            color={(message.trim() || attachedFiles.length > 0) ? (colorMode === 'dark' ? 'black' : 'white') : undefined}
-            _hover={{
-              transform: (message.trim() || attachedFiles.length > 0) ? 'scale(1.05)' : undefined,
-            }}
-          />
-        </HStack>
-      </Box>
-    </Box>
+            disabled={!message.trim() && attachedFiles.length === 0}
+            aria-label="Send message"
+          >
+            <Send size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
