@@ -287,14 +287,24 @@ GET http://localhost:3000/api/modules/:id/status
 ./quark-manager.sh restart plugin-hub
 
 # Пересборка образов
-./quark-manager.sh rebuild auth-service
+./quark-manager.sh build auth-service
 
-# Логи сервисов
-./quark-manager.sh logs auth-service
+# Логи сервисов (с follow режимом)
+./quark-manager.sh logs auth-service -f
+
+# Проверка здоровья сервисов
+./quark-manager.sh health
+
+# Статистика ресурсов
+./quark-manager.sh stats
 
 # Интерактивное меню
 ./quark-manager.sh menu
 ```
+
+> 📦 **quark-manager.sh** теперь доступен как отдельный проект:  
+> https://git.8ls.ru/odmen/quark-manager  
+> Универсальный менеджер для Docker Compose проектов с микросервисной архитектурой.
 
 ## 📚 Документация
 
