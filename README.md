@@ -21,11 +21,12 @@
 │   └── 🔐 vault/                          # HashiCorp Vault конфигурацияая full-stack пла## 🌐 Доступные сервисы и порты
 ```
 
-### Frontend интерфейсы:
-- 🎨 **UI-end интерфейс**: http://localhost:3000 (dev) / http://localhost:3002 (alt)
-- 🏛️ **Admin UI**: http://localhost:3100 (production UI)
-- 📊 **Monitoring Dashboard**: http://localhost:3900
-- 🔧 **Traefik Dashboard**: http://localhost:8080
+### 🏛️ Frontend интерфейсы:
+- 🎨 **Quark Landing**: http://localhost:3200 - главная страница платформы с WebGL
+- 🖥️ **Quark UI (Admin)**: http://localhost:3101 - административная панель
+- 📊 **Monitoring Dashboard**: http://localhost:3900 - система мониторинга
+- 📚 **Swagger UI**: http://localhost:8081 - API документация
+- 🔧 **Traefik Dashboard**: http://localhost:8080 - управление маршрутизацией
 
 ### Backend API сервисы:
 - 🔐 **Auth Service**: http://localhost:3001
@@ -40,28 +41,45 @@
 - 📦 **MinIO**: http://localhost:9000 (API), :9001 (Console)
 - 🌐 **Traefik**: :80 (HTTP), :443 (HTTPS), :8080 (Dashboard)
 
-### Пул используемых портов:
+### 🔧 Пул используемых портов:
 
-80, 443, 3000, 3001, 3002, 3004, 3100, 3900, 
-4222, 5432, 6222, 6379, 8080, 8200, 8222, 
-9000, 9001
+**Frontend:**
+3101 (quark-ui), 3200 (landing), 3900 (monitoring), 8080 (traefik), 8081 (swagger)
+
+**Backend API:**
+3000 (plugin-hub), 3001 (auth-service), 3004 (blog-service)
+
+**Infrastructure:**
+80/443 (traefik), 4222/6222/8222 (nats), 5432 (postgres), 6379 (redis), 
+8200 (vault), 9000/9001 (minio)
 с Next.js 15 + React 19**  
 Backend API + Адаптивный UI с мессенджером и блогами
 
 [![Frontend: Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015-black.svg)](infra/quark-ui/)
 [![Backend: Docker](https://img.shields.io/badge/Backend-Docker%20Services-blue.svg)](docker-compose.yml)
-[![UI: Chakra UI](https://img.shields.io/badge/UI-Chakra%20UI%202.8-teal.svg)](infra/quark-ui/src/theme.ts)
-[![Status: Ready for Auth](https://img.shields.io/badge/Status-Ready%20for%20Auth-orange.svg)](#)
+[![UI: Radix UI](https://img.shields.io/badge/UI-Radix%20UI%20%2B%20Tailwind-blue.svg)](infra/quark-ui/)
+[![Package Manager: pnpm](https://img.shields.io/badge/Package%20Manager-pnpm%20workspace-orange.svg)](pnpm-workspace.yaml)
+[![Status: 13 Services Ready](https://img.shields.io/badge/Status-13%20Services%20Ready-green.svg)](#)
+
+## ⚡ Последние обновления (02.11.2025)
+
+### 🔄 Технологическая миграция:
+- ✅ **npm → pnpm workspace** - переход на monorepo архитектуру
+- ✅ **Chakra UI → Radix UI + Tailwind** - миграция UI библиотеки (в процессе)
+- ✅ **Quark Landing** - добавлена landing page с WebGL анимацией
+- ✅ **Production Docker** - все сервисы работают в production режиме
 
 ## ✨ Основные возможности
 
-### 🎨 Современный UI-end интерфейс
+### 🎨 Современный Frontend интерфейс
 - **Next.js 15** + **React 19** с Turbopack
-- **Chakra UI 2.8** + **Tailwind CSS** для стилизации
+- **Radix UI** + **Tailwind CSS 4** для современного UI
+- **pnpm workspace** monorepo структура
 - **Адаптивный дизайн** - автоматическое переключение mobile/desktop
 - **ResizableSplitter** - перетаскиваемые панели для desktop
 - **6 цветовых тем** + темная/светлая темы
 - **Полноценный мессенджер** с статусами и онлайн индикаторами
+- **Landing page** с WebGL фоновой анимацией
 
 ### 🛠️ Backend API сервисы
 - **Auth Service** (NestJS) - JWT аутентификация и регистрация
@@ -75,21 +93,32 @@ Backend API + Адаптивный UI с мессенджером и блога�
 ```
 quark/
 ├── 🏗️ infra/
-│   └── 🎨 quark-ui/                       # ⭐ Современный UI-end интерфейс ✅ ГОТОВ
-│       ├── src/
-│       │   ├── app/                       # Next.js 15 App Router
-│       │   ├── components/                # React 19 компоненты
-│       │   │   ├── layout/                # Header, MainLayout, ResizableLayout
-│       │   │   ├── admin/                 # Админ панель
-│       │   │   ├── profile/               # Профиль пользователя
-│       │   │   ├── BlogFeed.tsx          # Система блогов
-│       │   │   ├── ChatWindow.tsx        # Мессенджер
-│       │   │   └── ResizableSplitter.tsx # Перетаскиваемые панели
-│       │   ├── hooks/                     # Custom React hooks
-│       │   ├── stores/                    # Zustand state management
-│       │   └── theme.ts                   # Chakra UI темы
-│       ├── package.json                   # Next.js 15 + React 19 + Chakra UI
-│       └── next.config.ts                 # Next.js конфигурация
+│   ├── 🎨 quark-ui/                       # ⭐ Административный интерфейс ✅ ГОТОВ
+│   │   ├── src/
+│   │   │   ├── app/                       # Next.js 15 App Router
+│   │   │   ├── components/                # React 19 компоненты (Radix UI)
+│   │   │   │   ├── layout/                # Header, MainLayout, ResizableLayout
+│   │   │   │   ├── admin/                 # Админ панель
+│   │   │   │   ├── profile/               # Профиль пользователя
+│   │   │   │   ├── BlogFeed.tsx          # Система блогов
+│   │   │   │   ├── ChatWindow.tsx        # Мессенджер
+│   │   │   │   └── ResizableSplitter.tsx # Перетаскиваемые панели
+│   │   │   ├── hooks/                     # Custom React hooks
+│   │   │   ├── stores/                    # Zustand state management
+│   │   │   └── styles/                    # Tailwind CSS конфигурация
+│   │   └── package.json                   # Next.js 15 + React 19 + Radix UI
+│   ├── 🌟 quark-landing/                  # ⭐ Landing page ✅ ГОТОВ
+│   │   ├── app/                           # Next.js 16 приложение
+│   │   ├── components/                    # React компоненты с WebGL
+│   │   ├── public/                        # Статические ресурсы
+│   │   └── Dockerfile                     # Production build
+│   ├── 📊 monitoring/                     # ⭐ Система мониторинга ✅ ГОТОВ
+│   │   ├── server.js                      # Express dashboard сервер
+│   │   └── Dockerfile                     # Контейнер мониторинга
+│   ├── 🌐 plugin-hub/                     # ⭐ Plugin Hub ✅ ГОТОВ
+│   │   ├── src/                           # Центральный узел модулей
+│   │   └── Dockerfile                     # Контейнер plugin системы
+│   └── 🔐 vault/                          # HashiCorp Vault конфигурация
 ├── 🔌 services/
 │   ├── 🔐 auth-service/                   # ⭐ JWT Аутентификация ✅ ГОТОВ
 │   │   ├── src/                           # NestJS приложение
