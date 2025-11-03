@@ -1,0 +1,578 @@
+# User Service - Universal Docking Interface (UDI) Manifest
+# Constitution Article II: Module Docking Protocol
+# Version: 1.0.0
+
+module_id: user-service
+name: User Service
+version: 1.0.0
+description: |
+  User management service for Quark platform providing profile management, 
+  RBAC (Role-Based Access Control), VIP subscriptions, and privacy settings.
+
+type: service  # Types: service, plugin, agent, ui-module
+
+# ==================== CAPABILITIES ====================
+capabilities:
+  - user-management      # CRUD operations for user profiles
+  - rbac                 # Role-Based Access Control system
+  - subscriptions        # VIP subscription management
+  - privacy-settings     # User privacy and settings management
+
+# ==================== METADATA ====================
+metadata:
+  author: Quark Development Team
+  maintainer: dev@quark-platform.example
+  repository: https://github.com/quark-platform/user-service
+  documentation: https://docs.quark-platform.example/services/user-service
+  license: MIT
+  tags:
+    - users
+    - rbac
+    - subscriptions
+    - profiles
+
+# ==================== RUNTIME ====================
+runtime:
+  language: TypeScript
+  framework: NestJS
+  version: "10.x"
+  node_version: "20.x"
+  entrypoint: dist/main.js
+  
+  # Environment requirements
+  environment:
+    required:
+      - NODE_ENV
+      - PORT
+      - DATABASE_HOST
+      - DATABASE_NAME
+      - DATABASE_USER
+      - REDIS_HOST
+      - NATS_URL
+      - VAULT_ADDR
+      - PLUGIN_HUB_URL
+    optional:
+      - LOG_LEVEL
+      - REDIS_TTL
+
+  # Resource requirements (for Kubernetes)
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ==================== ENDPOINTS ====================
+endpoints:
+  # REST API
+  rest:
+    base_url: /api/v1
+    port: 3004
+    protocol: http
+    documentation: /api/v1/docs  # Swagger UI
+    
+    routes:
+      - path: /users/me
+        methods: [GET, PATCH, DELETE]
+        auth_required: true
+        permissions: []  # Own profile access (no extra permissions needed)
+        
+      - path: /users/{userId}
+        methods: [GET]
+        auth_required: false
+        permissions: []  # Public access (respects privacy settings)
+        
+      - path: /users/{userId}/roles
+        methods: [GET, POST]
+        auth_required: true
+        permissions: [admin]
+        
+      - path: /users/{userId}/roles/{roleId}
+        methods: [DELETE]
+        auth_required: true
+        permissions: [admin]
+        
+      - path: /roles
+        methods: [GET]
+        auth_required: true
+        permissions: [admin]
+        
+      - path: /subscriptions
+        methods: [POST]
+        auth_required: true
+        permissions: []
+        
+      - path: /subscriptions/me
+        methods: [GET]
+        auth_required: true
+        permissions: []
+        
+      - path: /subscriptions/{subscriptionId}
+        methods: [DELETE]
+        auth_required: true
+        permissions: []
+        
+      - path: /users/me/settings
+        methods: [GET, PATCH]
+        auth_required: true
+        permissions: []
+
+  # Health checks (UDI mandatory)
+  health:
+    liveness:
+      path: /health
+      port: 3004
+      interval: 10s
+      timeout: 5s
+      
+    readiness:
+      path: /status
+      port: 3004
+      interval: 10s
+      timeout: 5s
+      success_threshold: 1
+      failure_threshold: 3
+
+  # UDI manifest endpoint (mandatory)
+  manifest:
+    path: /manifest
+    port: 3004
+
+# ==================== EVENTS (NATS) ====================
+events:
+  # Events published by this service
+  publishes:
+    - subject: user.created
+      description: New user created in system
+      schema: asyncapi://contracts/asyncapi.yaml#UserCreatedPayload
+      
+    - subject: user.updated
+      description: User profile updated
+      schema: asyncapi://contracts/asyncapi.yaml#UserUpdatedPayload
+      
+    - subject: user.deleted
+      description: User account deleted (GDPR)
+      schema: asyncapi://contracts/asyncapi.yaml#UserDeletedPayload
+      
+    - subject: user.role.granted
+      description: Role assigned to user
+      schema: asyncapi://contracts/asyncapi.yaml#RoleGrantedPayload
+      
+    - subject: user.role.revoked
+      description: Role revoked from user
+      schema: asyncapi://contracts/asyncapi.yaml#RoleRevokedPayload
+      
+    - subject: subscription.created
+      description: VIP subscription created
+      schema: asyncapi://contracts/asyncapi.yaml#SubscriptionCreatedPayload
+      
+    - subject: subscription.expired
+      description: VIP subscription expired
+      schema: asyncapi://contracts/asyncapi.yaml#SubscriptionExpiredPayload
+
+  # Events subscribed by this service
+  subscribes:
+    - subject: auth.user.registered
+      description: Handle new user registration from auth-service
+      handler: AuthEventsService.handleUserRegistered
+      durable_name: user-service-auth-consumer
+      ack_policy: explicit
+      max_deliver: 3
+      
+    - subject: auth.jwt.rotated
+      description: Handle JWT key rotation
+      handler: JwtService.handleJwtRotated
+      durable_name: user-service-jwt-consumer
+      ack_policy: explicit
+      max_deliver: 5
+
+# ==================== DEPENDENCIES ====================
+dependencies:
+  # External services required for operation
+  services:
+    - name: postgresql
+      type: database
+      version: "16"
+      required: true
+      health_check: true
+      connection:
+        host: postgres
+        port: 5432
+        database: user_db
+      
+    - name: redis
+      type: cache
+      version: "7.x"
+      required: true
+      health_check: true
+      connection:
+        host: redis
+        port: 6379
+      
+    - name: nats
+      type: message-bus
+      version: "2.10.x"
+      required: true
+      health_check: true
+      connection:
+        url: nats://nats:4222
+        stream: USER_STREAM
+      
+    - name: vault
+      type: secret-manager
+      version: "1.15.x"
+      required: true
+      health_check: true
+      connection:
+        addr: http://vault:8200
+        path: secret/data/quark/user-service
+      
+    - name: plugin-hub
+      type: api-gateway
+      version: "1.0.0"
+      required: true
+      health_check: false  # Plugin Hub checks us, not vice versa
+      connection:
+        url: http://plugin-hub:3000
+
+  # Quark services this service depends on
+  quark_services:
+    - service_id: auth-service
+      required: true
+      purpose: JWT validation and user authentication
+      communication: events  # via auth.user.registered, auth.jwt.rotated
+      
+    - service_id: media-service
+      required: false
+      purpose: Avatar image uploads
+      communication: rest  # via Plugin Hub routing
+      
+    - service_id: notification-service
+      required: false
+      purpose: Email notifications (welcome, subscription receipts)
+      communication: events  # via subscription.created, subscription.expired
+
+# ==================== PLUGIN HUB INTEGRATION ====================
+plugin_hub:
+  # Automatic registration on startup
+  auto_register: true
+  register_endpoint: /modules/register
+  
+  # Heartbeat configuration
+  heartbeat:
+    enabled: true
+    interval: 30s  # Send heartbeat every 30 seconds
+    endpoint: /modules/heartbeat
+    timeout: 10s
+  
+  # Graceful shutdown
+  shutdown:
+    notify_plugin_hub: true
+    deregister_endpoint: /modules/deregister
+    grace_period: 15s  # Wait for in-flight requests to complete
+
+  # Service Discovery
+  discovery:
+    advertise_endpoints: true
+    advertise_events: true
+    metadata:
+      category: core-service
+      tier: critical
+      region: primary
+
+# ==================== SECURITY ====================
+security:
+  # Authentication
+  authentication:
+    type: jwt
+    provider: vault
+    algorithm: RS256
+    token_source: header  # Authorization: Bearer <token>
+    validation: plugin-hub  # JWT validation via Plugin Hub middleware
+  
+  # Authorization
+  authorization:
+    type: rbac
+    roles:
+      - name: user
+        description: Default role for all registered users
+        permissions:
+          - read:own_profile
+          - write:own_profile
+          - delete:own_account
+          
+      - name: vip
+        description: Premium subscription holder
+        permissions:
+          - read:own_profile
+          - write:own_profile
+          - delete:own_account
+          - create:unlimited_blogs
+          - upload:media
+          
+      - name: moderator
+        description: Content moderator
+        permissions:
+          - read:any_profile
+          - delete:any_blog
+          - ban:user
+          - review:reports
+          
+      - name: admin
+        description: System administrator
+        permissions:
+          - "*"  # All permissions
+  
+  # Data encryption
+  encryption:
+    at_rest:
+      enabled: true
+      fields:
+        - email  # PII: encrypted in database
+        - contact_info  # PII: encrypted in database
+      algorithm: AES-256-GCM
+      key_source: vault
+      
+    in_transit:
+      enabled: true
+      protocol: TLS 1.3
+      certificate_source: letsencrypt
+
+  # GDPR compliance
+  gdpr:
+    enabled: true
+    data_retention:
+      user_profiles: indefinite  # Until user deletes account
+      deleted_users: 30d  # Soft delete for 30 days, then hard delete
+      logs: 90d
+    right_to_erasure: true  # DELETE /users/me
+    data_export: true  # Future feature: GET /users/me/export
+
+# ==================== MONITORING & OBSERVABILITY ====================
+monitoring:
+  # Metrics
+  metrics:
+    enabled: true
+    provider: prometheus
+    endpoint: /metrics
+    port: 3004
+    
+    custom_metrics:
+      - name: user_registrations_total
+        type: counter
+        description: Total number of user registrations
+        
+      - name: profile_updates_total
+        type: counter
+        description: Total number of profile updates
+        
+      - name: role_assignments_total
+        type: counter
+        description: Total number of role assignments
+        labels: [role]
+        
+      - name: subscriptions_active
+        type: gauge
+        description: Number of active VIP subscriptions
+        
+      - name: api_request_duration_seconds
+        type: histogram
+        description: API request duration in seconds
+        labels: [method, route, status_code]
+  
+  # Logging
+  logging:
+    enabled: true
+    level: info  # debug, info, warn, error
+    format: json  # structured logging
+    outputs:
+      - type: stdout
+      - type: file
+        path: /var/log/user-service.log
+        rotation: daily
+        retention: 7d
+  
+  # Tracing
+  tracing:
+    enabled: true
+    provider: opentelemetry
+    exporter: jaeger
+    sampling_rate: 0.1  # Sample 10% of requests
+    endpoints:
+      - /api/v1/*  # Trace all API calls
+
+# ==================== BACKUP & RECOVERY ====================
+backup:
+  database:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    retention: 7d
+    destination: s3://quark-backups/user-service/
+    
+  disaster_recovery:
+    rto: 1h  # Recovery Time Objective
+    rpo: 6h  # Recovery Point Objective (matches backup frequency)
+
+# ==================== DEPLOYMENT ====================
+deployment:
+  # Docker
+  docker:
+    image: quark/user-service:1.0.0
+    registry: docker.io
+    dockerfile: Dockerfile
+    build:
+      context: .
+      target: production
+      args:
+        NODE_ENV: production
+  
+  # Kubernetes
+  kubernetes:
+    namespace: quark
+    replicas: 3
+    strategy:
+      type: RollingUpdate
+      max_surge: 1
+      max_unavailable: 0
+    
+    # Probes
+    liveness_probe:
+      http_get:
+        path: /health
+        port: 3004
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
+    
+    readiness_probe:
+      http_get:
+        path: /status
+        port: 3004
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
+    
+    # Autoscaling
+    hpa:
+      enabled: true
+      min_replicas: 3
+      max_replicas: 10
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+
+# ==================== CONFIGURATION ====================
+configuration:
+  # Default configuration values
+  defaults:
+    port: 3004
+    log_level: info
+    redis_ttl: 300  # 5 minutes
+    jwt_expiration: 3600  # 1 hour
+    
+  # Configuration sources (priority order)
+  sources:
+    - type: environment  # Highest priority
+    - type: vault
+      path: secret/data/quark/user-service/config
+    - type: file
+      path: config/default.yaml
+
+# ==================== COMPLIANCE ====================
+compliance:
+  # Constitution compliance (mandatory)
+  constitution:
+    article_i_event_driven: true
+    article_ii_udi: true
+    article_iii_jwt_auth: true
+    article_iv_grpc: false  # Not used in this service
+    article_v_wasm: false  # Not used in this service
+    article_vi_ai_ops: false  # Future feature
+    article_vii_simplicity: true  # 3 components: NestJS + PostgreSQL + Redis
+    article_viii_plugin_hub: true
+    article_ix_test_first: true
+  
+  # Standards compliance
+  standards:
+    - name: GDPR
+      compliant: true
+      features:
+        - right_to_erasure
+        - data_encryption
+        - consent_management
+        
+    - name: OpenAPI 3.0
+      compliant: true
+      spec_location: contracts/openapi.yaml
+      
+    - name: AsyncAPI 2.6
+      compliant: true
+      spec_location: contracts/asyncapi.yaml
+
+# ==================== TESTING ====================
+testing:
+  # Test coverage requirements
+  coverage:
+    minimum: 90%
+    target: 95%
+  
+  # Test types
+  test_suites:
+    - type: contract
+      location: tests/contract/
+      command: npm run test:contract
+      required: true
+      
+    - type: integration
+      location: tests/integration/
+      command: npm run test:integration
+      required: true
+      dependencies:
+        - postgresql
+        - redis
+        - nats
+        - vault
+      
+    - type: e2e
+      location: tests/e2e/
+      command: npm run test:e2e
+      required: true
+      
+    - type: unit
+      location: tests/unit/
+      command: npm run test:unit
+      required: true
+
+# ==================== VERSIONING ====================
+versioning:
+  scheme: semver  # Semantic Versioning
+  api_version: v1
+  changelog: CHANGELOG.md
+  
+  deprecation_policy:
+    notice_period: 90d  # 90 days notice before deprecation
+    support_period: 180d  # 180 days support for deprecated features
+
+# ==================== CONTACT & SUPPORT ====================
+support:
+  documentation: https://docs.quark-platform.example/services/user-service
+  issues: https://github.com/quark-platform/user-service/issues
+  slack: "#user-service"
+  email: dev@quark-platform.example
+  on_call: https://pagerduty.com/quark/user-service
+
+# ==================== CHANGE LOG ====================
+changelog:
+  - version: 1.0.0
+    date: 2024-11-03
+    changes:
+      - Initial release
+      - User profile management
+      - RBAC system with 4 roles
+      - VIP subscriptions (monthly/yearly)
+      - Privacy settings
+      - UDI compliance
+      - Event-driven architecture via NATS

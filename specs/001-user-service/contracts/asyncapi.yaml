@@ -1,0 +1,706 @@
+asyncapi: 2.6.0
+info:
+  title: User Service - NATS Events
+  version: 1.0.0
+  description: |
+    **Quark Platform - User Service Events**
+    
+    События NATS JetStream для User Service (event-driven architecture).
+    
+    **Event-Driven Principles (Constitution Article I)**:
+    - Асинхронная связь между сервисами через NATS
+    - Durable consumers для надёжной доставки
+    - Dead Letter Queue (DLQ) для неудачных обработок
+    - НЕТ прямых HTTP вызовов между сервисами
+    
+    **Related Documents**:
+    - Specification: `/specs/001-user-service/spec.md`
+    - Plan: `/specs/001-user-service/plan.md`
+    - OpenAPI (REST): `/specs/001-user-service/contracts/openapi.yaml`
+  contact:
+    name: Quark Development Team
+    email: dev@quark-platform.example
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  production:
+    url: nats://nats:4222
+    protocol: nats
+    description: Production NATS server
+  development:
+    url: nats://localhost:4222
+    protocol: nats
+    description: Local NATS server
+
+defaultContentType: application/json
+
+channels:
+  # ==================== PUBLISHED EVENTS ====================
+  user.created:
+    description: |
+      Событие публикуется при создании нового пользователя.
+      
+      **Trigger**: Обработка события `auth.user.registered`
+      **Subscribers**: blog-service (создать пустой профиль блогера), notification-service (welcome email)
+    publish:
+      summary: User created
+      operationId: publishUserCreated
+      message:
+        $ref: '#/components/messages/UserCreated'
+
+  user.updated:
+    description: |
+      Событие публикуется при обновлении профиля пользователя.
+      
+      **Trigger**: PATCH /users/me
+      **Subscribers**: search-service (обновить индекс), blog-service (обновить автора в постах)
+    publish:
+      summary: User profile updated
+      operationId: publishUserUpdated
+      message:
+        $ref: '#/components/messages/UserUpdated'
+
+  user.deleted:
+    description: |
+      Событие публикуется при удалении аккаунта (GDPR compliance).
+      
+      **Trigger**: DELETE /users/me
+      **Subscribers**: ALL services (cascade delete related data)
+      
+      **Critical**: Все сервисы ДОЛЖНЫ подписаться и удалить связанные данные.
+    publish:
+      summary: User account deleted
+      operationId: publishUserDeleted
+      message:
+        $ref: '#/components/messages/UserDeleted'
+
+  user.role.granted:
+    description: |
+      Событие публикуется при назначении роли пользователю.
+      
+      **Trigger**: POST /users/{userId}/roles
+      **Subscribers**: auth-service (обновить JWT claims), blog-service (обновить permissions)
+    publish:
+      summary: Role granted to user
+      operationId: publishRoleGranted
+      message:
+        $ref: '#/components/messages/RoleGranted'
+
+  user.role.revoked:
+    description: |
+      Событие публикуется при снятии роли с пользователя.
+      
+      **Trigger**: DELETE /users/{userId}/roles/{roleId}
+      **Subscribers**: auth-service (обновить JWT claims), blog-service (обновить permissions)
+    publish:
+      summary: Role revoked from user
+      operationId: publishRoleRevoked
+      message:
+        $ref: '#/components/messages/RoleRevoked'
+
+  subscription.created:
+    description: |
+      Событие публикуется при оформлении VIP подписки.
+      
+      **Trigger**: POST /subscriptions
+      **Subscribers**: notification-service (отправить receipt email), blog-service (активировать VIP features)
+    publish:
+      summary: VIP subscription created
+      operationId: publishSubscriptionCreated
+      message:
+        $ref: '#/components/messages/SubscriptionCreated'
+
+  subscription.expired:
+    description: |
+      Событие публикуется при истечении подписки (cron job).
+      
+      **Trigger**: Cron job проверяет expiry_date каждый час
+      **Subscribers**: notification-service (отправить expiration notice), blog-service (отключить VIP features)
+    publish:
+      summary: VIP subscription expired
+      operationId: publishSubscriptionExpired
+      message:
+        $ref: '#/components/messages/SubscriptionExpired'
+
+  # ==================== SUBSCRIBED EVENTS ====================
+  auth.user.registered:
+    description: |
+      User Service подписывается на это событие для создания профиля.
+      
+      **Publisher**: auth-service
+      **Handler**: AuthEventsService.handleUserRegistered()
+      **Action**: Создать User и Profile в БД с default role 'user'
+    subscribe:
+      summary: Handle user registration from auth-service
+      operationId: handleUserRegistered
+      message:
+        $ref: '#/components/messages/AuthUserRegistered'
+
+  auth.jwt.rotated:
+    description: |
+      User Service подписывается для обновления публичного ключа JWT.
+      
+      **Publisher**: auth-service
+      **Handler**: JwtService.handleJwtRotated()
+      **Action**: Получить новый публичный ключ из Vault, обновить кэш
+    subscribe:
+      summary: Handle JWT key rotation
+      operationId: handleJwtRotated
+      message:
+        $ref: '#/components/messages/AuthJwtRotated'
+
+components:
+  messages:
+    # ==================== PUBLISHED MESSAGES ====================
+    UserCreated:
+      name: UserCreated
+      title: User Created Event
+      summary: Новый пользователь создан в системе
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UserCreatedPayload'
+      examples:
+        - name: basicUser
+          summary: Создание обычного пользователя
+          payload:
+            event_id: "evt_550e8400-e29b-41d4-a716-446655440000"
+            event_type: "user.created"
+            timestamp: "2024-11-03T14:30:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              username: "john_doe"
+              email: "john.doe@example.com"
+              roles: ["user"]
+              created_at: "2024-11-03T14:30:00Z"
+
+    UserUpdated:
+      name: UserUpdated
+      title: User Updated Event
+      summary: Профиль пользователя обновлён
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UserUpdatedPayload'
+      examples:
+        - name: usernameChange
+          summary: Изменение username
+          payload:
+            event_id: "evt_660e8400-e29b-41d4-a716-446655440001"
+            event_type: "user.updated"
+            timestamp: "2024-11-03T15:00:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              changes:
+                username: "johndoe_dev"
+              previous_values:
+                username: "john_doe"
+              updated_at: "2024-11-03T15:00:00Z"
+
+    UserDeleted:
+      name: UserDeleted
+      title: User Deleted Event (GDPR)
+      summary: Аккаунт пользователя удалён (GDPR compliance)
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UserDeletedPayload'
+      examples:
+        - name: userDeletion
+          summary: Удаление аккаунта
+          payload:
+            event_id: "evt_770e8400-e29b-41d4-a716-446655440002"
+            event_type: "user.deleted"
+            timestamp: "2024-11-03T16:00:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              username: "john_doe"
+              deleted_at: "2024-11-03T16:00:00Z"
+              reason: "user_request"
+
+    RoleGranted:
+      name: RoleGranted
+      title: Role Granted Event
+      summary: Роль назначена пользователю
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RoleGrantedPayload'
+      examples:
+        - name: moderatorRole
+          summary: Назначение роли moderator
+          payload:
+            event_id: "evt_880e8400-e29b-41d4-a716-446655440003"
+            event_type: "user.role.granted"
+            timestamp: "2024-11-03T17:00:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              role: "moderator"
+              permissions: ["delete:any_blog", "ban:user", "review:reports"]
+              granted_by: "admin_user_id_here"
+              granted_at: "2024-11-03T17:00:00Z"
+
+    RoleRevoked:
+      name: RoleRevoked
+      title: Role Revoked Event
+      summary: Роль снята с пользователя
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/RoleRevokedPayload'
+      examples:
+        - name: revokeVip
+          summary: Снятие роли vip при истечении подписки
+          payload:
+            event_id: "evt_990e8400-e29b-41d4-a716-446655440004"
+            event_type: "user.role.revoked"
+            timestamp: "2024-11-03T18:00:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              role: "vip"
+              revoked_by: "system"
+              revoked_at: "2024-11-03T18:00:00Z"
+              reason: "subscription_expired"
+
+    SubscriptionCreated:
+      name: SubscriptionCreated
+      title: Subscription Created Event
+      summary: VIP подписка оформлена
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SubscriptionCreatedPayload'
+      examples:
+        - name: monthlySubscription
+          summary: Оформление месячной подписки
+          payload:
+            event_id: "evt_aa0e8400-e29b-41d4-a716-446655440005"
+            event_type: "subscription.created"
+            timestamp: "2024-11-03T19:00:00Z"
+            data:
+              subscription_id: "sub_1OFj4g2eZvKYlo2C"
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              type: "monthly"
+              status: "active"
+              start_date: "2024-11-03T19:00:00Z"
+              expiry_date: "2024-12-03T19:00:00Z"
+              payment_method: "stripe"
+              amount: 9.99
+              currency: "USD"
+
+    SubscriptionExpired:
+      name: SubscriptionExpired
+      title: Subscription Expired Event
+      summary: VIP подписка истекла
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SubscriptionExpiredPayload'
+      examples:
+        - name: expiredSubscription
+          summary: Истечение подписки
+          payload:
+            event_id: "evt_bb0e8400-e29b-41d4-a716-446655440006"
+            event_type: "subscription.expired"
+            timestamp: "2024-12-03T19:00:00Z"
+            data:
+              subscription_id: "sub_1OFj4g2eZvKYlo2C"
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              type: "monthly"
+              expired_at: "2024-12-03T19:00:00Z"
+              auto_renewal_enabled: false
+
+    # ==================== SUBSCRIBED MESSAGES ====================
+    AuthUserRegistered:
+      name: AuthUserRegistered
+      title: Auth User Registered Event (from auth-service)
+      summary: Новый пользователь зарегистрирован в auth-service
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AuthUserRegisteredPayload'
+      examples:
+        - name: newRegistration
+          summary: Регистрация нового пользователя
+          payload:
+            event_id: "evt_cc0e8400-e29b-41d4-a716-446655440007"
+            event_type: "auth.user.registered"
+            timestamp: "2024-11-03T14:25:00Z"
+            data:
+              user_id: "550e8400-e29b-41d4-a716-446655440000"
+              username: "john_doe"
+              email: "john.doe@example.com"
+              email_verified: true
+              registered_at: "2024-11-03T14:25:00Z"
+
+    AuthJwtRotated:
+      name: AuthJwtRotated
+      title: Auth JWT Rotated Event (from auth-service)
+      summary: JWT публичный ключ ротирован (security best practice)
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AuthJwtRotatedPayload'
+      examples:
+        - name: keyRotation
+          summary: Плановая ротация ключей
+          payload:
+            event_id: "evt_dd0e8400-e29b-41d4-a716-446655440008"
+            event_type: "auth.jwt.rotated"
+            timestamp: "2024-11-03T20:00:00Z"
+            data:
+              old_key_id: "jwt_key_v1"
+              new_key_id: "jwt_key_v2"
+              vault_path: "secret/data/quark/jwt/public_key"
+              rotated_at: "2024-11-03T20:00:00Z"
+              grace_period_seconds: 3600
+
+  schemas:
+    # ==================== PUBLISHED SCHEMAS ====================
+    UserCreatedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор события
+        event_type:
+          type: string
+          const: "user.created"
+        timestamp:
+          type: string
+          format: date-time
+          description: Время публикации события
+        data:
+          type: object
+          required: [user_id, username, email, roles, created_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+              description: ID созданного пользователя
+            username:
+              type: string
+              description: Username пользователя
+            email:
+              type: string
+              format: email
+              description: Email пользователя (не зашифрован в событии)
+            roles:
+              type: array
+              items:
+                type: string
+              description: Роли пользователя (по умолчанию ["user"])
+            created_at:
+              type: string
+              format: date-time
+
+    UserUpdatedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "user.updated"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [user_id, changes, updated_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            changes:
+              type: object
+              description: Изменённые поля (username, bio, avatar_url, contact_info, etc.)
+              additionalProperties: true
+            previous_values:
+              type: object
+              description: Предыдущие значения изменённых полей (для rollback)
+              additionalProperties: true
+            updated_at:
+              type: string
+              format: date-time
+
+    UserDeletedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "user.deleted"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [user_id, deleted_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+              description: ID удалённого пользователя
+            username:
+              type: string
+              description: Username (для логирования)
+            deleted_at:
+              type: string
+              format: date-time
+            reason:
+              type: string
+              enum: [user_request, admin_action, compliance]
+              description: Причина удаления
+
+    RoleGrantedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "user.role.granted"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [user_id, role, permissions, granted_by, granted_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: [user, vip, moderator, admin]
+            permissions:
+              type: array
+              items:
+                type: string
+              description: Permissions granted by this role
+            granted_by:
+              type: string
+              description: User ID who granted the role (or 'system')
+            granted_at:
+              type: string
+              format: date-time
+
+    RoleRevokedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "user.role.revoked"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [user_id, role, revoked_by, revoked_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: [user, vip, moderator, admin]
+            revoked_by:
+              type: string
+              description: User ID who revoked the role (or 'system')
+            revoked_at:
+              type: string
+              format: date-time
+            reason:
+              type: string
+              description: Optional reason (e.g., subscription_expired)
+
+    SubscriptionCreatedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "subscription.created"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [subscription_id, user_id, type, status, start_date, expiry_date]
+          properties:
+            subscription_id:
+              type: string
+              description: Unique subscription identifier
+            user_id:
+              type: string
+              format: uuid
+            type:
+              type: string
+              enum: [monthly, yearly]
+            status:
+              type: string
+              const: "active"
+            start_date:
+              type: string
+              format: date-time
+            expiry_date:
+              type: string
+              format: date-time
+            payment_method:
+              type: string
+              description: Payment provider (stripe, paypal, etc.)
+            amount:
+              type: number
+              format: float
+              description: Subscription price
+            currency:
+              type: string
+              description: Currency code (USD, EUR, etc.)
+
+    SubscriptionExpiredPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "subscription.expired"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [subscription_id, user_id, type, expired_at]
+          properties:
+            subscription_id:
+              type: string
+            user_id:
+              type: string
+              format: uuid
+            type:
+              type: string
+              enum: [monthly, yearly]
+            expired_at:
+              type: string
+              format: date-time
+            auto_renewal_enabled:
+              type: boolean
+              description: Was auto-renewal enabled (for future billing)
+
+    # ==================== SUBSCRIBED SCHEMAS ====================
+    AuthUserRegisteredPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "auth.user.registered"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [user_id, username, email, email_verified, registered_at]
+          properties:
+            user_id:
+              type: string
+              format: uuid
+              description: ID пользователя (генерируется auth-service)
+            username:
+              type: string
+            email:
+              type: string
+              format: email
+            email_verified:
+              type: boolean
+              description: Email verification status
+            registered_at:
+              type: string
+              format: date-time
+
+    AuthJwtRotatedPayload:
+      type: object
+      required: [event_id, event_type, timestamp, data]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "auth.jwt.rotated"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required: [old_key_id, new_key_id, vault_path, rotated_at, grace_period_seconds]
+          properties:
+            old_key_id:
+              type: string
+              description: ID старого ключа (deprecated)
+            new_key_id:
+              type: string
+              description: ID нового ключа (active)
+            vault_path:
+              type: string
+              description: Путь в Vault для получения публичного ключа
+            rotated_at:
+              type: string
+              format: date-time
+            grace_period_seconds:
+              type: integer
+              description: Grace period (старый ключ ещё валиден N секунд)
+
+# ==================== NATS JETSTREAM CONFIGURATION ====================
+x-nats-jetstream:
+  stream:
+    name: USER_STREAM
+    subjects:
+      - "user.*"
+      - "subscription.*"
+    storage: file
+    retention: limits
+    max_msgs: 10000000
+    max_bytes: 1GB
+    max_age: 7d
+    replicas: 3
+    discard: old
+
+  consumers:
+    user-service-auth-events:
+      durable_name: user-service-auth-consumer
+      filter_subject: "auth.user.registered"
+      ack_policy: explicit
+      ack_wait: 30s
+      max_deliver: 3
+      deliver_policy: all
+      replay_policy: instant
+
+    user-service-jwt-rotation:
+      durable_name: user-service-jwt-consumer
+      filter_subject: "auth.jwt.rotated"
+      ack_policy: explicit
+      ack_wait: 10s
+      max_deliver: 5
+      deliver_policy: all
+      replay_policy: instant
+
+  dlq:
+    subject: "user.dlq"
+    description: Dead Letter Queue for failed event processing
+    max_age: 30d

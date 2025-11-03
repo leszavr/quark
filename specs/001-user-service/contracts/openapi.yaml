@@ -1,0 +1,1298 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  description: |
+    **Quark Platform - User Service**
+    
+    Сервис управления пользователями, профилями, RBAC и VIP подписками.
+    
+    **Key Features:**
+    - User profile management (CRUD)
+    - Role-Based Access Control (RBAC)
+    - VIP subscriptions (monthly/yearly)
+    - Privacy settings (profile visibility)
+    
+    **Architecture:**
+    - Event-Driven (NATS JetStream)
+    - UDI compliant (Universal Docking Interface)
+    - JWT authentication via Vault
+    
+    **Related Documents:**
+    - Specification: `/specs/001-user-service/spec.md`
+    - Plan: `/specs/001-user-service/plan.md`
+    - AsyncAPI (events): `/specs/001-user-service/contracts/asyncapi.yaml`
+  version: 1.0.0
+  contact:
+    name: Quark Development Team
+    email: dev@quark-platform.example
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3004/api/v1
+    description: Local development
+  - url: http://plugin-hub:3000/api/v1/user-service
+    description: Via Plugin Hub (production)
+
+tags:
+  - name: Users
+    description: User profile operations
+  - name: Roles
+    description: RBAC role management
+  - name: Subscriptions
+    description: VIP subscription management
+  - name: Settings
+    description: User settings and privacy
+  - name: Health
+    description: Health and status endpoints (UDI)
+
+paths:
+  # ==================== USERS ====================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      description: |
+        Returns the authenticated user's profile with roles and subscription status.
+        
+        **Authentication**: JWT required (via Plugin Hub JWT Middleware)
+        
+        **Privacy Rules**:
+        - Always returns own profile regardless of privacy settings
+        - Includes roles and permissions in response
+      operationId: getUserMe
+      security:
+        - JWTAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                username: "john_doe"
+                email: "john.doe@example.com"
+                profile:
+                  bio: "Full-stack developer passionate about AI"
+                  avatar_url: "https://media.quark.example/avatars/john_doe.jpg"
+                  contact_info:
+                    website: "https://johndoe.dev"
+                    github: "johndoe"
+                  profile_visibility: "public"
+                roles:
+                  - name: "user"
+                    permissions: ["read:own_profile", "write:own_profile"]
+                  - name: "vip"
+                    permissions: ["create:blog", "upload:media"]
+                subscription:
+                  type: "monthly"
+                  status: "active"
+                  expiry_date: "2025-12-03T00:00:00Z"
+                settings:
+                  email_visible: false
+                  online_status_visible: true
+                  notification_preferences:
+                    email: true
+                    push: true
+                created_at: "2024-01-15T10:30:00Z"
+                updated_at: "2024-11-01T14:20:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      description: |
+        Update authenticated user's profile information.
+        
+        **Validation Rules**:
+        - `username`: 3-30 characters, alphanumeric + underscore
+        - `bio`: max 500 characters
+        - `avatar_url`: valid URL (uploaded via media-service)
+        
+        **NATS Events**:
+        - Publishes `user.updated` with changes
+      operationId: updateUserMe
+      security:
+        - JWTAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            examples:
+              updateBio:
+                summary: Update bio
+                value:
+                  bio: "Senior Software Engineer | AI Enthusiast"
+              updateUsername:
+                summary: Update username
+                value:
+                  username: "johndoe_dev"
+              updateContactInfo:
+                summary: Update contact info
+                value:
+                  contact_info:
+                    website: "https://johndoe.dev"
+                    twitter: "@johndoe"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ValidationError"
+                message: "Username already exists"
+                details:
+                  field: "username"
+                  constraint: "unique"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      tags: [Users]
+      summary: Delete current user account (GDPR)
+      description: |
+        Permanently delete user account and all associated data.
+        
+        **GDPR Compliance**:
+        - Deletes User, Profile, Roles, Subscriptions, Settings
+        - Publishes `user.deleted` event → all services delete related data
+        - Irreversible operation (requires confirmation)
+        
+        **Cascade Deletes**:
+        - Blog posts (via blog-service subscription to user.deleted)
+        - Messages (via messaging-service)
+        - Uploaded media (via media-service)
+      operationId: deleteUserMe
+      security:
+        - JWTAuth: []
+      responses:
+        '204':
+          description: User account deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get public user profile
+      description: |
+        Get another user's profile (respects privacy settings).
+        
+        **Privacy Rules**:
+        - `public`: Anyone can view
+        - `friends_only`: Only friends (future feature)
+        - `private`: Only self (returns 403 for others)
+        
+        **Response Filtering**:
+        - Email hidden if `settings.email_visible = false`
+        - Online status hidden if `settings.online_status_visible = false`
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfileResponse'
+              example:
+                user_id: "660e8400-e29b-41d4-a716-446655440000"
+                username: "alice_smith"
+                profile:
+                  bio: "UX Designer | Coffee Lover"
+                  avatar_url: "https://media.quark.example/avatars/alice.jpg"
+                  profile_visibility: "public"
+                roles:
+                  - name: "user"
+                  - name: "vip"
+                created_at: "2024-06-20T08:15:00Z"
+        '403':
+          description: Profile is private
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ForbiddenError"
+                message: "This profile is private"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "NotFoundError"
+                message: "User not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== ROLES ====================
+  /users/{userId}/roles:
+    get:
+      tags: [Roles]
+      summary: Get user roles
+      description: |
+        Get all roles assigned to a specific user.
+        
+        **Permissions**: `admin` role required
+        
+        **Response includes**:
+        - Role name and permissions
+        - Granted by (user_id)
+        - Granted at (timestamp)
+      operationId: getUserRoles
+      security:
+        - JWTAuth: ['admin']
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User roles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserRoleDetail'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                roles:
+                  - name: "user"
+                    permissions: ["read:own_profile", "write:own_profile"]
+                    granted_at: "2024-01-15T10:30:00Z"
+                    granted_by: "system"
+                  - name: "moderator"
+                    permissions: ["delete:any_blog", "ban:user"]
+                    granted_at: "2024-06-01T12:00:00Z"
+                    granted_by: "admin_user_id_here"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      tags: [Roles]
+      summary: Assign role to user
+      description: |
+        Assign a new role to a user (admin only).
+        
+        **Available Roles**:
+        - `user`: Default role (automatic on registration)
+        - `vip`: Premium subscription holder
+        - `moderator`: Can moderate content
+        - `admin`: Full system access
+        
+        **NATS Events**:
+        - Publishes `user.role.granted` → auth-service updates JWT
+        
+        **Idempotency**: Assigning existing role returns 200 (no-op)
+      operationId: assignRoleToUser
+      security:
+        - JWTAuth: ['admin']
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+            example:
+              role: "moderator"
+      responses:
+        '200':
+          description: Role assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignmentResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                role: "moderator"
+                granted_at: "2024-11-03T14:30:00Z"
+                granted_by: "admin_user_id_here"
+        '400':
+          description: Invalid role or user already has role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ValidationError"
+                message: "Invalid role: super_admin"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{userId}/roles/{roleId}:
+    delete:
+      tags: [Roles]
+      summary: Revoke role from user
+      description: |
+        Remove a role from a user (admin only).
+        
+        **Restrictions**:
+        - Cannot revoke `user` role (default role is permanent)
+        - Cannot revoke own `admin` role (prevent lockout)
+        
+        **NATS Events**:
+        - Publishes `user.role.revoked` → auth-service updates JWT
+      operationId: revokeRoleFromUser
+      security:
+        - JWTAuth: ['admin']
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      responses:
+        '204':
+          description: Role revoked successfully
+        '400':
+          description: Cannot revoke this role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ValidationError"
+                message: "Cannot revoke 'user' role"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: User or role not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List all available roles
+      description: |
+        Get list of all roles in the system with permissions.
+        
+        **Permissions**: `admin` role required
+      operationId: listRoles
+      security:
+        - JWTAuth: ['admin']
+      responses:
+        '200':
+          description: Roles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoleDefinition'
+              example:
+                roles:
+                  - id: 1
+                    name: "user"
+                    description: "Default role for all registered users"
+                    permissions: ["read:own_profile", "write:own_profile"]
+                  - id: 2
+                    name: "vip"
+                    description: "Premium subscription holder"
+                    permissions: ["create:blog", "upload:media", "create:unlimited_blogs"]
+                  - id: 3
+                    name: "moderator"
+                    description: "Content moderator"
+                    permissions: ["delete:any_blog", "ban:user", "review:reports"]
+                  - id: 4
+                    name: "admin"
+                    description: "System administrator"
+                    permissions: ["*"]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== SUBSCRIPTIONS ====================
+  /subscriptions:
+    post:
+      tags: [Subscriptions]
+      summary: Create VIP subscription
+      description: |
+        Create a new VIP subscription (monthly or yearly).
+        
+        **Flow**:
+        1. User submits payment via Frontend
+        2. Frontend calls this endpoint with payment proof
+        3. User Service creates subscription → auto-grants `vip` role
+        4. Publishes `subscription.created` event
+        
+        **Automatic Actions**:
+        - Grants `vip` role via RBAC
+        - Publishes `user.role.granted` event
+        - Sets expiry date (30 days for monthly, 365 for yearly)
+      operationId: createSubscription
+      security:
+        - JWTAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+            examples:
+              monthly:
+                summary: Monthly subscription
+                value:
+                  type: "monthly"
+                  payment_method: "stripe"
+                  payment_id: "pi_3OFj4g2eZvKYlo2C0H3T6T9P"
+              yearly:
+                summary: Yearly subscription
+                value:
+                  type: "yearly"
+                  payment_method: "stripe"
+                  payment_id: "pi_3OFj4g2eZvKYlo2C0H3T6T9Q"
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+              example:
+                subscription_id: "sub_1OFj4g2eZvKYlo2C"
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                type: "monthly"
+                status: "active"
+                start_date: "2024-11-03T14:30:00Z"
+                expiry_date: "2024-12-03T14:30:00Z"
+                created_at: "2024-11-03T14:30:00Z"
+        '400':
+          description: Invalid subscription type or payment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ValidationError"
+                message: "Invalid subscription type: lifetime"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /subscriptions/me:
+    get:
+      tags: [Subscriptions]
+      summary: Get current user subscriptions
+      description: |
+        Get all subscriptions for the authenticated user.
+        
+        **Includes**:
+        - Active subscriptions
+        - Expired subscriptions (for history)
+      operationId: getUserSubscriptions
+      security:
+        - JWTAuth: []
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubscriptionResponse'
+              example:
+                subscriptions:
+                  - subscription_id: "sub_1OFj4g2eZvKYlo2C"
+                    user_id: "550e8400-e29b-41d4-a716-446655440000"
+                    type: "monthly"
+                    status: "active"
+                    start_date: "2024-11-03T14:30:00Z"
+                    expiry_date: "2024-12-03T14:30:00Z"
+                    created_at: "2024-11-03T14:30:00Z"
+                  - subscription_id: "sub_1OFj4g2eZvKYlo2B"
+                    user_id: "550e8400-e29b-41d4-a716-446655440000"
+                    type: "yearly"
+                    status: "expired"
+                    start_date: "2023-01-15T10:00:00Z"
+                    expiry_date: "2024-01-15T10:00:00Z"
+                    created_at: "2023-01-15T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /subscriptions/{subscriptionId}:
+    delete:
+      tags: [Subscriptions]
+      summary: Cancel subscription
+      description: |
+        Cancel an active subscription (immediate cancellation).
+        
+        **Actions**:
+        - Sets subscription status to `cancelled`
+        - Revokes `vip` role if no other active subscriptions
+        - Publishes `user.role.revoked` event
+        
+        **Note**: No refunds are processed via API (handled by payment provider)
+      operationId: cancelSubscription
+      security:
+        - JWTAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "sub_1OFj4g2eZvKYlo2C"
+      responses:
+        '204':
+          description: Subscription cancelled successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Cannot cancel subscription belonging to another user
+        '404':
+          description: Subscription not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== SETTINGS ====================
+  /users/me/settings:
+    get:
+      tags: [Settings]
+      summary: Get current user settings
+      description: |
+        Get all settings for the authenticated user.
+        
+        **Settings Categories**:
+        - Privacy (email_visible, online_status_visible, profile_visibility)
+        - Notifications (email, push, in_app)
+        - Preferences (language, timezone, theme)
+      operationId: getUserSettings
+      security:
+        - JWTAuth: []
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                settings:
+                  email_visible: false
+                  online_status_visible: true
+                  profile_visibility: "public"
+                  notification_preferences:
+                    email: true
+                    push: true
+                    in_app: true
+                  language: "en"
+                  timezone: "America/New_York"
+                  theme: "dark"
+                updated_at: "2024-11-01T14:20:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    patch:
+      tags: [Settings]
+      summary: Update current user settings
+      description: |
+        Update user settings (partial update supported).
+        
+        **Validation**:
+        - `profile_visibility`: enum [public, friends_only, private]
+        - `language`: ISO 639-1 code (en, ru, etc.)
+        - `timezone`: IANA timezone name
+      operationId: updateUserSettings
+      security:
+        - JWTAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingsRequest'
+            examples:
+              updatePrivacy:
+                summary: Update privacy settings
+                value:
+                  email_visible: false
+                  profile_visibility: "private"
+              updateNotifications:
+                summary: Update notification preferences
+                value:
+                  notification_preferences:
+                    email: false
+                    push: true
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettingsResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "ValidationError"
+                message: "Invalid profile_visibility value"
+                details:
+                  field: "profile_visibility"
+                  allowed: ["public", "friends_only", "private"]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==================== HEALTH (UDI) ====================
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check (liveness probe)
+      description: |
+        Simple health check endpoint for Kubernetes liveness probe.
+        
+        **Returns**: 200 if service is running (no dependency checks)
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  timestamp:
+                    type: string
+                    format: date-time
+              example:
+                status: "ok"
+                timestamp: "2024-11-03T14:30:00Z"
+
+  /status:
+    get:
+      tags: [Health]
+      summary: Status check (readiness probe)
+      description: |
+        Detailed status check for Kubernetes readiness probe.
+        
+        **Checks**:
+        - PostgreSQL connection
+        - Redis connection
+        - NATS connection
+        - Vault connection
+        
+        **Returns 503** if any dependency is unhealthy
+      operationId: statusCheck
+      responses:
+        '200':
+          description: All dependencies are healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                status: "healthy"
+                checks:
+                  database:
+                    status: "up"
+                    response_time_ms: 5
+                  redis:
+                    status: "up"
+                    response_time_ms: 2
+                  nats:
+                    status: "up"
+                    response_time_ms: 3
+                  vault:
+                    status: "up"
+                    response_time_ms: 10
+                timestamp: "2024-11-03T14:30:00Z"
+        '503':
+          description: One or more dependencies are unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                status: "unhealthy"
+                checks:
+                  database:
+                    status: "up"
+                    response_time_ms: 5
+                  redis:
+                    status: "down"
+                    error: "Connection refused"
+                  nats:
+                    status: "up"
+                    response_time_ms: 3
+                  vault:
+                    status: "up"
+                    response_time_ms: 10
+                timestamp: "2024-11-03T14:30:00Z"
+
+  /manifest:
+    get:
+      tags: [Health]
+      summary: Get module manifest (UDI)
+      description: |
+        Returns the UDI module manifest with service metadata.
+        
+        **Used by**:
+        - Plugin Hub for service discovery
+        - Monitoring tools for metadata collection
+      operationId: getManifest
+      responses:
+        '200':
+          description: Module manifest retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleManifest'
+
+components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token issued by auth-service and validated via Vault.
+        
+        **Token Structure**:
+        ```json
+        {
+          "sub": "user_id",
+          "username": "john_doe",
+          "roles": ["user", "vip"],
+          "permissions": ["read:own_profile", "create:blog", ...],
+          "exp": 1730664600
+        }
+        ```
+        
+        **How to get token**: Login via auth-service `/auth/login`
+
+  schemas:
+    # ==================== USER SCHEMAS ====================
+    UserProfileResponse:
+      type: object
+      required: [user_id, username, email, profile, roles, settings, created_at, updated_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: '^[a-zA-Z0-9_]+$'
+          description: Unique username
+        email:
+          type: string
+          format: email
+          description: User email (encrypted in database)
+        profile:
+          $ref: '#/components/schemas/Profile'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleInfo'
+          description: User roles with permissions
+        subscription:
+          $ref: '#/components/schemas/SubscriptionInfo'
+          nullable: true
+          description: Current active subscription (null if none)
+        settings:
+          type: object
+          additionalProperties: true
+          description: User settings (privacy, notifications, etc.)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PublicUserProfileResponse:
+      type: object
+      required: [user_id, username, profile, roles, created_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        profile:
+          $ref: '#/components/schemas/PublicProfile'
+        roles:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+          description: Only role names (no permissions exposed)
+        created_at:
+          type: string
+          format: date-time
+      description: Limited profile info for non-owner viewers
+
+    Profile:
+      type: object
+      properties:
+        bio:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: User biography
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Avatar image URL (from media-service)
+        contact_info:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Contact information (website, social media, etc.)
+          example:
+            website: "https://example.com"
+            github: "johndoe"
+            twitter: "@johndoe"
+        profile_visibility:
+          type: string
+          enum: [public, friends_only, private]
+          default: public
+          description: Profile visibility setting
+
+    PublicProfile:
+      type: object
+      properties:
+        bio:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        profile_visibility:
+          type: string
+          enum: [public, friends_only, private]
+      description: Limited profile info (no contact_info for privacy)
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: '^[a-zA-Z0-9_]+$'
+        bio:
+          type: string
+          maxLength: 500
+        avatar_url:
+          type: string
+          format: uri
+        contact_info:
+          type: object
+          additionalProperties: true
+
+    # ==================== ROLE SCHEMAS ====================
+    RoleInfo:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+          enum: [user, vip, moderator, admin]
+        permissions:
+          type: array
+          items:
+            type: string
+          description: List of permissions granted by this role
+
+    UserRoleDetail:
+      allOf:
+        - $ref: '#/components/schemas/RoleInfo'
+        - type: object
+          required: [granted_at, granted_by]
+          properties:
+            granted_at:
+              type: string
+              format: date-time
+            granted_by:
+              type: string
+              description: User ID or 'system'
+
+    RoleDefinition:
+      type: object
+      required: [id, name, description, permissions]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    AssignRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [user, vip, moderator, admin]
+          description: Role to assign
+
+    RoleAssignmentResponse:
+      type: object
+      required: [user_id, role, granted_at, granted_by]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+        granted_at:
+          type: string
+          format: date-time
+        granted_by:
+          type: string
+
+    # ==================== SUBSCRIPTION SCHEMAS ====================
+    SubscriptionInfo:
+      type: object
+      required: [type, status, expiry_date]
+      properties:
+        type:
+          type: string
+          enum: [monthly, yearly]
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        expiry_date:
+          type: string
+          format: date-time
+
+    CreateSubscriptionRequest:
+      type: object
+      required: [type, payment_method, payment_id]
+      properties:
+        type:
+          type: string
+          enum: [monthly, yearly]
+        payment_method:
+          type: string
+          description: Payment provider (e.g., stripe, paypal)
+        payment_id:
+          type: string
+          description: Payment transaction ID
+
+    SubscriptionResponse:
+      type: object
+      required: [subscription_id, user_id, type, status, start_date, expiry_date, created_at]
+      properties:
+        subscription_id:
+          type: string
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [monthly, yearly]
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        start_date:
+          type: string
+          format: date-time
+        expiry_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    # ==================== SETTINGS SCHEMAS ====================
+    UserSettingsResponse:
+      type: object
+      required: [user_id, settings, updated_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        settings:
+          type: object
+          properties:
+            email_visible:
+              type: boolean
+              default: false
+            online_status_visible:
+              type: boolean
+              default: true
+            profile_visibility:
+              type: string
+              enum: [public, friends_only, private]
+              default: public
+            notification_preferences:
+              type: object
+              properties:
+                email:
+                  type: boolean
+                  default: true
+                push:
+                  type: boolean
+                  default: true
+                in_app:
+                  type: boolean
+                  default: true
+            language:
+              type: string
+              default: "en"
+            timezone:
+              type: string
+              default: "UTC"
+            theme:
+              type: string
+              enum: [light, dark, auto]
+              default: "light"
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        email_visible:
+          type: boolean
+        online_status_visible:
+          type: boolean
+        profile_visibility:
+          type: string
+          enum: [public, friends_only, private]
+        notification_preferences:
+          type: object
+          properties:
+            email:
+              type: boolean
+            push:
+              type: boolean
+            in_app:
+              type: boolean
+        language:
+          type: string
+        timezone:
+          type: string
+        theme:
+          type: string
+          enum: [light, dark, auto]
+
+    # ==================== HEALTH SCHEMAS ====================
+    StatusResponse:
+      type: object
+      required: [status, checks, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        checks:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/HealthCheck'
+            redis:
+              $ref: '#/components/schemas/HealthCheck'
+            nats:
+              $ref: '#/components/schemas/HealthCheck'
+            vault:
+              $ref: '#/components/schemas/HealthCheck'
+        timestamp:
+          type: string
+          format: date-time
+
+    HealthCheck:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [up, down]
+        response_time_ms:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    ModuleManifest:
+      type: object
+      required: [module_id, name, version, type, capabilities, endpoints, health_check]
+      properties:
+        module_id:
+          type: string
+          example: "user-service"
+        name:
+          type: string
+          example: "User Service"
+        version:
+          type: string
+          example: "1.0.0"
+        type:
+          type: string
+          enum: [service]
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["user-management", "rbac", "subscriptions"]
+        endpoints:
+          type: object
+          properties:
+            rest:
+              type: string
+              format: uri
+              example: "http://user-service:3004/api/v1"
+        health_check:
+          type: object
+          properties:
+            liveness:
+              type: string
+              format: uri
+              example: "/health"
+            readiness:
+              type: string
+              format: uri
+              example: "/status"
+
+    # ==================== ERROR SCHEMAS ====================
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Additional error details
+
+  responses:
+    UnauthorizedError:
+      description: JWT token missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "UnauthorizedError"
+            message: "JWT token missing or invalid"
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "ForbiddenError"
+            message: "Insufficient permissions (admin role required)"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "InternalServerError"
+            message: "An unexpected error occurred"
