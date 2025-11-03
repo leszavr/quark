@@ -85,7 +85,7 @@ STARTUP_ORDER=(
 # Функция отображения логотипа
 show_logo() {
     echo ""
-    echo -e "${CYAN}🚀 ═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${CYAN}   ░▒▓█ QUARK МКС SERVICE MANAGER v2.0 █▓▒░${NC}"
     echo -e "${CYAN}   Модульная Космическая Станция - Управление Микросервисами${NC}"
     echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
@@ -213,7 +213,48 @@ check_outdated_packages() {
         return 0
     fi
     
-    print_log "$BLUE" "INFO" "🔍 Проверка пакетов на устаревшие версии..."
+    # Проверяем наличие Node.js версии (в 2.6x быстрее)
+    if command -v node &> /dev/null && [[ -f "$SCRIPT_DIR/tools/quark-manager/dist/check-packages.js" ]]; then
+        print_log "$BLUE" "INFO" "🚀 Используем Node.js версию (ускорение в 2.6x)..."
+        
+        # Запускаем Node.js версию
+        node "$SCRIPT_DIR/tools/quark-manager/dist/check-packages.js" --root "$SCRIPT_DIR"
+        local exit_code=$?
+        
+        # Exit codes: 0=актуально, 1=major, 2=minor, 3=error
+        if [[ $exit_code -eq 3 ]]; then
+            print_log "$RED" "ERROR" "❌ Ошибка проверки пакетов. Используем bash версию..."
+            # Fallback на bash версию
+        elif [[ $exit_code -eq 2 ]]; then
+            # Есть minor обновления
+            echo ""
+            echo -e "${WHITE}Обновить minor/patch пакеты автоматически? [y/N]: (по умолчанию N через 10 секунд)${NC}"
+            
+            local choice="n"
+            if read -t 10 -r user_input; then
+                choice="$user_input"
+            else
+                print_log "$YELLOW" "INFO" "⏱️  Время ожидания истекло. Пропускаем обновление."
+            fi
+            
+            if [[ "$choice" =~ ^[Yy] ]]; then
+                print_log "$GREEN" "INFO" "🔄 Обновляем пакеты..."
+                # Обновляем через pnpm в root
+                (cd "$SCRIPT_DIR" && pnpm update 2>&1 | tail -10)
+                print_log "$GREEN" "SUCCESS" "✅ Обновление завершено!"
+            fi
+            return 0
+        elif [[ $exit_code -eq 1 ]]; then
+            # Есть major обновления - только информируем
+            return 0
+        else
+            # Всё актуально
+            return 0
+        fi
+    fi
+    
+    # Fallback на bash версию (если Node.js недоступен)
+    print_log "$BLUE" "INFO" "🔍 Проверка пакетов на устаревшие версии (bash версия)..."
     
     local has_minor_updates=false
     local has_major_updates=false
@@ -566,7 +607,7 @@ health_check() {
             print_log "$RED" "ERROR" "❌ Monitoring Dashboard - недоступен (port 3900)"
         fi
         
-        if curl -s http://localhost:3100/health &> /dev/null; then
+        if curl -s http://localhost:3101/health &> /dev/null; then
             print_log "$GREEN" "SUCCESS" "✅ Quark Platform UI - доступен (port 3101)"
         else
             print_log "$RED" "ERROR" "❌ Quark Platform UI - недоступен (port 3101)"
