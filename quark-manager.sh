@@ -263,6 +263,9 @@ get_service_status() {
         "quark-ui")
             container_name="quark-ui"
             ;;
+        "quark-landing")
+            container_name="quark-landing"
+            ;;
         *)
             container_name="quark-$service"
             ;;
