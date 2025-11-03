@@ -51,6 +51,14 @@ plugin-hub.log
 # Docker override (содержит локальные настройки и credentials)
 docker-compose.override.yml
 
+# Spec-Driven Development
+# Примечание: specs/ и .specify/ ДОЛЖНЫ быть в Git (source of truth)
+# Исключаем только временные файлы генерации
+.specify/.cache/
+.specify/temp/
+specs/.temp/
+specs/*/tasks.inprogress
+
 # TypeScript
 *.tsbuildinfo
 .tscache/
