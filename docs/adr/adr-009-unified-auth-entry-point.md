@@ -190,8 +190,8 @@ Auth Service должен проверять `redirect_uri` по whitelist:
 Разрешённые домены:
 - http://localhost:3000/* (quark-landing dev)
 - http://localhost:3101/* (quark-ui dev)
-- https://code4vibe.ru/*
-- https://*.code4vibe.ru/*
+- https://quark-ai.ru/*
+- https://*.quark-ai.ru/*
 ```
 
 ### 3. JWT Storage
@@ -233,7 +233,7 @@ Auth Service должен проверять `redirect_uri` по whitelist:
 Выделить `auth-ui` как отдельный микрофронтенд:
 
 ```
-auth.code4vibe.ru (или встроенный в quark-landing)
+auth.quark-ai.ru (или встроенный в quark-landing)
     ↓
 Все клиенты редиректят сюда:
     ├── quark-ui (web)

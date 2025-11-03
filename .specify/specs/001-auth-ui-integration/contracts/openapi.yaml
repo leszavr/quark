@@ -1,0 +1,642 @@
+openapi: 3.0.3
+info:
+  title: Quark Auth Service API
+  description: |
+    Centralized authentication service for Quark platform.
+    Provides user registration, login, token validation with JWT (signed by Vault secrets).
+    
+    **Architecture**:
+    - Single entry point: `quark-landing/auth` redirects here
+    - OAuth2-like redirect flow with `redirect_uri` parameter
+    - JWT tokens stored in localStorage/httpOnly cookies
+    - Integration with Vault for JWT_SECRET
+    
+    **Related**: ADR-009 Unified Auth Entry Point
+  version: 1.0.0
+  contact:
+    name: Quark Platform Team
+    url: https://quark-ai.ru
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.quark-ai.ru/auth
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User registration and login operations
+  - name: Tokens
+    description: Token validation and management
+  - name: Profile
+    description: User profile operations
+  - name: Health
+    description: Service health checks
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Creates a new user account with email, username, and password.
+        
+        **Validations**:
+        - Email: RFC 5322 format
+        - Username: 3-30 characters, alphanumeric + underscore
+        - Password: minimum 8 characters, at least 1 digit and 1 special character
+        
+        **Flow**:
+        1. Validates input
+        2. Checks if email/username already exists
+        3. Hashes password with bcrypt (cost 12)
+        4. Creates user in PostgreSQL
+        5. Generates JWT token (secret from Vault)
+        6. Publishes `auth.user.registered` event to NATS
+        7. Returns token + user data
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  email: "john.doe@example.com"
+                  username: "johndoe"
+                  password: "SecurePass123!"
+              withRedirect:
+                summary: Registration with redirect
+                value:
+                  email: "alice@example.com"
+                  username: "alice_wonderland"
+                  password: "MyP@ssw0rd"
+                  redirectUri: "http://localhost:3101/dashboard"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 86400
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "john.doe@example.com"
+                      username: "johndoe"
+                      roles:
+                        - "user"
+                      isEmailVerified: false
+                      createdAt: "2024-11-03T12:00:00Z"
+                    redirectUri: null
+        '400':
+          description: Validation error or email/username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emailExists:
+                  summary: Email already registered
+                  value:
+                    statusCode: 400
+                    message: "Email already registered"
+                    error: "Bad Request"
+                weakPassword:
+                  summary: Password too weak
+                  value:
+                    statusCode: 400
+                    message: "Password must contain at least 1 digit and 1 special character"
+                    error: "Bad Request"
+        '429':
+          description: Rate limit exceeded (3 registrations per hour per IP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login existing user
+      description: |
+        Authenticates user with email and password, returns JWT token.
+        
+        **Flow**:
+        1. Validates credentials
+        2. Checks if account is active
+        3. Verifies password (bcrypt)
+        4. Generates JWT token (secret from Vault)
+        5. Publishes `auth.user.logged_in` event to NATS
+        6. Updates lastLoginAt timestamp
+        7. Returns token + user data
+        
+        **Remember Me**:
+        - Default: 24 hours token expiration
+        - With `rememberMe: true`: 7 days token expiration
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              basic:
+                summary: Basic login
+                value:
+                  email: "john.doe@example.com"
+                  password: "SecurePass123!"
+              withRememberMe:
+                summary: Login with remember me
+                value:
+                  email: "alice@example.com"
+                  password: "MyP@ssw0rd"
+                  rememberMe: true
+                  redirectUri: "http://localhost:3101/messages"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    token_type: "Bearer"
+                    expires_in: 86400
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "john.doe@example.com"
+                      username: "johndoe"
+                      roles:
+                        - "user"
+                      isEmailVerified: true
+                      createdAt: "2024-11-01T10:00:00Z"
+                      lastLoginAt: "2024-11-03T12:00:00Z"
+                    redirectUri: "http://localhost:3101/messages"
+        '401':
+          description: Invalid credentials or account deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: Invalid email or password
+                  value:
+                    statusCode: 401
+                    message: "Invalid email or password"
+                    error: "Unauthorized"
+                accountDeactivated:
+                  summary: Account deactivated
+                  value:
+                    statusCode: 401
+                    message: "Account is deactivated"
+                    error: "Unauthorized"
+        '429':
+          description: Rate limit exceeded (5 login attempts per minute per IP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serviceUnavailable:
+                  summary: Service temporarily unavailable
+                  value:
+                    statusCode: 500
+                    message: "Service temporarily unavailable. Please try again later."
+                    error: "Internal Server Error"
+
+  /auth/validate:
+    get:
+      tags:
+        - Tokens
+      summary: Validate JWT token
+      description: |
+        Validates JWT token from Authorization header.
+        Used by frontend to check if user is still authenticated.
+        
+        **Flow**:
+        1. Extracts token from `Authorization: Bearer <token>` header
+        2. Verifies signature with JWT_SECRET from Vault
+        3. Checks expiration time
+        4. Returns validation result + user context
+        
+        **Use cases**:
+        - Frontend checks token on protected route navigation
+        - Token refresh logic (if expired → redirect to /auth)
+      operationId: validateToken
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenValidationResponse'
+              examples:
+                validToken:
+                  summary: Valid token
+                  value:
+                    valid: true
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "john.doe@example.com"
+                      username: "johndoe"
+                      roles:
+                        - "user"
+                    expiresAt: "2024-11-04T12:00:00Z"
+        '401':
+          description: Token is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenValidationResponse'
+              examples:
+                expiredToken:
+                  summary: Token expired
+                  value:
+                    valid: false
+                    error: "Token has expired"
+                invalidToken:
+                  summary: Invalid signature
+                  value:
+                    valid: false
+                    error: "Invalid token signature"
+
+  /auth/profile:
+    get:
+      tags:
+        - Profile
+      summary: Get current user profile
+      description: |
+        Returns full user profile for authenticated user.
+        Requires valid JWT token in Authorization header.
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              examples:
+                profile:
+                  summary: User profile
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "john.doe@example.com"
+                    username: "johndoe"
+                    firstName: "John"
+                    lastName: "Doe"
+                    roles:
+                      - "user"
+                    isEmailVerified: true
+                    createdAt: "2024-11-01T10:00:00Z"
+                    lastLoginAt: "2024-11-03T12:00:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: |
+        Returns service health status.
+        Used by monitoring systems (Prometheus, Kubernetes probes).
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: Healthy status
+                  value:
+                    status: "healthy"
+                    service: "auth-service"
+                    timestamp: "2024-11-03T12:00:00Z"
+                    version: "1.0.0"
+                    vault:
+                      connected: true
+                    database:
+                      connected: true
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (unique)
+          example: "john.doe@example.com"
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: '^[a-zA-Z0-9_]+$'
+          description: Username (unique, alphanumeric + underscore)
+          example: "johndoe"
+        password:
+          type: string
+          minLength: 8
+          format: password
+          description: Password (min 8 chars, 1 digit, 1 special char)
+          example: "SecurePass123!"
+        firstName:
+          type: string
+          maxLength: 50
+          description: User first name (optional)
+          example: "John"
+        lastName:
+          type: string
+          maxLength: 50
+          description: User last name (optional)
+          example: "Doe"
+        redirectUri:
+          type: string
+          format: uri
+          description: URL to redirect after successful registration (must be whitelisted)
+          example: "http://localhost:3101/dashboard"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "john.doe@example.com"
+        password:
+          type: string
+          format: password
+          description: User password
+          example: "SecurePass123!"
+        rememberMe:
+          type: boolean
+          default: false
+          description: Extend token expiration to 7 days (default 24 hours)
+          example: true
+        redirectUri:
+          type: string
+          format: uri
+          description: URL to redirect after successful login (must be whitelisted)
+          example: "http://localhost:3101/messages"
+
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+        - user
+      properties:
+        access_token:
+          type: string
+          description: JWT token for authentication
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        token_type:
+          type: string
+          enum:
+            - Bearer
+          description: Token type (always Bearer)
+          example: "Bearer"
+        expires_in:
+          type: integer
+          format: int64
+          description: Token expiration time in seconds
+          example: 86400
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        redirectUri:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to redirect after authentication (if provided in request)
+          example: "http://localhost:3101/dashboard"
+
+    UserSummary:
+      type: object
+      required:
+        - id
+        - email
+        - username
+        - roles
+        - isEmailVerified
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "john.doe@example.com"
+        username:
+          type: string
+          description: Username
+          example: "johndoe"
+        firstName:
+          type: string
+          nullable: true
+          description: User first name
+          example: "John"
+        lastName:
+          type: string
+          nullable: true
+          description: User last name
+          example: "Doe"
+        roles:
+          type: array
+          items:
+            type: string
+          description: User roles
+          example:
+            - "user"
+        isEmailVerified:
+          type: boolean
+          description: Email verification status
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-11-01T10:00:00Z"
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last login timestamp
+          example: "2024-11-03T12:00:00Z"
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            phone:
+              type: string
+              nullable: true
+              description: User phone number
+              example: "+1234567890"
+            twoFactorEnabled:
+              type: boolean
+              description: Two-factor authentication status
+              example: false
+
+    TokenValidationResponse:
+      type: object
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+          description: Token validation result
+          example: true
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        expiresAt:
+          type: string
+          format: date-time
+          description: Token expiration timestamp
+          example: "2024-11-04T12:00:00Z"
+        error:
+          type: string
+          nullable: true
+          description: Error message if validation failed
+          example: "Token has expired"
+
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - message
+        - error
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Email already registered"
+        error:
+          type: string
+          description: Error type
+          example: "Bad Request"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+          description: Service health status
+          example: "healthy"
+        service:
+          type: string
+          description: Service name
+          example: "auth-service"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2024-11-03T12:00:00Z"
+        version:
+          type: string
+          description: Service version
+          example: "1.0.0"
+        vault:
+          type: object
+          properties:
+            connected:
+              type: boolean
+              example: true
+        database:
+          type: object
+          properties:
+            connected:
+              type: boolean
+              example: true
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token authentication.
+        
+        **How to obtain token**:
+        1. Call `POST /auth/login` or `POST /auth/register`
+        2. Extract `access_token` from response
+        3. Add to Authorization header: `Bearer <access_token>`
+        
+        **Token structure**:
+        ```json
+        {
+          "sub": "user_id",
+          "email": "user@example.com",
+          "username": "johndoe",
+          "roles": ["user"],
+          "iat": 1699000000,
+          "exp": 1699086400
+        }
+        ```
+
+security: []

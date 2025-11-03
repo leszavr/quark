@@ -92,7 +92,7 @@
 - [ ] Если токен валиден (проверка через /auth/validate) - доступ разрешён
 - [ ] Если токен истёк - редирект на quark-landing/auth?redirect_uri=<current_page>
 - [ ] Если токен невалиден - редирект на /auth и очистка localStorage/cookie
-- [ ] Whitelist для redirect_uri: localhost:3000, localhost:3101, *.code4vibe.ru
+- [ ] Whitelist для redirect_uri: localhost:3000, localhost:3101, *.quark-ai.ru
 
 #### Тестовые сценарии:
 1. **Happy Path**:
