@@ -4,6 +4,7 @@
 import { Home, MessageSquare, Puzzle, Settings, BookOpen, LayoutGrid, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 import Link from "next/link";
+import Image from "next/image";
 
 export function AppSidebar() {
   const { viewMode, setViewMode, unreadChats } = useAppStore();
@@ -63,7 +64,15 @@ export function AppSidebar() {
       {/* Профиль пользователя */}
       <Link href="/profile" className="w-full block">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all cursor-pointer">
-          <img src="/avatar.png" alt="Иван Петров" className="w-8 h-8 rounded-full object-cover" />
+          <div className="relative w-8 h-8">
+            <Image 
+              src="/avatar.png" 
+              alt="Иван Петров" 
+              fill
+              className="rounded-full object-cover"
+              sizes="32px"
+            />
+          </div>
           <div className="flex-1 overflow-hidden">
             <span className="block text-sm font-medium truncate">Иван Петров</span>
             <span className="block text-xs text-gray-500 truncate">@ivanpetrov</span>

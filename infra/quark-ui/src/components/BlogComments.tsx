@@ -2,6 +2,7 @@
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Heart, Reply, MoreHorizontal, Send } from "lucide-react";
+import Image from "next/image";
 
 export interface Comment {
   id: string;
@@ -68,7 +69,7 @@ const mockComments: Comment[] = [
 ];
 
 export function BlogComments({
-  postId,
+  postId: _postId,
   comments = mockComments,
   onAddComment,
   onEditComment,
@@ -115,11 +116,15 @@ export function BlogComments({
     >
       <div className="flex flex-col gap-3">
         <div className="flex gap-3 items-start">
-          <img
-            src={comment.author.avatar || "/avatar.png"}
-            alt={comment.author.name}
-            className="w-8 h-8 rounded-full object-cover"
-          />
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <Image
+              src={comment.author.avatar || "/avatar.png"}
+              alt={comment.author.name}
+              fill
+              className="rounded-full object-cover"
+              sizes="32px"
+            />
+          </div>
           <div className="flex flex-col gap-2 flex-1">
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-0">

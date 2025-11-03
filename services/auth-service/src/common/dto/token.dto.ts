@@ -44,7 +44,7 @@ export class UserTokenPayload extends BaseTokenPayload {
   @IsString()
   session_id?: string;
 
-  token_type!: TokenType.USER;
+  declare token_type: TokenType.USER;
 }
 
 /**
@@ -58,7 +58,7 @@ export class ServiceTokenPayload extends BaseTokenPayload {
   @IsString()
   service_name!: string;
 
-  token_type!: TokenType.SERVICE;
+  declare token_type: TokenType.SERVICE;
 }
 
 /**
@@ -69,7 +69,7 @@ export class HubTokenPayload extends BaseTokenPayload {
   @IsString()
   service_id!: string;
 
-  token_type!: TokenType.HUB;
+  declare token_type: TokenType.HUB;
 }
 
 /**

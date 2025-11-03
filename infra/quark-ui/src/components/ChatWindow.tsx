@@ -4,9 +4,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Send, Mic, Check, CheckCheck } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { EmojiPicker } from "./EmojiPicker";
+import Image from "next/image";
 import { FileUploader } from "./FileUploader";
 import { MessageAttachments } from "./MessageAttachments";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useChatStorage } from "../hooks/useChatStorage";
 import type { FileAttachment } from "./FileUploader";
 import type { Message, MessageAttachment } from "../hooks/useChatStorage";
@@ -46,7 +47,7 @@ interface ChatWindowProps {
   readonly onBack?: () => void; // функция возврата к списку чатов
 }
 
-export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false, onBack }: ChatWindowProps) {
+export function ChatWindow({ chatId = "chat-1", onClose: _onClose, showBackButton = false, onBack }: ChatWindowProps) {
   const [message, setMessage] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<MessageAttachment[]>([]);
   const [showFileUploader, setShowFileUploader] = useState(false);
@@ -58,7 +59,7 @@ export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false,
   
   // Получаем текущий чат
   const currentChat = getChatById(chatId);
-  const messages = currentChat?.messages || [];
+  const messages = useMemo(() => currentChat?.messages || [], [currentChat]);
   const user = currentChat?.user;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -76,7 +77,7 @@ export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false,
     if (currentChat) {
       markMessagesAsRead(chatId);
     }
-  }, [chatId, markMessagesAsRead]);
+  }, [chatId, currentChat, markMessagesAsRead]);
 
   const handleSend = () => {
     if (message.trim() || attachedFiles.length > 0) {
@@ -146,11 +147,13 @@ export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false,
                 <ArrowLeft size={18} />
               </button>
             )}
-            <div className="relative">
-              <img
-                className="w-8 h-8 rounded-full object-cover"
-                src={user?.avatar}
+            <div className="relative w-8 h-8">
+              <Image
+                fill
+                className="rounded-full object-cover"
+                src={user?.avatar || "/avatar-placeholder.png"}
                 alt={user?.name || "Пользователь"}
+                sizes="32px"
               />
               {user?.isOnline && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>

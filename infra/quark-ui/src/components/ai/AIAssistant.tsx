@@ -145,6 +145,7 @@ export function AIAssistant({
   };
 
   // Вспомогательная функция для получения базового промпта
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function getBasePrompt(mode: string, settings: AISettings): string {
     if (mode === "post") return settings.postPrompt;
     if (mode === "chat") return settings.chatPrompt;

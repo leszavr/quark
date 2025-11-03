@@ -43,6 +43,7 @@ function getProposalImpactLabel(impact: string | undefined): string {
   return "Низкий";
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getProposalStatusColor(status: Proposal['status']): string {
   if (status === "approved") return "green";
   if (status === "pending") return "yellow";

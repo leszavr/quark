@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import React, { useState, useRef } from "react";
 import { Paperclip, X, File, Image as ImageIcon, Video, Music } from "lucide-react";
@@ -206,11 +207,15 @@ export function FileUploader({
                   <div className={`flex items-center gap-3 p-2 rounded-md border ${isDark ? "bg-gray-600 border-gray-500" : "bg-white border-gray-200"}`}>
                     {/* Иконка или превью */}
                     {attachment.preview ? (
-                      <img
-                        src={attachment.preview}
-                        alt={attachment.file.name}
-                        className="w-10 h-10 object-cover rounded-md"
-                      />
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        <Image
+                          fill
+                          src={attachment.preview}
+                          alt={attachment.file.name}
+                          className="object-cover rounded-md"
+                          sizes="40px"
+                        />
+                      </div>
                     ) : (
                       <div className={`w-10 h-10 flex items-center justify-center rounded-md ${isDark ? "bg-gray-500" : "bg-gray-100"}`}>
                         <Icon size={20} color="gray" />

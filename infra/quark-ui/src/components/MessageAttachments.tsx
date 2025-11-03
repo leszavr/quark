@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import { Download, FileText, Image as ImageIcon, Video, Music, Play } from "lucide-react";
 import { Badge } from "@/shared/ui/badge/Badge";
@@ -58,11 +59,16 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
         if (attachment.type === "image" && attachment.preview) {
           return (
             <div key={attachment.id} className="relative rounded-md overflow-hidden max-w-[300px] cursor-pointer hover:scale-[1.02] transition-transform">
-              <img
-                src={attachment.preview}
-                alt={attachment.name}
-                className="max-w-full max-h-[200px] object-cover"
-              />
+              <div className="relative w-full" style={{ minHeight: '200px' }}>
+                <Image
+                  fill
+                  src={attachment.preview}
+                  alt={attachment.name}
+                  className="object-cover"
+                  sizes="300px"
+                  style={{ maxHeight: '200px' }}
+                />
+              </div>
               <div className="absolute top-2 right-2 bg-black/70 rounded-md p-1">
                 <button
                   className="p-1 hover:bg-white/10 rounded"
@@ -84,11 +90,16 @@ export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsPro
         if (attachment.type === "video" && attachment.preview) {
           return (
             <div key={attachment.id} className="relative rounded-md overflow-hidden max-w-[300px] cursor-pointer bg-black">
-              <img
-                src={attachment.preview}
-                alt={attachment.name}
-                className="max-w-full max-h-[200px] object-cover"
-              />
+              <div className="relative w-full" style={{ minHeight: '200px' }}>
+                <Image
+                  fill
+                  src={attachment.preview}
+                  alt={attachment.name}
+                  className="object-cover"
+                  sizes="300px"
+                  style={{ maxHeight: '200px' }}
+                />
+              </div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/70 rounded-full p-3">
                 <Play size={24} className="text-white" />
               </div>

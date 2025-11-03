@@ -23,6 +23,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface DeletionStep {
   id: string;
   title: string;

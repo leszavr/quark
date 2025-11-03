@@ -149,7 +149,7 @@ interface TiptapEditorProps {
   readonly height?: string;
 }
 
-export function TiptapEditor({ value, onChange, placeholder = "Начните писать...", height = "400px" }: TiptapEditorProps) {
+export function TiptapEditor({ value, onChange, placeholder: _placeholder = "Начните писать...", height = "400px" }: TiptapEditorProps) {
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");

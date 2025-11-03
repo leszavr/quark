@@ -129,6 +129,7 @@ show_help() {
     echo -e "    ${YELLOW}-f, --force${NC}     Принудительная операция"
     echo -e "    ${YELLOW}-q, --quiet${NC}     Тихий режим"
     echo -e "    ${YELLOW}-v, --verbose${NC}   Подробный вывод"
+    echo -e "    ${YELLOW}--skip-outdated-check${NC}   Пропустить проверку версий пакетов"
     echo -e "    ${YELLOW}-h, --help${NC}      Показать эту справку"
     echo ""
     echo -e "${WHITE}ПРИМЕРЫ:${NC}"
@@ -180,6 +181,26 @@ check_requirements() {
 }
 
 # Функция проверки пакетов на устаревшие версии
+# Функция сравнения версий и определения типа обновления
+compare_versions() {
+    local current="$1"
+    local latest="$2"
+    
+    # Извлекаем major.minor.patch
+    local current_major=$(echo "$current" | cut -d. -f1 | tr -d '^~')
+    local current_minor=$(echo "$current" | cut -d. -f2)
+    local latest_major=$(echo "$latest" | cut -d. -f1 | tr -d '^~')
+    local latest_minor=$(echo "$latest" | cut -d. -f2)
+    
+    if [[ "$latest_major" != "$current_major" ]]; then
+        echo "major"
+    elif [[ "$latest_minor" != "$current_minor" ]]; then
+        echo "minor"
+    else
+        echo "patch"
+    fi
+}
+
 check_outdated_packages() {
     # Пропускаем проверку если установлена переменная окружения
     if [[ "$SKIP_PACKAGE_CHECK" == "true" ]]; then
@@ -189,7 +210,9 @@ check_outdated_packages() {
     
     print_log "$BLUE" "INFO" "🔍 Проверка пакетов на устаревшие версии..."
     
-    local has_outdated=false
+    local has_minor_updates=false
+    local has_major_updates=false
+    local services_to_update=()
     local services_with_packages=("plugin-hub" "auth-service" "blog-service" "quark-ui" "quark-landing" "monitoring")
     
     for service in "${services_with_packages[@]}"; do
@@ -208,11 +231,48 @@ check_outdated_packages() {
         if [[ -f "$service_path/package.json" ]]; then
             print_log "$BLUE" "INFO" "📦 Проверка $service..."
             
-            # Переходим в директорию сервиса и проверяем устаревшие пакеты
+            # Получаем список устаревших пакетов
+            local outdated_output=$(cd "$service_path" && pnpm outdated --depth=0 --format json 2>/dev/null || echo "{}")
+            
+            # Проверяем наличие устаревших пакетов через простую проверку вывода
             if (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null | grep -q .); then
-                print_log "$YELLOW" "WARN" "⚠️  В $service найдены устаревшие пакеты:"
-                (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
-                has_outdated=true
+                local service_has_minor=false
+                local service_has_major=false
+                
+                # Анализируем каждый пакет
+                local packages_info=$(cd "$service_path" && pnpm outdated --depth=0 2>/dev/null | tail -n +2 || echo "")
+                
+                if [[ -n "$packages_info" ]]; then
+                    while IFS= read -r line; do
+                        # Пропускаем пустые строки и разделители
+                        [[ -z "$line" || "$line" =~ ^[─┌┐└┘├┤┬┴┼│]+$ ]] && continue
+                        
+                        # Извлекаем версии (формат: Package | Current | Latest)
+                        local current_ver=$(echo "$line" | awk '{print $3}' | tr -d '│')
+                        local latest_ver=$(echo "$line" | awk '{print $5}' | tr -d '│')
+                        
+                        if [[ -n "$current_ver" && -n "$latest_ver" && "$current_ver" != "Current" ]]; then
+                            local update_type=$(compare_versions "$current_ver" "$latest_ver")
+                            
+                            if [[ "$update_type" == "major" ]]; then
+                                service_has_major=true
+                            elif [[ "$update_type" == "minor" || "$update_type" == "patch" ]]; then
+                                service_has_minor=true
+                            fi
+                        fi
+                    done <<< "$packages_info"
+                fi
+                
+                if [[ "$service_has_major" == true ]]; then
+                    print_log "$RED" "WARN" "⚠️  В $service найдены MAJOR обновления (несовместимые):"
+                    (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
+                    has_major_updates=true
+                elif [[ "$service_has_minor" == true ]]; then
+                    print_log "$YELLOW" "WARN" "⚠️  В $service доступны minor/patch обновления (безопасные):"
+                    (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
+                    has_minor_updates=true
+                    services_to_update+=("$service:$service_path")
+                fi
             else
                 print_log "$GREEN" "SUCCESS" "✅ $service - все пакеты актуальны"
             fi
@@ -221,32 +281,60 @@ check_outdated_packages() {
         fi
     done
     
-    if [[ "$has_outdated" == true ]]; then
+    # Обработка major обновлений (только информирование)
+    if [[ "$has_major_updates" == true ]]; then
         echo ""
-        print_log "$RED" "ERROR" "❌ ВНИМАНИЕ: Обнаружены устаревшие пакеты!"
-        print_log "$YELLOW" "WARN" "📋 Для обновления пакетов выполните в каждом сервисе:"
-        print_log "$CYAN" "INFO" "   cd services/[service-name] && pnpm update"
-        print_log "$CYAN" "INFO" "   Или используйте: pnpm install package@latest"
+        print_log "$RED" "WARN" "❌ ВНИМАНИЕ: Обнаружены MAJOR обновления!"
+        print_log "$YELLOW" "INFO" "   MAJOR обновления могут нарушить совместимость."
+        print_log "$YELLOW" "INFO" "   Обновление НЕ РЕКОМЕНДУЕТСЯ без тестирования."
+        print_log "$CYAN" "INFO" "   Для ручного обновления: cd <service> && pnpm update <package>"
+        echo ""
+    fi
+    
+    # Обработка minor обновлений (предлагаем автоматическое обновление)
+    if [[ "$has_minor_updates" == true ]]; then
+        echo ""
+        print_log "$GREEN" "INFO" "✅ Доступны безопасные minor/patch обновления"
+        print_log "$CYAN" "INFO" "   Minor/patch версии обратно совместимы (semver)"
         echo ""
         
-        # Предлагаем пользователю выбор с таймером 10 секунд
-        echo -e "${WHITE}Остановить запуск для установки обновленией? [y/N]: (по умолчанию N через 10 секунд)${NC}"
+        # Предлагаем обновить с таймером 10 секунд (по умолчанию N)
+        echo -e "${WHITE}Обновить пакеты автоматически? [y/N]: (по умолчанию N через 10 секунд)${NC}"
         
-        # Чтение с таймером 10 секунд
-        if read -t 10 -r choice; then
-            case $choice in
-                [Yy]|[Yy][Ee][Ss])
-                    print_log "$RED" "ERROR" "❌ Остановка для обновления пакетов. Обновите пакеты и повторите запуск."
-                    exit 1
-                    ;;
-                *)
-                    print_log "$YELLOW" "WARN" "⚠️  Продолжаем с устаревшими пакетами..."
-                    ;;
-            esac
+        local choice="n"
+        if read -t 10 -r user_input; then
+            choice="$user_input"
         else
-            print_log "$YELLOW" "WARN" "⚠️  Время ожидания истекло. Продолжаем с устаревшими пакетами..."
+            print_log "$YELLOW" "INFO" "⏱️  Время ожидания истекло. Пропускаем обновление."
         fi
-    else
+        
+        case $choice in
+            [Yy]|[Yy][Ee][Ss])
+                print_log "$GREEN" "INFO" "🔄 Начинаем обновление пакетов..."
+                
+                for service_info in "${services_to_update[@]}"; do
+                    local service="${service_info%%:*}"
+                    local service_path="${service_info##*:}"
+                    
+                    print_log "$BLUE" "INFO" "📦 Обновление $service..."
+                    if (cd "$service_path" && pnpm update --latest 2>&1 | tee -a "$LOG_FILE"); then
+                        print_log "$GREEN" "SUCCESS" "✅ $service успешно обновлен"
+                    else
+                        print_log "$RED" "ERROR" "❌ Ошибка обновления $service"
+                    fi
+                done
+                
+                print_log "$GREEN" "SUCCESS" "✅ Обновление завершено!"
+                echo ""
+                ;;
+            *)
+                print_log "$YELLOW" "WARN" "⚠️  Обновление пропущено. Продолжаем с текущими версиями..."
+                ;;
+        esac
+    fi
+    
+    # Если нет никаких обновлений
+    if [[ "$has_minor_updates" == false && "$has_major_updates" == false ]]; then
         print_log "$GREEN" "SUCCESS" "✅ Все пакеты актуальны!"
     fi
 }
@@ -1438,6 +1526,10 @@ main() {
                 ;;
             -v|--verbose)
                 verbose=true
+                shift
+                ;;
+            --skip-outdated-check)
+                export SKIP_PACKAGE_CHECK=true
                 shift
                 ;;
             -h|--help)

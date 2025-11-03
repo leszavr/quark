@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, MessageCircle, Heart, Share2, BookOpen, ArrowLeft, Edit3, Plus } from "lucide-react";
@@ -140,11 +141,15 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
               <div className="p-4 pb-2">
                 <div className="flex justify-between">
                   <div className="flex gap-3">
-                    <img
-                      className="w-8 h-8 rounded-full object-cover"
-                      src={post.author.avatar}
-                      alt={post.author.name}
-                    />
+                    <div className="relative w-8 h-8 flex-shrink-0">
+                      <Image
+                        fill
+                        className="rounded-full object-cover"
+                        src={post.author.avatar}
+                        alt={post.author.name}
+                        sizes="32px"
+                      />
+                    </div>
                     <div>
                       <span className="text-sm font-medium">
                         {post.author.name}
@@ -287,7 +292,15 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
               
               <div className="flex gap-4 mb-4">
                 <div className="flex gap-3">
-                  <img className="w-12 h-12 rounded-full" src={selectedPost.author.avatar} alt={selectedPost.author.name} />
+                  <div className="relative w-12 h-12 flex-shrink-0">
+                    <Image 
+                      fill 
+                      className="rounded-full object-cover" 
+                      src={selectedPost.author.avatar} 
+                      alt={selectedPost.author.name}
+                      sizes="48px"
+                    />
+                  </div>
                   <div>
                     <span className="text-md font-medium">
                       {selectedPost.author.name}

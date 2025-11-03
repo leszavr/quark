@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, MessageSquare, Plus } from "lucide-react";
 import { useChatStorage } from "../hooks/useChatStorage";
 import type { Chat } from "../hooks/useChatStorage";
+import Image from "next/image";
 
 const MotionBox = motion.create("div");
 
@@ -86,11 +87,13 @@ export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: Ch
                 onClick={() => onChatSelect?.(chat.id)}
               >
                 <div className="flex gap-3 items-start">
-                  <div className="relative">
-                    <img
-                      className="w-12 h-12 rounded-full object-cover"
+                  <div className="relative w-12 h-12">
+                    <Image
+                      fill
+                      className="rounded-full object-cover"
                       src={chat.user.avatar}
                       alt={chat.user.name}
+                      sizes="48px"
                     />
                     {chat.user.isOnline && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
