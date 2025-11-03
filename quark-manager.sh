@@ -750,7 +750,7 @@ hard_reboot() {
 
 # Функция создания новой спецификации
 spec_new() {
-    shift  # Пропускаем "spec:new"
+    # $@ уже содержит только аргументы (команда убрана в main)
     
     if [[ $# -lt 1 ]]; then
         print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:new <service-name>"
@@ -766,11 +766,11 @@ spec_new() {
     
     # Найти следующий номер спецификации
     local next_num=1
-    while [[ -d "specs/$(printf "%03d" $next_num)-${service_slug}" ]]; do
+    while [[ -d "$SCRIPT_DIR/.specify/specs/$(printf "%03d" $next_num)-${service_slug}" ]]; do
         ((next_num++))
     done
     
-    local spec_dir="specs/$(printf "%03d" $next_num)-${service_slug}"
+    local spec_dir="$SCRIPT_DIR/.specify/specs/$(printf "%03d" $next_num)-${service_slug}"
     
     print_log "$BLUE" "INFO" "📐 Создание новой спецификации: $spec_dir"
     
@@ -836,9 +836,9 @@ EOF
 
 # Функция валидации спецификаций
 spec_validate() {
-    shift  # Пропускаем "spec:validate"
+    # $@ уже содержит только аргументы (команда убрана в main)
     
-    local service_dir="${1:-specs/}"
+    local service_dir="${1:-$SCRIPT_DIR/.specify/specs/}"
     
     print_log "$BLUE" "INFO" "🔍 Валидация спецификаций в $service_dir"
     
@@ -888,7 +888,7 @@ spec_validate() {
 
 # Функция генерации TypeScript types из OpenAPI
 spec_generate_types() {
-    shift  # Пропускаем "spec:types"
+    # $@ уже содержит только аргументы (команда убрана в main)
     
     if [[ $# -lt 1 ]]; then
         print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:types <service-number> [output-dir]"
@@ -903,7 +903,7 @@ spec_generate_types() {
     local output_dir="${2:-infra/quark-ui/src/api}"
     
     # Найти директорию спецификации
-    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    local spec_dir=$(find "$SCRIPT_DIR/.specify/specs" -type d -name "${service_num}-*" | head -n 1)
     
     if [[ -z "$spec_dir" ]]; then
         print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
@@ -946,7 +946,7 @@ spec_generate_types() {
 
 # Функция запуска mock API server
 spec_mock_server() {
-    shift  # Пропускаем "spec:mock"
+    # $@ уже содержит только аргументы (команда убрана в main)
     
     if [[ $# -lt 1 ]]; then
         print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:mock <service-number> [port]"
@@ -961,7 +961,7 @@ spec_mock_server() {
     local port="${2:-4010}"
     
     # Найти директорию спецификации
-    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    local spec_dir=$(find "$SCRIPT_DIR/.specify/specs" -type d -name "${service_num}-*" | head -n 1)
     
     if [[ -z "$spec_dir" ]]; then
         print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
@@ -995,7 +995,7 @@ spec_mock_server() {
 
 # Функция генерации тестов из контрактов
 spec_generate_tests() {
-    shift  # Пропускаем "spec:generate-tests"
+    # $@ уже содержит только аргументы (команда убрана в main)
     
     if [[ $# -lt 1 ]]; then
         print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:generate-tests <service-number> [--type=TYPE]"
@@ -1036,7 +1036,7 @@ spec_generate_tests() {
     done
     
     # Найти директорию спецификации
-    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    local spec_dir=$(find "$SCRIPT_DIR/.specify/specs" -type d -name "${service_num}-*" | head -n 1)
     
     if [[ -z "$spec_dir" ]]; then
         print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
@@ -1601,7 +1601,7 @@ main() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            start|stop|restart|build|rebuild|status|health|logs|clean|hard-reboot|menu|list|ui:dev|ui:build|ui:start|ui:open)
+            start|stop|restart|build|rebuild|status|health|logs|clean|hard-reboot|menu|list|ui:dev|ui:build|ui:start|ui:open|spec:new|spec:validate|spec:types|spec:mock|spec:generate-tests)
                 command="$1"
                 shift
                 ;;
@@ -1708,19 +1708,19 @@ main() {
             ui_open
             ;;
         spec:new)
-            spec_new "$@"
+            spec_new "${services[@]}"
             ;;
         spec:validate)
-            spec_validate "$@"
+            spec_validate "${services[@]}"
             ;;
         spec:types)
-            spec_generate_types "$@"
+            spec_generate_types "${services[@]}"
             ;;
         spec:mock)
-            spec_mock_server "$@"
+            spec_mock_server "${services[@]}"
             ;;
         spec:generate-tests)
-            spec_generate_tests "$@"
+            spec_generate_tests "${services[@]}"
             ;;
         *)
             print_log "$RED" "ERROR" "❌ Неизвестная команда: $command"
