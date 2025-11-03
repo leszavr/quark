@@ -118,6 +118,12 @@ show_help() {
     echo -e "    ${PURPLE}ui:start${NC}    Запустить UI через Docker"
     echo -e "    ${PURPLE}ui:open${NC}     Открыть UI в браузере"
     echo ""
+    echo -e "${WHITE}SPEC-DRIVEN КОМАНДЫ:${NC}"
+    echo -e "    ${CYAN}spec:new <name>${NC}       Создать новую спецификацию сервиса"
+    echo -e "    ${CYAN}spec:validate [dir]${NC}   Валидировать спецификации и контракты"
+    echo -e "    ${CYAN}spec:types <num>${NC}      Генерировать TypeScript types из OpenAPI"
+    echo -e "    ${CYAN}spec:mock <num>${NC}       Запустить mock API server"
+    echo ""
     echo -e "${WHITE}ОПЦИИ:${NC}"
     echo -e "    ${YELLOW}-f, --force${NC}     Принудительная операция"
     echo -e "    ${YELLOW}-q, --quiet${NC}     Тихий режим"
@@ -135,6 +141,12 @@ show_help() {
     echo -e "    ${CYAN}./quark-manager.sh hard-reboot${NC}              # Полная перезагрузка с очисткой"
     echo -e "    ${CYAN}./quark-manager.sh ui:dev${NC}                   # Запустить UI для разработки"
     echo -e "    ${CYAN}./quark-manager.sh ui:open${NC}                  # Открыть UI в браузере"
+    echo ""
+    echo -e "${PURPLE}SPEC-DRIVEN ПРИМЕРЫ:${NC}"
+    echo -e "    ${CYAN}./quark-manager.sh spec:new messaging-service${NC}  # Создать спецификацию"
+    echo -e "    ${CYAN}./quark-manager.sh spec:validate${NC}               # Проверить все контракты"
+    echo -e "    ${CYAN}./quark-manager.sh spec:types 001${NC}              # Генерация TypeScript types"
+    echo -e "    ${CYAN}./quark-manager.sh spec:mock 001 4010${NC}          # Запустить mock API на порту 4010"
     echo ""
     echo -e "${WHITE}ДОСТУПНЫЕ СЕРВИСЫ:${NC}"
 
@@ -552,6 +564,255 @@ hard_reboot() {
     print_log "$GREEN" "SUCCESS" "🎉 Hard reboot завершён! Все сервисы перезапущены с чистого листа."
 }
 
+# ═══════════════════════════════════════════════════════════════════
+# 📐 SPEC-DRIVEN DEVELOPMENT FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════
+
+# Функция создания новой спецификации
+spec_new() {
+    shift  # Пропускаем "spec:new"
+    
+    if [[ $# -lt 1 ]]; then
+        print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:new <service-name>"
+        echo ""
+        echo "Примеры:"
+        echo "  ./quark-manager.sh spec:new messaging-service"
+        echo "  ./quark-manager.sh spec:new ai-service"
+        exit 1
+    fi
+    
+    local service_name="$1"
+    local service_slug=$(echo "$service_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+    
+    # Найти следующий номер спецификации
+    local next_num=1
+    while [[ -d "specs/$(printf "%03d" $next_num)-${service_slug}" ]]; do
+        ((next_num++))
+    done
+    
+    local spec_dir="specs/$(printf "%03d" $next_num)-${service_slug}"
+    
+    print_log "$BLUE" "INFO" "📐 Создание новой спецификации: $spec_dir"
+    
+    # Создать структуру директорий
+    mkdir -p "$spec_dir/contracts"
+    
+    # Скопировать шаблон спецификации
+    if [[ -f ".specify/templates/spec-template.md" ]]; then
+        cp ".specify/templates/spec-template.md" "$spec_dir/spec.md"
+        
+        # Заменить placeholder в шаблоне
+        sed -i "s/\[Service Name\]/$service_name/g" "$spec_dir/spec.md"
+        sed -i "s/\[branch-name\]/$(printf "%03d" $next_num)-${service_slug}/g" "$spec_dir/spec.md"
+        sed -i "s/\[CURRENT_DATE\]/$(date '+%Y-%m-%d')/g" "$spec_dir/spec.md"
+        
+        print_log "$GREEN" "SUCCESS" "✅ Создан файл: $spec_dir/spec.md"
+    else
+        print_log "$YELLOW" "WARN" "⚠️  Шаблон не найден, создан пустой spec.md"
+        touch "$spec_dir/spec.md"
+    fi
+    
+    # Создать README для директории
+    cat > "$spec_dir/README.md" << EOF
+# $service_name
+
+**Ветка**: \`$(printf "%03d" $next_num)-${service_slug}\` | **Дата**: $(date '+%Y-%m-%d')
+
+## 📁 Структура
+
+- \`spec.md\` - Спецификация требований (WHAT and WHY)
+- \`plan.md\` - Технический план реализации (HOW)
+- \`contracts/\` - API контракты (OpenAPI, AsyncAPI, UDI manifest)
+
+## 🔄 Workflow
+
+1. Заполнить \`spec.md\` (требования, user stories)
+2. Сгенерировать \`plan.md\` (tech stack, architecture)
+3. Создать контракты в \`contracts/\`
+4. Начать реализацию в \`services/${service_slug}/\`
+
+## 📚 Документация
+
+- [Constitution](.specify/memory/constitution.md) - 9 архитектурных принципов
+- [Practical Guide](docs/spec-driven-practical-guide.md) - примеры использования
+- [Frontend Integration](docs/frontend-backend-integration.md) - интеграция с UI
+EOF
+    
+    print_log "$GREEN" "SUCCESS" "✅ Создан файл: $spec_dir/README.md"
+    print_log "$CYAN" "INFO" ""
+    print_log "$CYAN" "INFO" "📝 Следующие шаги:"
+    print_log "$CYAN" "INFO" "   1. Заполните $spec_dir/spec.md (требования)"
+    print_log "$CYAN" "INFO" "   2. Сгенерируйте plan.md (AI + templates)"
+    print_log "$CYAN" "INFO" "   3. Создайте контракты: openapi.yaml, asyncapi.yaml, module-manifest.yaml"
+    print_log "$CYAN" "INFO" ""
+    print_log "$CYAN" "INFO" "💡 Для справки см. живой пример: specs/001-user-service/"
+    
+    # Открыть spec.md в редакторе (если VS Code установлен)
+    if command -v code &> /dev/null; then
+        print_log "$GREEN" "INFO" "🚀 Открываю spec.md в VS Code..."
+        code "$spec_dir/spec.md"
+    fi
+}
+
+# Функция валидации спецификаций
+spec_validate() {
+    shift  # Пропускаем "spec:validate"
+    
+    local service_dir="${1:-specs/}"
+    
+    print_log "$BLUE" "INFO" "🔍 Валидация спецификаций в $service_dir"
+    
+    # Проверка OpenAPI контрактов
+    if command -v swagger-cli &> /dev/null || command -v openapi &> /dev/null; then
+        for openapi_file in "$service_dir"/*/contracts/openapi.yaml; do
+            if [[ -f "$openapi_file" ]]; then
+                print_log "$CYAN" "INFO" "Проверка $openapi_file..."
+                if swagger-cli validate "$openapi_file" &> /dev/null || openapi validate "$openapi_file" &> /dev/null; then
+                    print_log "$GREEN" "SUCCESS" "✅ $openapi_file - валиден"
+                else
+                    print_log "$RED" "ERROR" "❌ $openapi_file - содержит ошибки"
+                fi
+            fi
+        done
+    else
+        print_log "$YELLOW" "WARN" "⚠️  swagger-cli не установлен. Установите: npm install -g @apidevtools/swagger-cli"
+    fi
+    
+    # Проверка AsyncAPI контрактов
+    if command -v asyncapi &> /dev/null; then
+        for asyncapi_file in "$service_dir"/*/contracts/asyncapi.yaml; do
+            if [[ -f "$asyncapi_file" ]]; then
+                print_log "$CYAN" "INFO" "Проверка $asyncapi_file..."
+                if asyncapi validate "$asyncapi_file" &> /dev/null; then
+                    print_log "$GREEN" "SUCCESS" "✅ $asyncapi_file - валиден"
+                else
+                    print_log "$RED" "ERROR" "❌ $asyncapi_file - содержит ошибки"
+                fi
+            fi
+        done
+    else
+        print_log "$YELLOW" "WARN" "⚠️  @asyncapi/cli не установлен. Установите: npm install -g @asyncapi/cli"
+    fi
+    
+    # Проверка Simplicity Gate (Article VII)
+    for plan_file in "$service_dir"/*/plan.md; do
+        if [[ -f "$plan_file" ]]; then
+            if grep -q "Component Count: [4-9]" "$plan_file"; then
+                print_log "$RED" "ERROR" "❌ Constitution violation в $plan_file: >3 компонента (Article VII)"
+            else
+                print_log "$GREEN" "SUCCESS" "✅ $plan_file - Simplicity Gate passed"
+            fi
+        fi
+    done
+}
+
+# Функция генерации TypeScript types из OpenAPI
+spec_generate_types() {
+    shift  # Пропускаем "spec:types"
+    
+    if [[ $# -lt 1 ]]; then
+        print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:types <service-number> [output-dir]"
+        echo ""
+        echo "Примеры:"
+        echo "  ./quark-manager.sh spec:types 001 infra/quark-ui/src/api/"
+        echo "  ./quark-manager.sh spec:types 002"
+        exit 1
+    fi
+    
+    local service_num="$1"
+    local output_dir="${2:-infra/quark-ui/src/api}"
+    
+    # Найти директорию спецификации
+    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    
+    if [[ -z "$spec_dir" ]]; then
+        print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
+        exit 1
+    fi
+    
+    local openapi_file="$spec_dir/contracts/openapi.yaml"
+    
+    if [[ ! -f "$openapi_file" ]]; then
+        print_log "$RED" "ERROR" "❌ OpenAPI контракт не найден: $openapi_file"
+        exit 1
+    fi
+    
+    # Извлечь имя сервиса
+    local service_name=$(basename "$spec_dir" | cut -d'-' -f2-)
+    local output_file="$output_dir/${service_name}.types.ts"
+    
+    print_log "$BLUE" "INFO" "🔄 Генерация TypeScript types из $openapi_file"
+    
+    # Проверка наличия openapi-typescript
+    if ! command -v openapi-typescript &> /dev/null; then
+        print_log "$YELLOW" "WARN" "⚠️  openapi-typescript не установлен. Установка..."
+        npm install -g openapi-typescript
+    fi
+    
+    # Создать выходную директорию
+    mkdir -p "$output_dir"
+    
+    # Генерация types
+    if openapi-typescript "$openapi_file" -o "$output_file"; then
+        print_log "$GREEN" "SUCCESS" "✅ Types сгенерированы: $output_file"
+        print_log "$CYAN" "INFO" ""
+        print_log "$CYAN" "INFO" "📝 Использование в коде:"
+        print_log "$CYAN" "INFO" "   import type { UserProfileResponse } from '@/api/${service_name}.types';"
+    else
+        print_log "$RED" "ERROR" "❌ Ошибка генерации types"
+        exit 1
+    fi
+}
+
+# Функция запуска mock API server
+spec_mock_server() {
+    shift  # Пропускаем "spec:mock"
+    
+    if [[ $# -lt 1 ]]; then
+        print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:mock <service-number> [port]"
+        echo ""
+        echo "Примеры:"
+        echo "  ./quark-manager.sh spec:mock 001"
+        echo "  ./quark-manager.sh spec:mock 002 4011"
+        exit 1
+    fi
+    
+    local service_num="$1"
+    local port="${2:-4010}"
+    
+    # Найти директорию спецификации
+    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    
+    if [[ -z "$spec_dir" ]]; then
+        print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
+        exit 1
+    fi
+    
+    local openapi_file="$spec_dir/contracts/openapi.yaml"
+    
+    if [[ ! -f "$openapi_file" ]]; then
+        print_log "$RED" "ERROR" "❌ OpenAPI контракт не найден: $openapi_file"
+        exit 1
+    fi
+    
+    print_log "$BLUE" "INFO" "🚀 Запуск mock API server для $(basename "$spec_dir")"
+    
+    # Проверка наличия @stoplight/prism-cli
+    if ! command -v prism &> /dev/null; then
+        print_log "$YELLOW" "WARN" "⚠️  @stoplight/prism-cli не установлен. Установка..."
+        npm install -g @stoplight/prism-cli
+    fi
+    
+    print_log "$GREEN" "SUCCESS" "✅ Mock API server запущен на http://localhost:$port"
+    print_log "$CYAN" "INFO" "📝 Используйте в Frontend:"
+    print_log "$CYAN" "INFO" "   const API_BASE = 'http://localhost:$port';"
+    print_log "$CYAN" "INFO" ""
+    print_log "$CYAN" "INFO" "🛑 Для остановки нажмите Ctrl+C"
+    
+    # Запуск prism mock server
+    prism mock "$openapi_file" -p "$port"
+}
+
 # Функция проверки состояния Quark UI
 check_ui_health() {
     print_header "🔍 Проверка состояния Quark UI..."
@@ -701,6 +962,18 @@ main() {
             ;;
         ui:open)
             ui_open
+            ;;
+        spec:new)
+            spec_new "$@"
+            ;;
+        spec:validate)
+            spec_validate "$@"
+            ;;
+        spec:types)
+            spec_generate_types "$@"
+            ;;
+        spec:mock)
+            spec_mock_server "$@"
             ;;
         *)
             print_log "$RED" "ERROR" "❌ Неизвестная команда: $command"
