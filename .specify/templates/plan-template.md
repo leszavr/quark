@@ -366,46 +366,234 @@ service [ServiceName] {
 
 ### Phase 2: Test-First Implementation (Дни 3-4)
 
-> **Следование TDD**: Red → Green → Refactor
+> **Следование TDD**: Red → Green → Refactor  
+> **Приоритизация**: Contract → Integration → Unit → E2E → Chaos → Performance
 
-#### 2.1 Contract Tests (ПЕРВЫМИ!)
+---
+
+## 🧪 Стратегия тестирования
+
+### Принципы (Article IX: Test-First Development)
+1. **Контракты первыми** — REST + Events валидируются до написания кода
+2. **Event-driven focus** — тесты NATS событий обязательны (не только REST)
+3. **Testcontainers** — изолированные тесты с чистым состоянием
+4. **Minimal must-haves** — chaos + perf тесты уже в MVP (не откладываем)
+5. **AI-generated stubs** — `spec:generate-tests` создаёт шаблоны из contracts/
+
+---
+
+### 2.1 Contract Tests (ПЕРВЫМИ! Must-have ✅)
+
+> **Инструменты**: OpenAPI Validator (spectral), AsyncAPI Validator, Pact (для message contracts)
+
+#### REST API Contracts
 ```
 tests/contract/
-├── api.contract.spec.ts          # OpenAPI contract tests
-├── events.contract.spec.ts       # AsyncAPI contract tests
-└── udi.contract.spec.ts          # UDI compliance tests
+├── openapi.contract.spec.ts      # Валидация OpenAPI schema
+└── openapi.examples.spec.ts      # Проверка примеров из spec
 ```
 
-**Цель**: Убедиться, что API соответствует контрактам
+**Что проверяем**:
+- ✅ Все endpoints соответствуют `contracts/openapi.yaml`
+- ✅ Response schemas совпадают с определениями
+- ✅ Примеры валидны (используются mock API)
 
-#### 2.2 Integration Tests
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=contract-rest`
+
+#### Event Contracts (AsyncAPI)
+```
+tests/contract/
+├── asyncapi.contract.spec.ts     # Валидация AsyncAPI schema
+└── events.message.spec.ts        # Pact message contracts
+```
+
+**Что проверяем**:
+- ✅ Все published events соответствуют `contracts/asyncapi.yaml`
+- ✅ Subscribed events обрабатываются корректно
+- ✅ Payload schemas валидны (JSON Schema)
+- ✅ Dead Letter Queue (DLQ) настроена
+
+**Критично**: Quark — event-driven платформа, события **так же важны** как REST.
+
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=contract-events`
+
+#### UDI Compliance
+```
+tests/contract/
+└── udi.contract.spec.ts          # Проверка /health, /status, /manifest
+```
+
+**Что проверяем**:
+- ✅ `/manifest` возвращает валидный `module-manifest.yaml`
+- ✅ `/health` отвечает за <1s
+- ✅ `/status` содержит детальные dependency checks
+
+---
+
+### 2.2 Integration Tests (Must-have ✅)
+
+> **Инструменты**: Testcontainers, Jest/Vitest
+
 ```
 tests/integration/
 ├── database.integration.spec.ts  # Реальная PostgreSQL
-├── nats.integration.spec.ts      # Реальный NATS
+├── nats.integration.spec.ts      # Реальный NATS JetStream
 ├── vault.integration.spec.ts     # Реальный Vault
 └── plugin-hub.integration.spec.ts # Реальный Plugin Hub
 ```
 
-**Цель**: Проверить взаимодействие с реальными сервисами
+**Что проверяем**:
+- ✅ События публикуются в NATS и доставляются
+- ✅ Durable consumers работают с ack policy
+- ✅ JWT токены валидируются через Vault
+- ✅ Database transactions корректны
 
-#### 2.3 E2E Tests
-```
-tests/e2e/
-├── [scenario-1].e2e.spec.ts
-└── [scenario-2].e2e.spec.ts
-```
+**Среда выполнения**: Testcontainers (изолированные контейнеры для каждого теста)
 
-**Цель**: Проверить полные user journeys
+**Почему не docker-compose**:
+- Testcontainers = чистое состояние + работа в CI без Docker-in-Docker
+- docker-compose = быстрее, но "утекает" состояние между тестами
 
-#### 2.4 Unit Tests (ПОСЛЕДНИМИ)
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=integration`
+
+---
+
+### 2.3 Unit Tests (Критичная бизнес-логика, Should-have ⚠️)
+
 ```
 tests/unit/
-├── [entity].service.spec.ts
-└── [utility].spec.ts
+├── [entity].service.spec.ts      # Бизнес-логика (auth, subscriptions)
+├── [validator].spec.ts           # Валидаторы (email, RBAC)
+└── [utility].spec.ts             # Утилиты
 ```
 
-**Цель**: Изолированная бизнес-логика
+**Coverage target**: ≥90% для критических модулей (auth, payment, RBAC)
+
+**Приоритизация**:
+1. Auth логика (JWT validation, role checks)
+2. Payment/Subscription логика
+3. Валидаторы (email, phone, content moderation)
+
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=unit`
+
+---
+
+### 2.4 Chaos Tests (Minimal must-have ✅)
+
+> **Инструменты**: Toxiproxy, Chaos Mesh (для k8s)
+
+```
+tests/chaos/
+├── nats-disconnect.chaos.spec.ts # NATS отключается на 5s
+├── db-latency.chaos.spec.ts      # Database задержка 500ms
+└── vault-unavailable.chaos.spec.ts # Vault недоступен
+```
+
+**Что проверяем**:
+- ✅ Retry logic работает (экспоненциальная задержка)
+- ✅ Circuit breaker срабатывает
+- ✅ Graceful degradation (кэш работает, если NATS down)
+- ✅ Dead Letter Queue (DLQ) собирает failed events
+
+**Минимальный набор** (1 тест = 30-60 минут):
+1. NATS disconnect → retry → reconnect → event delivered
+2. Database latency → timeout → error handling
+
+**Почему не откладывать**: Event-driven архитектура **хрупкая без retry logic**. Лучше найти проблему в dev, чем в production.
+
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=chaos`
+
+---
+
+### 2.5 Performance Tests (Minimal baseline ✅)
+
+> **Инструменты**: k6, Locust
+
+```
+tests/performance/
+├── baseline.load.js              # 10 RPS для критичных endpoints
+└── spike.load.js                 # Пиковая нагрузка (50 RPS)
+```
+
+**Что проверяем**:
+- ✅ Latency p95 < 500ms при 10 RPS
+- ✅ Error rate < 0.1%
+- ✅ CPU < 80%, Memory < 1GB
+- ✅ Database connection pool не истощается
+
+**Минимальный сценарий** (k6, 10 минут):
+```javascript
+export default function() {
+  // Критичные endpoints:
+  http.post('/api/v1/[service]/[resource]');
+  http.get('/api/v1/[service]/[resource]/:id');
+}
+```
+
+**Target**: 10 RPS (не 1000!) → выявляет **грубые ошибки**:
+- N+1 queries в ORM
+- Отсутствие индексов в БД
+- Memory leaks
+
+**Почему не откладывать**: Если сервис не выдерживает 10 RPS, он **никогда не доберётся до 100 пользователей**.
+
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=performance`
+
+---
+
+### 2.6 E2E Tests (Критичные сценарии, Should-have ⚠️)
+
+> **Инструменты**: Playwright (UI + API), Docker Compose
+
+```
+tests/e2e/
+├── [critical-scenario-1].e2e.spec.ts  # Регистрация → первый пост
+└── [critical-scenario-2].e2e.spec.ts  # Отправка сообщения → уведомление
+```
+
+**Приоритизация** (из user stories):
+1. Auth flow (регистрация → вход → JWT → защищённый endpoint)
+2. Core business flow (создание ресурса → event → обновление UI)
+3. Real-time flow (WebSocket → NATS event → notification)
+
+**Умные триггеры** (не "всё или ничего"):
+- Запускать E2E только если изменились UI-файлы или API contracts
+- `git diff --name-only | grep -E '(contracts/|src/ui/)'`
+- Использовать Playwright Codegen + AI для генерации тестов
+
+**Окружение**: `docker-compose.e2e.yml` (изолированный стек)
+
+**Генерация**: `./quark-manager.sh spec:generate-tests [###] --type=e2e`
+
+---
+
+### Метрики качества
+
+| Метрика | Цель | Инструмент |
+|---------|------|-----------|
+| Contract tests pass rate | 100% | spectral, AsyncAPI CLI, Pact |
+| Integration tests pass rate | 100% | Jest + Testcontainers |
+| Unit coverage (критичное) | ≥90% | Jest --coverage |
+| Chaos tests pass rate | 100% | Toxiproxy + Jest |
+| Performance baseline | p95 <500ms @10 RPS | k6 |
+| E2E flakiness | <2% | Playwright |
+| Security vulns (high/critical) | 0 | Snyk |
+
+---
+
+### Timeline (Дни 3-4)
+
+**День 3** (Contract + Unit):
+- [ ] Генерация contract tests из OpenAPI/AsyncAPI
+- [ ] Валидация REST endpoints (spectral)
+- [ ] Валидация NATS events (AsyncAPI CLI + Pact)
+- [ ] Unit tests для критичной бизнес-логики (auth, subscriptions)
+
+**День 4** (Integration + Chaos + Perf + E2E):
+- [ ] Integration tests с Testcontainers (NATS + PostgreSQL + Vault)
+- [ ] Minimal chaos test (NATS disconnect → retry)
+- [ ] Minimal performance test (10 RPS baseline)
+- [ ] E2E для критичного сценария (из user story #1)
 
 ---
 

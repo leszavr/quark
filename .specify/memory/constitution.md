@@ -576,8 +576,25 @@ Plugin Hub предоставляет:
 
 #### Test-First Gate (Article IX)
 - [ ] Contract tests написаны ДО реализации?
+  - [ ] OpenAPI контракты валидируются (spectral)?
+  - [ ] AsyncAPI контракты валидируются (@asyncapi/cli)?
+  - [ ] Pact message contracts для событий?
 - [ ] Тесты провалились (Red phase)?
-- [ ] Integration tests используют реальные сервисы?
+- [ ] Integration tests используют реальные сервисы (Testcontainers)?
+- [ ] **Minimal chaos test** для event-driven сервисов (NATS disconnect → retry)?
+- [ ] **Minimal performance baseline** (10 RPS, p95 <500ms)?
+- [ ] E2E тесты для критичных user stories?
+```
+
+**Приоритизация тестов**:
+- ✅ **Must-have**: Contract (REST+Events), Integration, Minimal Chaos, Minimal Perf
+- ⚠️ **Should-have**: Unit (критичная логика), E2E (критичные сценарии)
+- 🔵 **Nice-to-have**: Full Chaos Suite, Load Testing (100+ RPS)
+
+**Automation**:
+```bash
+# Генерация тестов из контрактов
+./quark-manager.sh spec:generate-tests [###] --type=all
 ```
 
 ### В Code Review
@@ -591,6 +608,10 @@ Plugin Hub предоставляет:
 [ ] Article VII: Сложность обоснована?
 [ ] Article VIII: Через Plugin Hub?
 [ ] Article IX: Тесты написаны первыми?
+  [ ] Contract tests pass rate = 100%?
+  [ ] Integration tests с Testcontainers?
+  [ ] Minimal chaos test пройден?
+  [ ] Performance baseline (10 RPS) пройден?
 ```
 
 ### Исключения

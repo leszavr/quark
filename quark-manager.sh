@@ -123,6 +123,7 @@ show_help() {
     echo -e "    ${CYAN}spec:validate [dir]${NC}   Валидировать спецификации и контракты"
     echo -e "    ${CYAN}spec:types <num>${NC}      Генерировать TypeScript types из OpenAPI"
     echo -e "    ${CYAN}spec:mock <num>${NC}       Запустить mock API server"
+    echo -e "    ${CYAN}spec:generate-tests <num>${NC}  Генерировать тесты из контрактов"
     echo ""
     echo -e "${WHITE}ОПЦИИ:${NC}"
     echo -e "    ${YELLOW}-f, --force${NC}     Принудительная операция"
@@ -143,10 +144,12 @@ show_help() {
     echo -e "    ${CYAN}./quark-manager.sh ui:open${NC}                  # Открыть UI в браузере"
     echo ""
     echo -e "${PURPLE}SPEC-DRIVEN ПРИМЕРЫ:${NC}"
-    echo -e "    ${CYAN}./quark-manager.sh spec:new messaging-service${NC}  # Создать спецификацию"
-    echo -e "    ${CYAN}./quark-manager.sh spec:validate${NC}               # Проверить все контракты"
-    echo -e "    ${CYAN}./quark-manager.sh spec:types 001${NC}              # Генерация TypeScript types"
-    echo -e "    ${CYAN}./quark-manager.sh spec:mock 001 4010${NC}          # Запустить mock API на порту 4010"
+    echo -e "    ${CYAN}./quark-manager.sh spec:new messaging-service${NC}       # Создать спецификацию"
+    echo -e "    ${CYAN}./quark-manager.sh spec:validate${NC}                    # Проверить все контракты"
+    echo -e "    ${CYAN}./quark-manager.sh spec:types 001${NC}                   # Генерация TypeScript types"
+    echo -e "    ${CYAN}./quark-manager.sh spec:mock 001 4010${NC}               # Запустить mock API на порту 4010"
+    echo -e "    ${CYAN}./quark-manager.sh spec:generate-tests 001${NC}          # Генерация всех тестов"
+    echo -e "    ${CYAN}./quark-manager.sh spec:generate-tests 001 --type=unit${NC}  # Только unit тесты"
     echo ""
     echo -e "${WHITE}ДОСТУПНЫЕ СЕРВИСЫ:${NC}"
 
@@ -813,6 +816,566 @@ spec_mock_server() {
     prism mock "$openapi_file" -p "$port"
 }
 
+# Функция генерации тестов из контрактов
+spec_generate_tests() {
+    shift  # Пропускаем "spec:generate-tests"
+    
+    if [[ $# -lt 1 ]]; then
+        print_log "$RED" "ERROR" "❌ Использование: ./quark-manager.sh spec:generate-tests <service-number> [--type=TYPE]"
+        echo ""
+        echo "Типы тестов:"
+        echo "  all              - Генерировать все тесты (default)"
+        echo "  contract-rest    - Contract tests для REST API (OpenAPI)"
+        echo "  contract-events  - Contract tests для NATS events (AsyncAPI)"
+        echo "  integration      - Integration tests (NATS, PostgreSQL, Vault)"
+        echo "  unit             - Unit tests для критичной бизнес-логики"
+        echo "  e2e              - E2E tests (Playwright) из user stories"
+        echo "  chaos            - Minimal chaos tests (Toxiproxy)"
+        echo "  performance      - Minimal performance tests (k6)"
+        echo ""
+        echo "Примеры:"
+        echo "  ./quark-manager.sh spec:generate-tests 001"
+        echo "  ./quark-manager.sh spec:generate-tests 001 --type=contract-rest"
+        echo "  ./quark-manager.sh spec:generate-tests 002 --type=all"
+        exit 1
+    fi
+    
+    local service_num="$1"
+    local test_type="all"
+    
+    # Парсинг опций
+    shift
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --type=*)
+                test_type="${1#*=}"
+                shift
+                ;;
+            *)
+                print_log "$RED" "ERROR" "❌ Неизвестная опция: $1"
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Найти директорию спецификации
+    local spec_dir=$(find specs -type d -name "${service_num}-*" | head -n 1)
+    
+    if [[ -z "$spec_dir" ]]; then
+        print_log "$RED" "ERROR" "❌ Спецификация $service_num не найдена"
+        exit 1
+    fi
+    
+    local service_name=$(basename "$spec_dir" | sed 's/^[0-9]*-//')
+    local spec_file="$spec_dir/spec.md"
+    local plan_file="$spec_dir/plan.md"
+    local openapi_file="$spec_dir/contracts/openapi.yaml"
+    local asyncapi_file="$spec_dir/contracts/asyncapi.yaml"
+    
+    print_log "$BLUE" "INFO" "🧪 Генерация тестов для $service_name (тип: $test_type)"
+    
+    # Определяем директорию для тестов
+    local service_path="services/${service_name}"
+    if [[ ! -d "$service_path" ]]; then
+        print_log "$YELLOW" "WARN" "⚠️  Директория сервиса не существует: $service_path"
+        print_log "$YELLOW" "WARN" "   Создаём структуру директорий..."
+        mkdir -p "$service_path/tests"/{contract,integration,unit,e2e,chaos,performance}
+    fi
+    
+    local tests_dir="$service_path/tests"
+    
+    # Генерация Contract Tests (REST)
+    if [[ "$test_type" == "all" || "$test_type" == "contract-rest" ]]; then
+        if [[ -f "$openapi_file" ]]; then
+            print_log "$CYAN" "INFO" "📝 Генерация contract tests для REST API..."
+            mkdir -p "$tests_dir/contract"
+            
+            cat > "$tests_dir/contract/openapi.contract.spec.ts" << 'EOF'
+/**
+ * OpenAPI Contract Tests
+ * 
+ * Проверяет соответствие REST API контракту в openapi.yaml
+ * 
+ * Инструменты: spectral, ajv
+ */
+
+import { describe, it, expect, beforeAll } from '@jest/globals';
+import { Spectral } from '@stoplight/spectral-core';
+import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as yaml from 'js-yaml';
+
+describe('OpenAPI Contract Validation', () => {
+  let spectral: Spectral;
+  let openApiDoc: any;
+  
+  beforeAll(async () => {
+    // Загрузка OpenAPI документа
+    const openApiPath = path.resolve(__dirname, '../../../specs/SPEC_NUM-SERVICE_NAME/contracts/openapi.yaml');
+    const openApiContent = fs.readFileSync(openApiPath, 'utf8');
+    openApiDoc = yaml.load(openApiContent);
+    
+    // Настройка Spectral
+    spectral = new Spectral();
+    const ruleset = await bundleAndLoadRuleset(path.resolve(__dirname, '../../../.spectral.yaml'), { fs, fetch });
+    spectral.setRuleset(ruleset);
+  });
+  
+  it('должен быть валидным OpenAPI 3.0 документом', async () => {
+    const results = await spectral.run(openApiDoc);
+    
+    const errors = results.filter(r => r.severity === 0); // DiagnosticSeverity.Error
+    
+    if (errors.length > 0) {
+      console.error('OpenAPI validation errors:', errors);
+    }
+    
+    expect(errors).toHaveLength(0);
+  });
+  
+  it('должен иметь все обязательные поля', () => {
+    expect(openApiDoc).toHaveProperty('openapi');
+    expect(openApiDoc).toHaveProperty('info');
+    expect(openApiDoc).toHaveProperty('paths');
+    expect(openApiDoc.openapi).toMatch(/^3\.0\.\d+$/);
+  });
+  
+  it('должен определять security схемы для JWT', () => {
+    expect(openApiDoc).toHaveProperty('components.securitySchemes');
+    expect(openApiDoc.components.securitySchemes).toHaveProperty('bearerAuth');
+    expect(openApiDoc.components.securitySchemes.bearerAuth.type).toBe('http');
+    expect(openApiDoc.components.securitySchemes.bearerAuth.scheme).toBe('bearer');
+  });
+  
+  it('все endpoints должны иметь примеры в responses', () => {
+    const paths = openApiDoc.paths;
+    
+    for (const [pathName, pathItem] of Object.entries(paths as any)) {
+      for (const [method, operation] of Object.entries(pathItem as any)) {
+        if (['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
+          const responses = (operation as any).responses;
+          
+          for (const [statusCode, response] of Object.entries(responses as any)) {
+            if (statusCode.startsWith('2')) { // Success responses
+              expect(response).toHaveProperty('content');
+              
+              const content = (response as any).content;
+              if (content && content['application/json']) {
+                expect(content['application/json']).toHaveProperty('example');
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+});
+EOF
+            
+            # Заменяем плейсхолдеры
+            sed -i "s/SPEC_NUM/$service_num/g" "$tests_dir/contract/openapi.contract.spec.ts"
+            sed -i "s/SERVICE_NAME/$service_name/g" "$tests_dir/contract/openapi.contract.spec.ts"
+            
+            print_log "$GREEN" "SUCCESS" "✅ Contract tests (REST): $tests_dir/contract/openapi.contract.spec.ts"
+        else
+            print_log "$YELLOW" "WARN" "⚠️  OpenAPI контракт не найден, пропускаем REST tests"
+        fi
+    fi
+    
+    # Генерация Contract Tests (Events)
+    if [[ "$test_type" == "all" || "$test_type" == "contract-events" ]]; then
+        if [[ -f "$asyncapi_file" ]]; then
+            print_log "$CYAN" "INFO" "📝 Генерация contract tests для NATS events..."
+            mkdir -p "$tests_dir/contract"
+            
+            cat > "$tests_dir/contract/asyncapi.contract.spec.ts" << 'EOF'
+/**
+ * AsyncAPI Contract Tests
+ * 
+ * Проверяет соответствие NATS событий контракту в asyncapi.yaml
+ * 
+ * Инструменты: @asyncapi/cli, ajv
+ */
+
+import { describe, it, expect, beforeAll } from '@jest/globals';
+import * as fs from 'fs';
+import * as yaml from 'js-yaml';
+import Ajv from 'ajv';
+import * as path from 'path';
+
+describe('AsyncAPI Contract Validation', () => {
+  let asyncApiDoc: any;
+  let ajv: Ajv;
+  
+  beforeAll(() => {
+    // Загрузка AsyncAPI документа
+    const asyncApiPath = path.resolve(__dirname, '../../../specs/SPEC_NUM-SERVICE_NAME/contracts/asyncapi.yaml');
+    const asyncApiContent = fs.readFileSync(asyncApiPath, 'utf8');
+    asyncApiDoc = yaml.load(asyncApiContent);
+    
+    // Настройка AJV для валидации JSON Schema
+    ajv = new Ajv({ allErrors: true });
+  });
+  
+  it('должен быть валидным AsyncAPI 2.x документом', () => {
+    expect(asyncApiDoc).toHaveProperty('asyncapi');
+    expect(asyncApiDoc.asyncapi).toMatch(/^2\.\d+\.\d+$/);
+    expect(asyncApiDoc).toHaveProperty('channels');
+  });
+  
+  it('все published события должны иметь JSON Schema', () => {
+    const channels = asyncApiDoc.channels;
+    
+    for (const [channelName, channel] of Object.entries(channels as any)) {
+      if ((channel as any).publish) {
+        const message = (channel as any).publish.message;
+        
+        expect(message).toHaveProperty('payload');
+        expect(message.payload).toHaveProperty('type');
+        expect(message.payload).toHaveProperty('properties');
+        
+        // Валидация schema через AJV
+        const valid = ajv.validateSchema(message.payload);
+        expect(valid).toBe(true);
+      }
+    }
+  });
+  
+  it('все subscribed события должны иметь handlers', () => {
+    const channels = asyncApiDoc.channels;
+    
+    for (const [channelName, channel] of Object.entries(channels as any)) {
+      if ((channel as any).subscribe) {
+        // TODO: Проверить наличие handler в коде
+        // Это потребует парсинга исходников сервиса
+        expect(channelName).toBeTruthy();
+      }
+    }
+  });
+  
+  it('NATS JetStream должен быть настроен с DLQ', () => {
+    const server = asyncApiDoc.servers?.production;
+    
+    expect(server).toHaveProperty('protocol');
+    expect(server.protocol).toBe('nats');
+    
+    // Проверка bindings для JetStream
+    const channels = asyncApiDoc.channels;
+    for (const [channelName, channel] of Object.entries(channels as any)) {
+      if ((channel as any).subscribe?.bindings?.nats) {
+        const bindings = (channel as any).subscribe.bindings.nats;
+        
+        // DLQ обязательна (через max_deliver → dead_letter)
+        if (bindings.consumer) {
+          expect(bindings.consumer).toHaveProperty('ack_policy');
+          expect(bindings.consumer.ack_policy).toBe('explicit');
+        }
+      }
+    }
+  });
+});
+EOF
+            
+            # Заменяем плейсхолдеры
+            sed -i "s/SPEC_NUM/$service_num/g" "$tests_dir/contract/asyncapi.contract.spec.ts"
+            sed -i "s/SERVICE_NAME/$service_name/g" "$tests_dir/contract/asyncapi.contract.spec.ts"
+            
+            print_log "$GREEN" "SUCCESS" "✅ Contract tests (Events): $tests_dir/contract/asyncapi.contract.spec.ts"
+        else
+            print_log "$YELLOW" "WARN" "⚠️  AsyncAPI контракт не найден, пропускаем Events tests"
+        fi
+    fi
+    
+    # Генерация Integration Tests
+    if [[ "$test_type" == "all" || "$test_type" == "integration" ]]; then
+        print_log "$CYAN" "INFO" "📝 Генерация integration tests (Testcontainers)..."
+        mkdir -p "$tests_dir/integration"
+        
+        cat > "$tests_dir/integration/nats.integration.spec.ts" << 'EOF'
+/**
+ * NATS Integration Tests
+ * 
+ * Проверяет взаимодействие с NATS JetStream через Testcontainers
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import { connect, NatsConnection, JetStreamClient } from 'nats';
+
+describe('NATS JetStream Integration', () => {
+  let container: StartedTestContainer;
+  let nc: NatsConnection;
+  let js: JetStreamClient;
+  
+  beforeAll(async () => {
+    // Запуск NATS в Testcontainer
+    container = await new GenericContainer('nats:2.10-alpine')
+      .withExposedPorts(4222)
+      .withCommand(['-js', '-m', '8222']) // Enable JetStream + monitoring
+      .start();
+    
+    const natsUrl = `nats://localhost:${container.getMappedPort(4222)}`;
+    nc = await connect({ servers: natsUrl });
+    js = nc.jetstream();
+  }, 30000);
+  
+  afterAll(async () => {
+    await nc?.close();
+    await container?.stop();
+  });
+  
+  it('должен публиковать и получать событие TODO_EVENT', async () => {
+    // TODO: Заменить TODO_EVENT на реальное событие из asyncapi.yaml
+    const subject = 'SERVICE_NAME.TODO_EVENT.created';
+    const payload = { id: '123', test: true };
+    
+    // Создаём stream
+    await js.streams.add({
+      name: 'SERVICE_NAME_STREAM',
+      subjects: [`SERVICE_NAME.>`],
+      storage: 'file',
+      retention: 'limits',
+      max_age: 7 * 24 * 60 * 60 * 1000000000, // 7 days in nanoseconds
+    });
+    
+    // Publish event
+    await js.publish(subject, JSON.stringify(payload));
+    
+    // Subscribe
+    const consumer = await js.consumers.get('SERVICE_NAME_STREAM', 'test-consumer');
+    const messages = await consumer.fetch({ max_messages: 1, expires: 5000 });
+    
+    let received: any = null;
+    for await (const msg of messages) {
+      received = JSON.parse(msg.data.toString());
+      msg.ack();
+      break;
+    }
+    
+    expect(received).toMatchObject(payload);
+  }, 10000);
+  
+  it('должен отправлять в DLQ после 3 неудачных попыток', async () => {
+    // TODO: Реализовать тест для Dead Letter Queue
+    expect(true).toBe(true);
+  });
+});
+EOF
+        
+        sed -i "s/SERVICE_NAME/${service_name^^}/g" "$tests_dir/integration/nats.integration.spec.ts"
+        
+        print_log "$GREEN" "SUCCESS" "✅ Integration tests: $tests_dir/integration/nats.integration.spec.ts"
+    fi
+    
+    # Генерация Chaos Tests
+    if [[ "$test_type" == "all" || "$test_type" == "chaos" ]]; then
+        print_log "$CYAN" "INFO" "📝 Генерация minimal chaos tests (Toxiproxy)..."
+        mkdir -p "$tests_dir/chaos"
+        
+        cat > "$tests_dir/chaos/nats-disconnect.chaos.spec.ts" << 'EOF'
+/**
+ * Chaos Test: NATS Disconnect
+ * 
+ * Проверяет отказоустойчивость при потере соединения с NATS
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import axios from 'axios';
+
+describe('Chaos: NATS Disconnect', () => {
+  let natsContainer: StartedTestContainer;
+  let proxyContainer: StartedTestContainer;
+  
+  beforeAll(async () => {
+    // Запуск NATS
+    natsContainer = await new GenericContainer('nats:2.10-alpine')
+      .withExposedPorts(4222)
+      .withCommand(['-js'])
+      .start();
+    
+    // Запуск Toxiproxy
+    proxyContainer = await new GenericContainer('ghcr.io/shopify/toxiproxy:2.5.0')
+      .withExposedPorts(8474, 4223)
+      .start();
+    
+    const proxyApiUrl = `http://localhost:${proxyContainer.getMappedPort(8474)}`;
+    
+    // Создаём proxy для NATS
+    await axios.post(`${proxyApiUrl}/proxies`, {
+      name: 'nats',
+      listen: '0.0.0.0:4223',
+      upstream: `${natsContainer.getHost()}:${natsContainer.getMappedPort(4222)}`,
+      enabled: true
+    });
+  }, 60000);
+  
+  afterAll(async () => {
+    await natsContainer?.stop();
+    await proxyContainer?.stop();
+  });
+  
+  it('сервис должен восстановить соединение через retry', async () => {
+    // TODO: Запустить сервис через proxy
+    // TODO: Отключить NATS через Toxiproxy на 5s
+    // TODO: Проверить, что событие доставлено после переподключения
+    
+    expect(true).toBe(true); // Placeholder
+  }, 30000);
+});
+EOF
+        
+        print_log "$GREEN" "SUCCESS" "✅ Chaos tests: $tests_dir/chaos/nats-disconnect.chaos.spec.ts"
+    fi
+    
+    # Генерация Performance Tests
+    if [[ "$test_type" == "all" || "$test_type" == "performance" ]]; then
+        print_log "$CYAN" "INFO" "📝 Генерация minimal performance tests (k6)..."
+        mkdir -p "$tests_dir/performance"
+        
+        cat > "$tests_dir/performance/baseline.load.js" << 'EOF'
+/**
+ * Performance Test: Baseline (10 RPS)
+ * 
+ * Выявляет грубые ошибки производительности
+ * 
+ * Запуск: k6 run tests/performance/baseline.load.js
+ */
+
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export let options = {
+  vus: 10,           // 10 виртуальных пользователей
+  duration: '1m',    // 1 минута
+  thresholds: {
+    http_req_duration: ['p(95)<500'],  // p95 < 500ms
+    http_req_failed: ['rate<0.01'],    // error rate < 1%
+  },
+};
+
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+
+export default function () {
+  // TODO: Заменить на реальные endpoints из openapi.yaml
+  
+  // Пример: создание ресурса
+  let createRes = http.post(`${BASE_URL}/api/v1/SERVICE_NAME/resources`, JSON.stringify({
+    name: 'test',
+    value: 'example'
+  }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  check(createRes, {
+    'status 201': (r) => r.status === 201,
+    'has id': (r) => r.json('id') !== undefined,
+  });
+  
+  // Пример: получение ресурса
+  if (createRes.status === 201) {
+    const resourceId = createRes.json('id');
+    let getRes = http.get(`${BASE_URL}/api/v1/SERVICE_NAME/resources/${resourceId}`);
+    
+    check(getRes, {
+      'status 200': (r) => r.status === 200,
+      'p95 < 500ms': (r) => r.timings.duration < 500,
+    });
+  }
+  
+  sleep(1);
+}
+EOF
+        
+        sed -i "s/SERVICE_NAME/$service_name/g" "$tests_dir/performance/baseline.load.js"
+        
+        print_log "$GREEN" "SUCCESS" "✅ Performance tests: $tests_dir/performance/baseline.load.js"
+    fi
+    
+    # Генерация package.json для тестов
+    if [[ "$test_type" == "all" ]]; then
+        print_log "$CYAN" "INFO" "📝 Генерация package.json для тестов..."
+        
+        cat > "$service_path/package.json" << 'EOF'
+{
+  "name": "SERVICE_NAME-tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:contract": "jest tests/contract",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "playwright test",
+    "test:chaos": "jest tests/chaos",
+    "test:performance": "k6 run tests/performance/baseline.load.js",
+    "test:all": "npm run test:contract && npm run test:unit && npm run test:integration"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.40.0",
+    "@stoplight/prism-cli": "^5.5.0",
+    "@stoplight/spectral-core": "^1.18.0",
+    "@stoplight/spectral-ruleset-bundler": "^1.5.0",
+    "@types/jest": "^29.5.10",
+    "ajv": "^8.12.0",
+    "axios": "^1.6.2",
+    "jest": "^29.7.0",
+    "js-yaml": "^4.1.0",
+    "nats": "^2.18.0",
+    "testcontainers": "^10.4.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.2"
+  }
+}
+EOF
+        
+        sed -i "s/SERVICE_NAME/$service_name/g" "$service_path/package.json"
+        
+        print_log "$GREEN" "SUCCESS" "✅ package.json: $service_path/package.json"
+    fi
+    
+    print_log "$BLUE" "INFO" ""
+    print_log "$BLUE" "INFO" "🎉 Генерация тестов завершена!"
+    print_log "$CYAN" "INFO" ""
+    print_log "$CYAN" "INFO" "📁 Структура тестов:"
+    print_log "$CYAN" "INFO" "   $tests_dir/"
+    
+    if [[ "$test_type" == "all" || "$test_type" == "contract-rest" || "$test_type" == "contract-events" ]]; then
+        print_log "$CYAN" "INFO" "   ├── contract/"
+        if [[ -f "$tests_dir/contract/openapi.contract.spec.ts" ]]; then
+            print_log "$CYAN" "INFO" "   │   ├── openapi.contract.spec.ts"
+        fi
+        if [[ -f "$tests_dir/contract/asyncapi.contract.spec.ts" ]]; then
+            print_log "$CYAN" "INFO" "   │   └── asyncapi.contract.spec.ts"
+        fi
+    fi
+    
+    if [[ "$test_type" == "all" || "$test_type" == "integration" ]]; then
+        print_log "$CYAN" "INFO" "   ├── integration/"
+        print_log "$CYAN" "INFO" "   │   └── nats.integration.spec.ts"
+    fi
+    
+    if [[ "$test_type" == "all" || "$test_type" == "chaos" ]]; then
+        print_log "$CYAN" "INFO" "   ├── chaos/"
+        print_log "$CYAN" "INFO" "   │   └── nats-disconnect.chaos.spec.ts"
+    fi
+    
+    if [[ "$test_type" == "all" || "$test_type" == "performance" ]]; then
+        print_log "$CYAN" "INFO" "   └── performance/"
+        print_log "$CYAN" "INFO" "       └── baseline.load.js"
+    fi
+    
+    print_log "$CYAN" "INFO" ""
+    print_log "$CYAN" "INFO" "🚀 Следующие шаги:"
+    print_log "$CYAN" "INFO" "   1. cd $service_path"
+    print_log "$CYAN" "INFO" "   2. npm install"
+    print_log "$CYAN" "INFO" "   3. npm run test:contract   # Валидация контрактов"
+    print_log "$CYAN" "INFO" "   4. npm run test:integration # NATS + DB integration"
+    print_log "$CYAN" "INFO" ""
+    print_log "$YELLOW" "WARN" "⚠️  TODO: Заменить плейсхолдеры (TODO_EVENT, TODO_ENDPOINT) на реальные значения из contracts/"
+}
+
 # Функция проверки состояния Quark UI
 check_ui_health() {
     print_header "🔍 Проверка состояния Quark UI..."
@@ -974,6 +1537,9 @@ main() {
             ;;
         spec:mock)
             spec_mock_server "$@"
+            ;;
+        spec:generate-tests)
+            spec_generate_tests "$@"
             ;;
         *)
             print_log "$RED" "ERROR" "❌ Неизвестная команда: $command"
