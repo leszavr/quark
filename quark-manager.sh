@@ -186,18 +186,23 @@ compare_versions() {
     local current="$1"
     local latest="$2"
     
-    # Извлекаем major.minor.patch
-    local current_major=$(echo "$current" | cut -d. -f1 | tr -d '^~')
-    local current_minor=$(echo "$current" | cut -d. -f2)
-    local latest_major=$(echo "$latest" | cut -d. -f1 | tr -d '^~')
-    local latest_minor=$(echo "$latest" | cut -d. -f2)
+    # Очистка версий от префиксов и суффиксов
+    current=$(echo "$current" | sed 's/[^0-9.].*$//' | sed 's/^[^0-9]*//')
+    latest=$(echo "$latest" | sed 's/[^0-9.].*$//' | sed 's/^[^0-9]*//')
     
+    # Извлекаем major версию
+    local current_major=$(echo "$current" | cut -d. -f1)
+    local latest_major=$(echo "$latest" | cut -d. -f1)
+    
+    # Проверяем на пустые значения
+    [[ -z "$current_major" || -z "$latest_major" ]] && echo "unknown" && return
+    
+    # Сравниваем только major версию для определения breaking changes
     if [[ "$latest_major" != "$current_major" ]]; then
         echo "major"
-    elif [[ "$latest_minor" != "$current_minor" ]]; then
-        echo "minor"
     else
-        echo "patch"
+        # Все остальные обновления (minor/patch) безопасны
+        echo "minor"
     fi
 }
 
@@ -229,47 +234,69 @@ check_outdated_packages() {
         esac
         
         if [[ -f "$service_path/package.json" ]]; then
-            print_log "$BLUE" "INFO" "📦 Проверка $service..."
+            echo -ne "📦 Проверка $service... "
             
-            # Получаем список устаревших пакетов
-            local outdated_output=$(cd "$service_path" && pnpm outdated --depth=0 --format json 2>/dev/null || echo "{}")
+            # Показываем спиннер во время проверки
+            local spinner_pid
+            (while true; do for s in '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏'; do echo -ne "\r📦 Проверка $service... $s"; sleep 0.1; done; done) &
+            spinner_pid=$!
             
             # Проверяем наличие устаревших пакетов через простую проверку вывода
-            if (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null | grep -q .); then
+            local check_result=$(cd "$service_path" && pnpm outdated --depth=0 2>/dev/null)
+            kill $spinner_pid 2>/dev/null
+            wait $spinner_pid 2>/dev/null
+            echo -ne "\r\033[K"  # Очистка строки
+            
+            if echo "$check_result" | grep -q .; then
                 local service_has_minor=false
                 local service_has_major=false
+                local major_packages=()
+                local minor_packages=()
                 
                 # Анализируем каждый пакет
-                local packages_info=$(cd "$service_path" && pnpm outdated --depth=0 2>/dev/null | tail -n +2 || echo "")
+                local packages_info=$(echo "$check_result" | grep -v "WARN")
                 
                 if [[ -n "$packages_info" ]]; then
-                    while IFS= read -r line; do
-                        # Пропускаем пустые строки и разделители
-                        [[ -z "$line" || "$line" =~ ^[─┌┐└┘├┤┬┴┼│]+$ ]] && continue
+                    while IFS='│' read -r _ package current latest _; do
+                        # Очищаем от пробелов
+                        package=$(echo "$package" | xargs)
+                        current=$(echo "$current" | xargs)
+                        latest=$(echo "$latest" | xargs)
                         
-                        # Извлекаем версии (формат: Package | Current | Latest)
-                        local current_ver=$(echo "$line" | awk '{print $3}' | tr -d '│')
-                        local latest_ver=$(echo "$line" | awk '{print $5}' | tr -d '│')
+                        # Пропускаем заголовки и разделители
+                        [[ -z "$package" || "$package" == "Package" || "$current" == "Current" ]] && continue
+                        [[ "$package" =~ ^[─┌┐└┘├┤┬┴┼]+$ ]] && continue
                         
-                        if [[ -n "$current_ver" && -n "$latest_ver" && "$current_ver" != "Current" ]]; then
-                            local update_type=$(compare_versions "$current_ver" "$latest_ver")
+                        # Проверяем валидность версий
+                        if [[ -n "$current" && -n "$latest" && "$current" =~ ^[0-9] && "$latest" =~ ^[0-9] ]]; then
+                            local update_type=$(compare_versions "$current" "$latest")
                             
                             if [[ "$update_type" == "major" ]]; then
                                 service_has_major=true
-                            elif [[ "$update_type" == "minor" || "$update_type" == "patch" ]]; then
+                                major_packages+=("$package: $current → $latest")
+                            elif [[ "$update_type" == "minor" ]]; then
                                 service_has_minor=true
+                                minor_packages+=("$package: $current → $latest")
                             fi
                         fi
                     done <<< "$packages_info"
                 fi
                 
+                # Показываем MAJOR обновления (если есть)
                 if [[ "$service_has_major" == true ]]; then
-                    print_log "$RED" "WARN" "⚠️  В $service найдены MAJOR обновления (несовместимые):"
-                    (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
+                    print_log "$RED" "WARN" "⚠️  $service - MAJOR обновления (несовместимые, требуют тестирования):"
+                    for pkg in "${major_packages[@]}"; do
+                        echo -e "     ${RED}▸${NC} $pkg"
+                    done
                     has_major_updates=true
-                elif [[ "$service_has_minor" == true ]]; then
-                    print_log "$YELLOW" "WARN" "⚠️  В $service доступны minor/patch обновления (безопасные):"
-                    (cd "$service_path" && pnpm outdated --depth=0 2>/dev/null || true)
+                fi
+                
+                # Показываем Minor обновления (если есть)
+                if [[ "$service_has_minor" == true ]]; then
+                    print_log "$GREEN" "INFO" "✅ $service - Minor/Patch обновления (безопасные, обратно совместимые):"
+                    for pkg in "${minor_packages[@]}"; do
+                        echo -e "     ${GREEN}▸${NC} $pkg"
+                    done
                     has_minor_updates=true
                     services_to_update+=("$service:$service_path")
                 fi
@@ -284,22 +311,28 @@ check_outdated_packages() {
     # Обработка major обновлений (только информирование)
     if [[ "$has_major_updates" == true ]]; then
         echo ""
-        print_log "$RED" "WARN" "❌ ВНИМАНИЕ: Обнаружены MAJOR обновления!"
-        print_log "$YELLOW" "INFO" "   MAJOR обновления могут нарушить совместимость."
-        print_log "$YELLOW" "INFO" "   Обновление НЕ РЕКОМЕНДУЕТСЯ без тестирования."
-        print_log "$CYAN" "INFO" "   Для ручного обновления: cd <service> && pnpm update <package>"
+        echo -e "${RED}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${RED}║  ⚠️  MAJOR ОБНОВЛЕНИЯ (требуют осторожности)              ║${NC}"
+        echo -e "${RED}╚════════════════════════════════════════════════════════════╝${NC}"
+        print_log "$YELLOW" "INFO" "   MAJOR версии могут содержать breaking changes"
+        print_log "$YELLOW" "INFO" "   Рекомендуется обновлять вручную с тестированием"
+        print_log "$CYAN" "INFO" "   Команда: cd <service> && pnpm update <package>@latest"
         echo ""
     fi
     
     # Обработка minor обновлений (предлагаем автоматическое обновление)
     if [[ "$has_minor_updates" == true ]]; then
         echo ""
-        print_log "$GREEN" "INFO" "✅ Доступны безопасные minor/patch обновления"
+        echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║  ✅ MINOR/PATCH ОБНОВЛЕНИЯ (безопасные)                   ║${NC}"
+        echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
         print_log "$CYAN" "INFO" "   Minor/patch версии обратно совместимы (semver)"
+        print_log "$CYAN" "INFO" "   Обновление безопасно для production"
+        print_log "$CYAN" "INFO" "   Сервисов для обновления: ${#services_to_update[@]}"
         echo ""
         
         # Предлагаем обновить с таймером 10 секунд (по умолчанию N)
-        echo -e "${WHITE}Обновить пакеты автоматически? [y/N]: (по умолчанию N через 10 секунд)${NC}"
+        echo -e "${WHITE}Обновить minor/patch пакеты автоматически? [y/N]: (по умолчанию N через 10 секунд)${NC}"
         
         local choice="n"
         if read -t 10 -r user_input; then
@@ -310,25 +343,40 @@ check_outdated_packages() {
         
         case $choice in
             [Yy]|[Yy][Ee][Ss])
-                print_log "$GREEN" "INFO" "🔄 Начинаем обновление пакетов..."
+                echo ""
+                echo -e "${GREEN}🔄 Начинаем обновление пакетов...${NC}"
+                echo ""
+                
+                local updated_count=0
+                local failed_count=0
                 
                 for service_info in "${services_to_update[@]}"; do
                     local service="${service_info%%:*}"
                     local service_path="${service_info##*:}"
                     
                     print_log "$BLUE" "INFO" "📦 Обновление $service..."
-                    if (cd "$service_path" && pnpm update --latest 2>&1 | tee -a "$LOG_FILE"); then
-                        print_log "$GREEN" "SUCCESS" "✅ $service успешно обновлен"
+                    
+                    # Обновляем только minor/patch версии (без major)
+                    if (cd "$service_path" && pnpm update 2>&1 | grep -v "WARN" | tee -a "$LOG_FILE" | tail -5); then
+                        print_log "$GREEN" "SUCCESS" "   ✅ $service успешно обновлен"
+                        ((updated_count++))
                     else
-                        print_log "$RED" "ERROR" "❌ Ошибка обновления $service"
+                        print_log "$RED" "ERROR" "   ❌ Ошибка обновления $service"
+                        ((failed_count++))
                     fi
+                    echo ""
                 done
                 
-                print_log "$GREEN" "SUCCESS" "✅ Обновление завершено!"
+                echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+                echo -e "${GREEN}║  Результаты обновления:                                   ║${NC}"
+                echo -e "${GREEN}║  ✅ Успешно: $updated_count                                           ║${NC}"
+                [[ $failed_count -gt 0 ]] && echo -e "${RED}║  ❌ Ошибок: $failed_count                                            ║${NC}"
+                echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
                 echo ""
                 ;;
             *)
                 print_log "$YELLOW" "WARN" "⚠️  Обновление пропущено. Продолжаем с текущими версиями..."
+                echo ""
                 ;;
         esac
     fi
