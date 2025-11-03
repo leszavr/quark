@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,22 +70,21 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
-  });
+  res.status(status).json({ message });
+  throw err;
+});
 
-  // Serve static files for production
-  serveStatic(app);
+// Serve static files for production
+serveStatic(app);
 
-  // Use port from environment (3004 for Quark integration)
-  const port = parseInt(process.env.PORT || "3004", 10);
+// Use port from environment (3004 for Quark integration)
+const port = Number.parseInt(process.env.PORT || "3004", 10);
   server.listen({
     port,
     host: "0.0.0.0",
@@ -95,4 +94,3 @@ app.use((req, res, next) => {
     log(`📊 Environment: ${process.env.NODE_ENV || "production"}`);
     log(`🌐 Interface доступен на http://localhost:${port}`);
   });
-})();

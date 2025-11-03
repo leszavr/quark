@@ -1,54 +1,30 @@
 "use client";
 
-import {
-  Button,
-  ButtonGroup,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuDivider,
-  useToast,
-  Tooltip,
-  Badge,
-  HStack,
-  Text,
-  Box,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-  Textarea,
-  VStack,
-  Progress,
-  Alert,
-  AlertIcon,
-  Spinner,
-} from "@chakra-ui/react";
+import { Button } from "@/shared/ui/button/Button";
+import { Badge } from "@/shared/ui/badge/Badge";
+import { Dialog } from "@/shared/ui/dialog/Dialog";
+import { Progress } from "@/shared/ui/progress/Progress";
+import { Alert } from "@/shared/ui/alert/Alert";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/shared/ui/dropdown-menu/DropdownMenu";
+import { useToast } from "@/hooks/useToast";
 import { useState, useEffect } from "react";
 import { 
-  FiCpu, 
-  FiChevronDown,
-  FiSettings,
-  FiZap,
-  FiEdit3,
-  FiMessageSquare,
-  FiFileText,
-  FiImage,
-  FiMic
-} from "react-icons/fi";
+  Cpu, 
+  ChevronDown,
+  Settings,
+  Zap,
+  Edit3,
+  MessageSquare,
+  FileText,
+  Loader2
+} from "lucide-react";
 
 interface AIAssistantProps {
-  mode: "post" | "chat" | "message";
-  onGenerate: (content: string) => void;
-  currentContent?: string;
-  placeholder?: string;
-  disabled?: boolean;
+  readonly mode: "post" | "chat" | "message";
+  readonly onGenerate: (content: string) => void;
+  readonly currentContent?: string;
+  readonly placeholder?: string;
+  readonly disabled?: boolean;
 }
 
 interface AISettings {
@@ -75,25 +51,25 @@ const quickActions = [
   {
     id: "improve",
     label: "Улучшить текст",
-    icon: FiEdit3,
+    icon: Edit3,
     prompt: "Улучши этот текст, сделай его более читаемым и интересным:"
   },
   {
     id: "shorten",
     label: "Сократить",
-    icon: FiZap,
+    icon: Zap,
     prompt: "Сократи этот текст, оставив только самое важное:"
   },
   {
     id: "expand",
     label: "Расширить",
-    icon: FiFileText,
+    icon: FileText,
     prompt: "Расширь этот текст, добавь больше деталей и примеров:"
   },
   {
     id: "tone",
     label: "Изменить тон",
-    icon: FiMessageSquare,
+    icon: MessageSquare,
     prompt: "Перепиши этот текст в более дружелюбном и позитивном тоне:"
   },
 ];
@@ -110,8 +86,8 @@ export function AIAssistant({
   const [prompt, setPrompt] = useState("");
   const [progress, setProgress] = useState(0);
   const [generatedContent, setGeneratedContent] = useState("");
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
 
   // Загружаем настройки AI из localStorage
   useEffect(() => {
@@ -133,16 +109,6 @@ export function AIAssistant({
     setGeneratedContent("");
     
     try {
-      const basePrompt = mode === "post" 
-        ? settings.postPrompt 
-        : mode === "chat" 
-        ? settings.chatPrompt 
-        : settings.systemPrompt;
-      
-      const fullPrompt = customPrompt 
-        ? `${customPrompt} ${currentContent}`
-        : `${basePrompt} ${prompt}`;
-
       // Имитируем процесс генерации с прогрессом
       const words = [
         "Анализирую запрос...",
@@ -158,45 +124,56 @@ export function AIAssistant({
       }
 
       // Имитируем сгенерированный контент (в реальности здесь был бы API вызов)
-      let mockContent = "";
-      if (customPrompt?.includes("Улучши")) {
-        mockContent = `Улучшенная версия:\n\n${currentContent}\n\nДобавлены улучшения: более четкая структура, живые примеры и эмоциональная окраска текста.`;
-      } else if (customPrompt?.includes("Сократи")) {
-        mockContent = `Краткая версия: ${currentContent.slice(0, Math.floor(currentContent.length / 2))}...`;
-      } else if (customPrompt?.includes("Расширь")) {
-        mockContent = `${currentContent}\n\nДополнительные детали:\n• Интересные факты по теме\n• Практические примеры\n• Рекомендации для читателей`;
-      } else if (customPrompt?.includes("тон")) {
-        mockContent = `✨ ${currentContent.replace(/\./g, "! 😊").replace(/,/g, ", и это здорово,")} ✨`;
-      } else {
-        mockContent = mode === "post" 
-          ? `🚀 Интересный пост по теме "${prompt}"\n\nВведение с крючком для привлечения внимания...\n\nОсновная часть с ценной информацией:\n• Ключевой момент 1\n• Ключевой момент 2\n• Ключевой момент 3\n\nЗаключение с призывом к действию. 💡`
-          : mode === "chat"
-          ? `Привет! 👋 Отвечаю на твой вопрос: "${prompt}"\n\nВот подробный и полезный ответ с практическими советами и рекомендациями...`
-          : `Ответ по теме "${prompt}":\n\nСтруктурированная информация с примерами и объяснениями...`;
-      }
+      const mockContent = getMockContent(customPrompt, currentContent, mode, prompt);
 
       setGeneratedContent(mockContent);
 
       toast({
         title: "Контент сгенерирован",
         description: `AI создал ${mode === "post" ? "пост" : "сообщение"} на основе ваших настроек`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
       });
 
     } catch (error) {
+      console.error("Ошибка генерации AI:", error);
       toast({
         title: "Ошибка генерации",
         description: "Не удалось сгенерировать контент. Попробуйте еще раз.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     } finally {
       setIsGenerating(false);
     }
   };
+
+  // Вспомогательная функция для получения базового промпта
+  function getBasePrompt(mode: string, settings: AISettings): string {
+    if (mode === "post") return settings.postPrompt;
+    if (mode === "chat") return settings.chatPrompt;
+    return settings.systemPrompt;
+  }
+
+  // Вспомогательная функция для генерации mock контента
+  function getMockContent(customPrompt: string | undefined, content: string, mode: string, userPrompt: string): string {
+    if (customPrompt?.includes("Улучши")) {
+      return `Улучшенная версия:\n\n${content}\n\nДобавлены улучшения: более четкая структура, живые примеры и эмоциональная окраска текста.`;
+    }
+    if (customPrompt?.includes("Сократи")) {
+      return `Краткая версия: ${content.slice(0, Math.floor(content.length / 2))}...`;
+    }
+    if (customPrompt?.includes("Расширь")) {
+      return `${content}\n\nДополнительные детали:\n• Интересные факты по теме\n• Практические примеры\n• Рекомендации для читателей`;
+    }
+    if (customPrompt?.includes("тон")) {
+      return `✨ ${content.replaceAll(".", "! 😊").replaceAll(",", ", и это здорово,")} ✨`;
+    }
+    
+    if (mode === "post") {
+      return `🚀 Интересный пост по теме "${userPrompt}"\n\nВведение с крючком для привлечения внимания...\n\nОсновная часть с ценной информацией:\n• Ключевой момент 1\n• Ключевой момент 2\n• Ключевой момент 3\n\nЗаключение с призывом к действию. 💡`;
+    }
+    if (mode === "chat") {
+      return `Привет! 👋 Отвечаю на твой вопрос: "${userPrompt}"\n\nВот подробный и полезный ответ с практическими советами и рекомендациями...`;
+    }
+    return `Ответ по теме "${userPrompt}":\n\nСтруктурированная информация с примерами и объяснениями...`;
+  }
 
   // Быстрое действие
   const handleQuickAction = (action: typeof quickActions[0]) => {
@@ -204,9 +181,6 @@ export function AIAssistant({
       toast({
         title: "Нет контента",
         description: "Сначала введите текст для обработки",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
       });
       return;
     }
@@ -218,7 +192,7 @@ export function AIAssistant({
     onGenerate(generatedContent);
     setGeneratedContent("");
     setPrompt("");
-    onClose();
+    setIsOpen(false);
   };
 
   // Открытие настроек AI
@@ -230,163 +204,162 @@ export function AIAssistant({
 
   return (
     <>
-      <ButtonGroup isAttached variant="outline">
+      <div className="flex items-center gap-0 border border-gray-300 dark:border-gray-700 rounded-md overflow-hidden">
         <Button
-          leftIcon={<FiCpu />}
-          onClick={onOpen}
-          isDisabled={disabled}
-          colorScheme="blue"
-          size="sm"
+          onClick={() => setIsOpen(true)}
+          disabled={disabled}
+          className="rounded-none border-0 flex items-center gap-2"
         >
+          <Cpu size={16} />
           AI Ассистент
-          {!hasAISettings && <Badge ml={2} colorScheme="orange" size="sm">Настроить</Badge>}
+          {!hasAISettings && <Badge className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Настроить</Badge>}
         </Button>
         
-        <Menu>
-          <MenuButton
-            as={IconButton}
-            icon={<FiChevronDown />}
-            isDisabled={disabled}
-            size="sm"
-            colorScheme="blue"
-          />
-          <MenuList>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              disabled={disabled}
+              className="rounded-none border-0 border-l border-gray-300 dark:border-gray-700 px-2"
+            >
+              <ChevronDown size={16} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
             {currentContent && (
               <>
-                <MenuItem fontSize="sm" color="gray.500" fontWeight="semibold" isDisabled>
+                <div className="px-2 py-1.5 text-sm text-gray-500 font-semibold">
                   Быстрые действия
-                </MenuItem>
-                {quickActions.map((action) => (
-                  <MenuItem
-                    key={action.id}
-                    icon={<action.icon />}
-                    onClick={() => handleQuickAction(action)}
-                    fontSize="sm"
-                  >
-                    {action.label}
-                  </MenuItem>
-                ))}
-                <MenuDivider />
+                </div>
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={action.id}
+                      onClick={() => handleQuickAction(action)}
+                    >
+                      <Icon size={16} className="mr-2" />
+                      {action.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
               </>
             )}
-            <MenuItem 
-              icon={<FiSettings />} 
-              onClick={openAISettings}
-              fontSize="sm"
-            >
+            <DropdownMenuItem onClick={openAISettings}>
+              <Settings size={16} className="mr-2" />
               Настройки AI
-            </MenuItem>
-          </MenuList>
-        </Menu>
-      </ButtonGroup>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* Модальное окно AI ассистента */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            <HStack>
-              <FiCpu />
-              <Text>AI Ассистент</Text>
-              <Badge colorScheme="blue" variant="subtle">
-                {settings.model}
-              </Badge>
-            </HStack>
-          </ModalHeader>
-          <ModalCloseButton />
-          
-          <ModalBody>
-            <VStack spacing={4} align="stretch">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <Cpu size={20} />
+                <h2 className="text-lg font-semibold">AI Ассистент</h2>
+                <Badge variant="secondary">{settings.model}</Badge>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-4">
               {!hasAISettings && (
-                <Alert status="warning" size="sm">
-                  <AlertIcon />
-                  <Box>
-                    <Text fontSize="sm">
-                      AI агент не настроен. 
-                      <Text as="span" cursor="pointer" color="blue.500" onClick={openAISettings} ml={1}>
+                <Alert variant="default" className="bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800">
+                  <div>
+                    <p className="text-sm">
+                      AI агент не настроен.{" "}
+                      <button
+                        type="button"
+                        className="cursor-pointer text-blue-500 hover:underline ml-1"
+                        onClick={openAISettings}
+                      >
                         Перейти к настройкам →
-                      </Text>
-                    </Text>
-                  </Box>
+                      </button>
+                    </p>
+                  </div>
                 </Alert>
               )}
 
-              <Box>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>
+              <div>
+                <label htmlFor="ai-prompt-input" className="text-sm font-medium mb-2 block">
                   Что вы хотите создать?
-                </Text>
-                <Textarea
+                </label>
+                <textarea
+                  id="ai-prompt-input"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={placeholder}
-                  minH="100px"
-                  resize="vertical"
+                  className="w-full min-h-[100px] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 resize-y"
                 />
-              </Box>
+              </div>
 
               {isGenerating && (
-                <Box>
-                  <HStack justify="space-between" mb={2}>
-                    <HStack>
-                      <Spinner size="sm" color="blue.500" />
-                      <Text fontSize="sm">Генерирую контент...</Text>
-                    </HStack>
-                    <Text fontSize="sm" color="gray.500">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin text-blue-500" />
+                      <p className="text-sm">Генерирую контент...</p>
+                    </div>
+                    <p className="text-sm text-gray-500">
                       {Math.round(progress)}%
-                    </Text>
-                  </HStack>
-                  <Progress 
-                    value={progress} 
-                    colorScheme="blue" 
-                    size="sm" 
-                    borderRadius="md"
-                  />
-                </Box>
+                    </p>
+                  </div>
+                  <Progress value={progress} className="bg-blue-500" />
+                </div>
               )}
 
               {generatedContent && (
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" mb={2}>
+                <div>
+                  <label htmlFor="ai-result-textarea" className="text-sm font-medium mb-2 block">
                     Результат:
-                  </Text>
-                  <Textarea
+                  </label>
+                  <textarea
+                    id="ai-result-textarea"
                     value={generatedContent}
                     onChange={(e) => setGeneratedContent(e.target.value)}
-                    minH="150px"
-                    resize="vertical"
-                    bg="blue.50"
-                    _dark={{ bg: "blue.900" }}
+                    className="w-full min-h-[150px] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-blue-50 dark:bg-blue-900 resize-y"
                   />
-                </Box>
+                </div>
               )}
-            </VStack>
-          </ModalBody>
+            </div>
 
-          <ModalFooter>
-            <ButtonGroup>
-              <Button variant="ghost" onClick={onClose}>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-800">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Отмена
               </Button>
               
               {generatedContent ? (
-                <Button colorScheme="blue" onClick={useGeneratedContent}>
+                <Button onClick={useGeneratedContent}>
                   Использовать
                 </Button>
               ) : (
                 <Button 
-                  colorScheme="blue" 
                   onClick={() => generateContent()}
-                  isDisabled={!prompt.trim() || isGenerating}
-                  isLoading={isGenerating}
-                  loadingText="Генерирую..."
+                  disabled={!prompt.trim() || isGenerating}
                 >
-                  Генерировать
+                  {isGenerating ? (
+                    <>
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                      Генерирую...
+                    </>
+                  ) : (
+                    "Генерировать"
+                  )}
                 </Button>
               )}
-            </ButtonGroup>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+            </div>
+          </div>
+        </div>
+      </Dialog>
     </>
   );
 }

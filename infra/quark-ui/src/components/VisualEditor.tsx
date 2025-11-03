@@ -1,7 +1,6 @@
 "use client";
 
-import { IconButton } from "../../button";
-import { Button } from "../../button";
+import { Button } from "../../shared/ui/button/Button";
 
 import { useState } from "react";
 import { Eye, Code, Edit3 } from "lucide-react";
@@ -13,15 +12,15 @@ import type { ICommand } from "@uiw/react-md-editor";
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 interface VisualEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  height?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly height?: string;
 }
 
 export function VisualEditor({ value, onChange, placeholder, height = "400px" }: VisualEditorProps) {
   // Цветовая схема теперь через Tailwind dark: классы
-  const colorMode = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const colorMode = globalThis.window !== undefined && globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   const [mode, setMode] = useState<"visual" | "code" | "preview">("visual");
 
   // Стили для темной темы
@@ -93,7 +92,7 @@ export function VisualEditor({ value, onChange, placeholder, height = "400px" }:
                   minHeight: height,
                 }
               }}
-              height={parseInt(height.replace("px", ""))}
+              height={Number.parseInt(height.replace("px", ""))}
               toolbarBottom={false}
               commands={toolbarButtons as unknown as ICommand[]}
             />

@@ -1,0 +1,20 @@
+{
+  "name": "typeguard-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "bin": {
+    "quark-typeguard": "index.ts"
+  },
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "ts-morph": "^20.0.0",
+    "npm-registry-fetch": "^13.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.1"
+  }
+}

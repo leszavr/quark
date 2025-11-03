@@ -8,7 +8,7 @@ import { CurrentUser } from "../common/decorators/user.decorator";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post("register")
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -110,7 +110,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async validateTokenForTraefik(@Request() req: { headers: any; res: any }): Promise<any> {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
       throw new ForbiddenException("Missing or invalid authorization header");
     }
 
@@ -144,6 +144,7 @@ export class AuthController {
         tokenType: payload.token_type
       };
     } catch (error) {
+      console.error("[JWT Validate] Token validation error:", error);
       throw new ForbiddenException("Invalid token");
     }
   }

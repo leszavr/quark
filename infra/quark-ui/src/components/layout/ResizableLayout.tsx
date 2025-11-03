@@ -7,16 +7,16 @@ import { motion, AnimatePresence } from "framer-motion";
 const MotionBox = motion.div;
 
 interface ResizableLayoutProps {
-  leftPanel: React.ReactNode;
-  rightPanel: React.ReactNode;
-  minLeftWidth?: number;
-  minRightWidth?: number;
-  defaultLeftWidth?: number;
-  height?: string;
+  readonly leftPanel: React.ReactNode;
+  readonly rightPanel: React.ReactNode;
+  readonly minLeftWidth?: number;
+  readonly minRightWidth?: number;
+  readonly defaultLeftWidth?: number;
+  readonly height?: string;
   // Пропсы для мобильной навигации
-  onChatSelect?: () => void;
-  onBackToList?: () => void;
-  mobileThreshold?: number; // порог ширины для мобильного режима (в процентах)
+  readonly onChatSelect?: () => void;
+  readonly onBackToList?: () => void;
+  readonly mobileThreshold?: number; // порог ширины для мобильного режима (в процентах)
 }
 
 export function ResizableLayout({
@@ -113,21 +113,7 @@ export function ResizableLayout({
         style={{ height }}
       >
         <AnimatePresence mode="wait">
-          {!showChatWindow ? (
-            // Показываем список чатов
-            <MotionBox
-              key="chat-list"
-              initial={{ x: 0 }}
-              animate={{ x: 0 }}
-              exit={{ x: -100, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute top-0 left-0 w-full h-full"
-            >
-              {React.cloneElement(leftPanel as React.ReactElement<{ onChatClick: () => void }>, {
-                onChatClick: openChatWindow
-              })}
-            </MotionBox>
-          ) : (
+          {showChatWindow ? (
             // Показываем окно чата
             <MotionBox
               key="chat-window"
@@ -140,6 +126,20 @@ export function ResizableLayout({
               {React.cloneElement(rightPanel as React.ReactElement<{ showBackButton: boolean; onBack: () => void }>, {
                 showBackButton: true,
                 onBack: backToChatList
+              })}
+            </MotionBox>
+          ) : (
+            // Показываем список чатов
+            <MotionBox
+              key="chat-list"
+              initial={{ x: 0 }}
+              animate={{ x: 0 }}
+              exit={{ x: -100, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute top-0 left-0 w-full h-full"
+            >
+              {React.cloneElement(leftPanel as React.ReactElement<{ onChatClick: () => void }>, {
+                onChatClick: openChatWindow
               })}
             </MotionBox>
           )}

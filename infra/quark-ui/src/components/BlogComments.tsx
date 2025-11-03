@@ -18,12 +18,12 @@ export interface Comment {
 }
 
 export interface BlogCommentsProps {
-  postId: string;
-  comments?: Comment[];
-  onAddComment?: (content: string, parentId?: string) => void;
-  onEditComment?: (commentId: string, content: string) => void;
-  onDeleteComment?: (commentId: string) => void;
-  onLikeComment?: (commentId: string) => void;
+  readonly postId: string;
+  readonly comments?: Comment[];
+  readonly onAddComment?: (content: string, parentId?: string) => void;
+  readonly onEditComment?: (commentId: string, content: string) => void;
+  readonly onDeleteComment?: (commentId: string) => void;
+  readonly onLikeComment?: (commentId: string) => void;
 }
 
 const mockComments: Comment[] = [
@@ -90,21 +90,11 @@ export function BlogComments({
     setReplyTo(null);
   };
 
-  const handleEditComment = (commentId: string, content: string) => {
-    setEditingComment(commentId);
-    setEditingContent(content);
-  };
-
   const handleSaveEdit = () => {
     if (!editingContent.trim() || !editingComment) return;
     onEditComment?.(editingComment, editingContent);
     setEditingComment(null);
     setEditingContent("");
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    setCommentToDelete(commentId);
-    setIsOpen(true);
   };
 
   const confirmDelete = () => {

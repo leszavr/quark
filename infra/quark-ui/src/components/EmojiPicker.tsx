@@ -1,14 +1,13 @@
 "use client";
 
-import { Button } from "../../button";
-import { IconButton } from "../../button";
+import { Button } from "../../shared/ui/button/Button";
 // Остальные компоненты Chakra UI временно оставлены для поэтапной миграции
 import { useState } from "react";
 import { Smile } from "lucide-react";
 
 interface EmojiPickerProps {
-  onEmojiSelect: (emoji: string) => void;
-  children?: React.ReactNode;
+  readonly onEmojiSelect: (emoji: string) => void;
+  readonly children?: React.ReactNode;
 }
 
 // Категории эмодзи
@@ -58,7 +57,7 @@ const emojiCategories = {
 
 export function EmojiPicker({ onEmojiSelect, children }: EmojiPickerProps) {
   // Цветовая схема теперь через Tailwind dark: классы
-  const colorMode = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const colorMode = globalThis.window !== undefined && globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   const [selectedCategory, setSelectedCategory] = useState("smileys");
 
   const handleEmojiClick = (emoji: string) => {
@@ -68,7 +67,13 @@ export function EmojiPicker({ onEmojiSelect, children }: EmojiPickerProps) {
   return (
     <div className="relative inline-block">
       {children || (
-        <IconButton icon={<Smile size={18} />} aria-label="Выбрать эмодзи" className="text-gray-500 hover:text-secondary-500 p-2" />
+        <button
+          type="button"
+          aria-label="Выбрать эмодзи"
+          className="text-gray-500 hover:text-secondary-500 p-2 rounded-md"
+        >
+          <Smile size={18} />
+        </button>
       )}
       <div
         className={`absolute left-0 top-full mt-2 w-[320px] h-[280px] z-10 rounded-lg shadow-xl border ${colorMode === "dark" ? "bg-gray-800 border-gray-600" : "bg-white border-gray-200"}`}

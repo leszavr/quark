@@ -37,13 +37,15 @@ COPY --from=builder /workspace/node_modules ./node_modules
 
 # Fix: создаём отсутствующие симлинки для зависимостей blog-service
 # pnpm workspace иногда не создаёт симлинки для всех зависимостей
-RUN cd /app/node_modules && \
-    if [ ! -e drizzle-zod ] && [ -d .pnpm ]; then \
+WORKDIR /app/node_modules
+RUN if [ ! -e drizzle-zod ] && [ -d .pnpm ]; then \
         DRIZZLE_ZOD_PATH=$(find .pnpm -maxdepth 1 -name "drizzle-zod@*" -type d | head -1); \
         if [ -n "$DRIZZLE_ZOD_PATH" ]; then \
             ln -sf "$DRIZZLE_ZOD_PATH/node_modules/drizzle-zod" drizzle-zod; \
         fi; \
     fi
+
+WORKDIR /app
 
 # Копируем собранное приложение из builder
 COPY --from=builder /workspace/services/blog-service/dist ./dist

@@ -51,7 +51,7 @@ declare global {
 }
 
 export class PluginHubJWTMiddleware {
-  private pluginHubUrl: string;
+  private readonly pluginHubUrl: string;
 
   constructor(pluginHubUrl: string) {
     this.pluginHubUrl = pluginHubUrl;
@@ -93,11 +93,11 @@ export class PluginHubJWTMiddleware {
               try {
                 return JSON.parse(role);
               } catch {
-                return role.replace(/[{}"]/g, "").split(",").map((r: string) => r.trim());
+                return role.replaceAll(/[{}"]/g, "").split(",").map((r: string) => r.trim());
               }
             }
             return role;
-          }).filter((r: string) => r && r.trim());
+          }).filter((r: string) => r?.trim());
         }
         if (userPermissions) {
           permissions = userPermissions.startsWith("[") ? JSON.parse(userPermissions) : userPermissions.split(",");
@@ -106,7 +106,7 @@ export class PluginHubJWTMiddleware {
         console.warn("Failed to parse user roles/permissions from headers:", parseError);
         // Fallback - попробуем простой парсинг
         if (userRoles) {
-          roles = userRoles.replace(/[[\]{}",]/g, "").split(/\s+/).filter((r: string) => r.trim());
+          roles = userRoles.replaceAll(/[[\]{}",]/g, "").split(/\s+/).filter((r: string) => r.trim());
         }
       }
 

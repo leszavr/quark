@@ -10,7 +10,7 @@ import { UpdateProfileDto, ChangePasswordDto } from "../common/dto/profile.dto";
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private readonly usersRepository: Repository<User>,
   ) {}
 
   async create(registerDto: RegisterDto): Promise<User> {
@@ -20,7 +20,7 @@ export class UsersService {
     const existingUser = await this.usersRepository.findOne({
       where: [
         { email },
-        { phone: phone ? phone : undefined }
+        { phone: phone || undefined }
       ],
     });
 

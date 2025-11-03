@@ -1,11 +1,8 @@
 "use client";
 
-import {
-  Box, Flex, Text, VStack, HStack, Card, CardBody, CardHeader,
-  Heading, Badge, Stat, StatLabel, StatNumber,
-  IconButton, Tooltip, useColorMode, useColorModeValue, Divider
-} from "@chakra-ui/react";
-import { useState } from "react";
+import { Card } from "@/shared/ui/card/Card";
+import { Badge } from "@/shared/ui/badge/Badge";
+import { Button } from "@/shared/ui/button/Button";
 import { 
   Users, Activity, Monitor, Cpu, Bell, Settings, 
   FileText, Plus, Download, RefreshCw
@@ -15,73 +12,57 @@ type UsersProps = React.ComponentProps<typeof Users>;
 // Компонент главной страницы админки
 export function DashboardContent() {
   return (
-    <VStack spacing={6} align="stretch">
-      <Heading size="xl" fontFamily="Space Grotesk">
+    <div className="flex flex-col gap-6">
+      <h1 className="text-4xl font-bold font-['Space_Grotesk']">
         Обзор системы
-      </Heading>
+      </h1>
       
       {/* Карточки статистики */}
-      <Flex wrap="wrap" gap={4}>
+      <div className="flex flex-wrap gap-4">
         <StatCard title="Активные пользователи" value="8,450" change="+12%" changeType="positive" icon={Users} />
         <StatCard title="Загруженные модули" value="12" change="+2" changeType="positive" icon={Cpu} />
         <StatCard title="Активные ИИ-агенты" value="3" change="stable" changeType="neutral" icon={Monitor} />
         <StatCard title="Доступность" value="99.95%" change="+0.01%" changeType="positive" icon={Activity} />
-      </Flex>
+      </div>
 
       {/* Лента событий и быстрые действия */}
-      <Flex gap={6} direction={{ base: "column", lg: "row" }}>
+      <div className="flex flex-col lg:flex-row gap-6">
         <EventsFeed />
         <QuickActions />
-      </Flex>
-    </VStack>
+      </div>
+    </div>
   );
 }
 
 // Компонент статистической карточки
 function StatCard({ title, value, change, changeType, icon: Icon }: { 
-  title: string;
-  value: string;
-  change: string;
-  changeType: "positive" | "negative" | "neutral";
-  icon?: React.ComponentType<UsersProps>
+  readonly title: string;
+  readonly value: string;
+  readonly change: string;
+  readonly changeType: "positive" | "negative" | "neutral";
+  readonly icon?: React.ComponentType<UsersProps>
 }) {
-  const changeColor = {
-    positive: "green.500",
-    negative: "red.500",
-    neutral: "gray.500"
+  const changeColorClass = {
+    positive: "text-green-500",
+    negative: "text-red-500",
+    neutral: "text-gray-500"
+  }[changeType];
+  
+  const iconColorClass = {
+    positive: "text-green-500",
+    negative: "text-red-500",
+    neutral: "text-gray-500"
   }[changeType];
 
   return (
-    <Box
-      p={6}
-      bg="white"
-      _dark={{ bg: "gray.800", borderColor: "gray.700" }}
-      borderRadius="xl"
-      border="1px solid"
-      borderColor="gray.200"
-      shadow="sm"
-      minW="200px"
-      _hover={{ transform: "translateY(-1px)", shadow: "md" }}
-      transition="all 0.2s"
-    >
-      <HStack justify="space-between" mb={2}>
-        <Text fontSize="sm" color="gray.500">
-          {title}
-        </Text>
-        {Icon && (
-          <Icon 
-            size={20} 
-            color={changeType === "positive" ? "#48BB78" : changeType === "negative" ? "#F56565" : "#A0AEC0"}
-          />
-        )}
-      </HStack>
-      <Text fontSize="2xl" fontWeight="bold" mb={1}>
-        {value}
-      </Text>
-      <Text fontSize="sm" color={changeColor} fontWeight="medium">
-        {change}
-      </Text>
-    </Box>
+    <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm min-w-[200px] hover:-translate-y-0.5 hover:shadow-md transition-all">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm text-gray-500">{title}</p>
+        {Icon && <Icon size={20} className={iconColorClass} />}
+      </div>
+      <p className="text-2xl font-bold mb-1">{value}</p>
+      <p className={`text-sm font-medium ${changeColorClass}`}>{change}</p>
+    </div>
   );
 }
 
@@ -93,48 +74,37 @@ function EventsFeed() {
     { id: 3, type: "warning", message: "Высокая нагрузка на сервер", time: "1 час назад" },
     { id: 4, type: "info", message: "Создан новый ИИ-агент", time: "2 часа назад" }
   ];
-
-  const { colorMode } = useColorMode();
-  const eventBg = useColorModeValue("gray.50", "gray.700");
+  
+  const getEventColor = (type: string) => {
+    if (type === "success") return "bg-green-500";
+    if (type === "warning") return "bg-orange-500";
+    return "bg-blue-500";
+  };
 
   return (
-    <Card flex={2}>
-      <CardHeader>
-        <Flex justify="space-between" align="center">
-          <Heading size="md">Лента событий</Heading>
-          <IconButton
-            aria-label="Обновить"
-            icon={<RefreshCw size={16} />}
-            size="sm"
-            variant="ghost"
-          />
-        </Flex>
-      </CardHeader>
-      <CardBody pt={0}>
-        <VStack spacing={3} align="stretch">
-          {events.map((event) => (
-            <HStack key={event.id} p={3} borderRadius="md" bg={eventBg}>
-              <Box
-                w={3}
-                h={3}
-                borderRadius="full"
-                bg={
-                  event.type === "success" ? "green.500" :
-                  event.type === "warning" ? "orange.500" : "blue.500"
-                }
-              />
-              <VStack align="start" spacing={0} flex={1}>
-                <Text fontSize="sm" fontWeight="medium">
-                  {event.message}
-                </Text>
-                <Text fontSize="xs" color="gray.500">
-                  {event.time}
-                </Text>
-              </VStack>
-            </HStack>
-          ))}
-        </VStack>
-      </CardBody>
+    <Card className="flex-[2] p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Лента событий</h2>
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-2"
+          aria-label="Обновить"
+        >
+          <RefreshCw size={16} />
+        </Button>
+      </div>
+      <div className="flex flex-col gap-3">
+        {events.map((event) => (
+          <div key={event.id} className="flex items-start gap-3 p-3 rounded-md bg-gray-50 dark:bg-gray-700">
+            <div className={`w-3 h-3 rounded-full mt-1 ${getEventColor(event.type)}`} />
+            <div className="flex-1">
+              <p className="text-sm font-medium">{event.message}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{event.time}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -142,103 +112,86 @@ function EventsFeed() {
 // Компонент быстрых действий
 function QuickActions() {
   return (
-    <Card flex={1} minW="300px">
-      <CardHeader>
-        <Heading size="md">Быстрые действия</Heading>
-      </CardHeader>
-      <CardBody pt={0}>
-        <VStack spacing={4} align="stretch">
-          <HStack spacing={3}>
-            <Tooltip label="Создать новый модуль" placement="bottom" hasArrow>
-              <IconButton
-                aria-label="Новый модуль"
-                icon={<Plus size={20} />}
-                colorScheme="blue"
-                size="lg"
-                borderRadius="xl"
-                _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
-                transition="all 0.2s"
-              />
-            </Tooltip>
-            <Tooltip label="Экспорт данных" placement="bottom" hasArrow>
-              <IconButton
-                aria-label="Экспорт"
-                icon={<Download size={20} />}
-                colorScheme="green"
-                variant="outline"
-                size="lg"
-                borderRadius="xl"
-                _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
-                transition="all 0.2s"
-              />
-            </Tooltip>
-            <Tooltip label="Просмотреть уведомления (3)" placement="bottom" hasArrow>
-              <Box position="relative">
-                <IconButton
-                  aria-label="Уведомления"
-                  icon={<Bell size={20} />}
-                  colorScheme="orange"
-                  variant="outline"
-                  size="lg"
-                  borderRadius="xl"
-                  _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
-                  transition="all 0.2s"
-                />
-                <Badge
-                  colorScheme="red"
-                  fontSize="xs"
-                  borderRadius="full"
-                  position="absolute"
-                  top="-1"
-                  right="-1"
-                  minW="18px"
-                  h="18px"
-                >
-                  3
-                </Badge>
-              </Box>
-            </Tooltip>
-          </HStack>
-          
-          <Divider />
-          
-          {/* Дополнительные действия */}
-          <VStack spacing={2} w="full">
-            <Text fontSize="xs" color="gray.500" textAlign="center">
-              Дополнительно
-            </Text>
-            <HStack spacing={2} w="full" justify="space-between">
-              <Tooltip label="Системные логи" hasArrow>
-                <IconButton
-                  aria-label="Просмотр логов"
-                  icon={<FileText size={16} />}
-                  variant="ghost"
-                  size="sm"
-                  _hover={{ bg: "gray.100", _dark: { bg: "gray.700" } }}
-                />
-              </Tooltip>
-              <Tooltip label="Настройки" hasArrow>
-                <IconButton
-                  aria-label="Настройки системы"
-                  icon={<Settings size={16} />}
-                  variant="ghost"
-                  size="sm"
-                  _hover={{ bg: "gray.100", _dark: { bg: "gray.700" } }}
-                />
-              </Tooltip>
-              <Tooltip label="Мониторинг" hasArrow>
-                <IconButton
-                  aria-label="Мониторинг"
-                  icon={<Monitor size={16} />}
-                  variant="ghost"
-                  size="sm"
-                  _hover={{ bg: "gray.100", _dark: { bg: "gray.700" } }}
-                />
-              </Tooltip>
-            </HStack>
-          </VStack>
-        </VStack>
-      </CardBody>
+    <Card className="flex-1 min-w-[300px] p-6">
+      <h2 className="text-xl font-semibold mb-4">Быстрые действия</h2>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <Button
+              size="lg"
+              className="rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all"
+              aria-label="Новый модуль"
+              title="Создать новый модуль"
+            >
+              <Plus size={20} />
+            </Button>
+          </div>
+          <div className="relative group">
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all"
+              aria-label="Экспорт"
+              title="Экспорт данных"
+            >
+              <Download size={20} />
+            </Button>
+          </div>
+          <div className="relative group">
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-xl hover:-translate-y-0.5 hover:shadow-lg transition-all relative"
+              aria-label="Уведомления"
+              title="Просмотреть уведомления (3)"
+            >
+              <Bell size={20} />
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs rounded-full flex items-center justify-center"
+              >
+                3
+              </Badge>
+            </Button>
+          </div>
+        </div>
+        
+        <div className="border-t border-gray-200 dark:border-gray-800" />
+        
+        {/* Дополнительные действия */}
+        <div className="flex flex-col gap-2 w-full">
+          <p className="text-xs text-gray-500 text-center">Дополнительно</p>
+          <div className="flex items-center justify-between w-full gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Просмотр логов"
+              title="Системные логи"
+            >
+              <FileText size={16} />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Настройки системы"
+              title="Настройки"
+            >
+              <Settings size={16} />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Мониторинг"
+              title="Мониторинг"
+            >
+              <Monitor size={16} />
+            </Button>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }

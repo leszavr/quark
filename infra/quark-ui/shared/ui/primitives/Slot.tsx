@@ -1,2 +1,1 @@
-import { Slot } from "@radix-ui/react-slot";
-export { Slot };
+export { Slot } from "@radix-ui/react-slot";

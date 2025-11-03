@@ -18,7 +18,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = parseInt(process.env.PORT ?? "") || 3001;
+  const port = Number.parseInt(process.env.PORT ?? "") || 3001;
   await app.listen(port);
   
   console.log("🔐 Quark Auth Service started on port", port);
@@ -88,4 +88,4 @@ async function registerWithPluginHub(port: number) {
   }
 }
 
-bootstrap();
+await bootstrap();

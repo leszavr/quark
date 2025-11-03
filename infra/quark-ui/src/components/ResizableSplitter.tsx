@@ -4,11 +4,11 @@ import { ReactNode, useRef, useState, useCallback, useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
 
 interface ResizableSplitterProps {
-  leftChild: ReactNode;
-  rightChild: ReactNode;
-  minLeftWidth?: number;
-  maxLeftWidth?: number;
-  onRightWidthChange?: (rightWidth: number) => void;
+  readonly leftChild: ReactNode;
+  readonly rightChild: ReactNode;
+  readonly minLeftWidth?: number;
+  readonly maxLeftWidth?: number;
+  readonly onRightWidthChange?: (rightWidth: number) => void;
 }
 
 export function ResizableSplitter({ 
@@ -93,7 +93,13 @@ export function ResizableSplitter({
       {/* Разделитель */}
       <div
         style={{ width: "6px" }}
-        className={`flex-shrink-0 cursor-col-resize relative transition-all duration-200 ${isDragging ? "bg-blue-400 scale-x-130" : isHovered ? "bg-blue-300 scale-x-120" : "bg-gray-300 dark:bg-gray-600 scale-x-100"}`}
+        className={`flex-shrink-0 cursor-col-resize relative transition-all duration-200 ${
+          (() => {
+            if (isDragging) return "bg-blue-400 scale-x-130";
+            if (isHovered) return "bg-blue-300 scale-x-120";
+            return "bg-gray-300 dark:bg-gray-600 scale-x-100";
+          })()
+        }`}
         onMouseDown={handleMouseDown}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

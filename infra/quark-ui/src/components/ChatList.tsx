@@ -8,9 +8,9 @@ import type { Chat } from "../hooks/useChatStorage";
 const MotionBox = motion.create("div");
 
 interface ChatListProps {
-  onChatSelect?: (chatId: string) => void;
-  selectedChatId?: string;
-  fullWidth?: boolean; // Показывать ли в полную ширину без ChatWindow
+  readonly onChatSelect?: (chatId: string) => void;
+  readonly selectedChatId?: string;
+  readonly fullWidth?: boolean; // Показывать ли в полную ширину без ChatWindow
 }
 
 export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: ChatListProps) {
@@ -76,8 +76,9 @@ export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: Ch
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <div
-                className={`p-4 cursor-pointer transition-all duration-200 border-l-3 ${
+              <button
+                type="button"
+                className={`w-full p-4 cursor-pointer transition-all duration-200 border-l-3 text-left ${
                   selectedChatId === chat.id 
                     ? "bg-black/5 dark:bg-white/10 border-l-cyan-500" 
                     : "border-l-transparent hover:bg-black/5 dark:hover:bg-white/10"
@@ -103,7 +104,7 @@ export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: Ch
                       </span>
                       <div className="flex gap-2 items-center">
                         <span className="text-xs text-gray-500">
-                          {chat.messages[chat.messages.length - 1]?.timestamp || ""}
+                          {chat.messages.at(-1)?.timestamp || ""}
                         </span>
                         {getUnreadCount(chat.id) > 0 && (
                           <span className="bg-cyan-500 text-white text-xs font-bold rounded-full min-w-5 h-5 flex items-center justify-center">
@@ -122,11 +123,11 @@ export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: Ch
                         getUnreadCount(chat.id) > 0 ? "font-medium" : "font-normal"
                       }`}
                     >
-                      {chat.messages[chat.messages.length - 1]?.content || "Нет сообщений"}
+                      {chat.messages.at(-1)?.content || "Нет сообщений"}
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
               <div className="border-b border-gray-200 dark:border-gray-700"></div>
             </MotionBox>
           ))}

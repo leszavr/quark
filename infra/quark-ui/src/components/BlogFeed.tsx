@@ -19,8 +19,8 @@ type BlogViewState = "feed" | "post" | "editor";
 
 
 interface BlogFeedProps {
-  onPostClick?: (postId: string) => void;
-  onChatClick?: () => void; // для мобильной навигации
+  readonly onPostClick?: (postId: string) => void;
+  readonly onChatClick?: () => void; // для мобильной навигации
 }
 
 export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
@@ -42,7 +42,6 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
     loading,
     createPost,
     updatePost,
-    deletePost,
     togglePostLike,
     getPostComments,
     addComment,
@@ -178,9 +177,9 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
                   {/* Теги */}
                   {post.tags && post.tags.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
-                      {post.tags.slice(0, 3).map((tag, tagIndex) => (
+                      {post.tags.slice(0, 3).map((tag) => (
                         <span
-                          key={tagIndex}
+                          key={tag}
                           className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full dark:bg-blue-800 dark:text-blue-200"
                         >
                           #{tag}
@@ -303,9 +302,9 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
               {/* Теги */}
               {selectedPost.tags && selectedPost.tags.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-6">
-                  {selectedPost.tags.map((tag, index) => (
+                  {selectedPost.tags.map((tag) => (
                     <span
-                      key={index}
+                      key={tag}
                       className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-full dark:bg-blue-800 dark:text-blue-200"
                     >
                       #{tag}
@@ -450,6 +449,7 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
       setEditorErrors([]);
       backToFeed();
     } catch (error) {
+      console.error("Failed to save blog post:", error);
       setEditorErrors(["Ошибка при сохранении поста"]);
     }
   };
@@ -498,8 +498,8 @@ export function BlogFeed({ onPostClick, onChatClick }: BlogFeedProps) {
             <div
               className="bg-red-50 border border-red-200 rounded-lg p-3 dark:bg-red-900 dark:border-red-700"
             >
-              {editorErrors.map((error, index) => (
-                <span key={index} className="text-red-600 text-sm block dark:text-red-300">
+              {editorErrors.map((error) => (
+                <span key={error} className="text-red-600 text-sm block dark:text-red-300">
                   • {error}
                 </span>
               ))}

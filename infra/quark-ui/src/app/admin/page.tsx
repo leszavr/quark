@@ -14,14 +14,12 @@ import { SettingsContent } from "@/components/admin/SettingsContent";
 // Импорты иконок
 import { 
   Home, Settings, Monitor, Cpu, Shield, Users, 
-  ChevronLeft, ChevronRight, Menu
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const activeBg = "bg-blue-500";
-  const inactiveBg = "bg-gray-100 dark:bg-gray-700";
 
   const menuItems = [
     { id: "dashboard", label: "Главная", icon: Home },
@@ -32,11 +30,6 @@ export default function AdminPage() {
     { id: "security", label: "Безопасность", icon: Shield },
     { id: "settings", label: "Настройки", icon: Settings },
   ];
-
-  const getIconForSection = (sectionId: string) => {
-    const item = menuItems.find(item => item.id === sectionId);
-    return item?.icon || Home;
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

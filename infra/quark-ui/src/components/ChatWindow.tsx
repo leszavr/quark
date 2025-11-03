@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Send, Smile, Mic, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Send, Mic, Check, CheckCheck } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { EmojiPicker } from "./EmojiPicker";
 import { FileUploader } from "./FileUploader";
@@ -9,13 +9,13 @@ import { MessageAttachments } from "./MessageAttachments";
 import { useState, useRef, useEffect } from "react";
 import { useChatStorage } from "../hooks/useChatStorage";
 import type { FileAttachment } from "./FileUploader";
-import type { Message, Chat, ChatUser, MessageAttachment } from "../hooks/useChatStorage";
+import type { Message, MessageAttachment } from "../hooks/useChatStorage";
 
 const MotionBox = motion.create("div");
 
 // Компонент для рендеринга сообщений с поддержкой Markdown (пасхалка!)
 interface MessageContentProps {
-  content: string;
+  readonly content: string;
 }
 
 function MessageContent({ content }: MessageContentProps) {
@@ -40,10 +40,10 @@ function MessageContent({ content }: MessageContentProps) {
 // Моковые данные теперь в useChatStorage
 
 interface ChatWindowProps {
-  chatId?: string;
-  onClose?: () => void;
-  showBackButton?: boolean; // показывать ли кнопку назад (для мобильного режима)
-  onBack?: () => void; // функция возврата к списку чатов
+  readonly chatId?: string;
+  readonly onClose?: () => void;
+  readonly showBackButton?: boolean; // показывать ли кнопку назад (для мобильного режима)
+  readonly onBack?: () => void; // функция возврата к списку чатов
 }
 
 export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false, onBack }: ChatWindowProps) {
@@ -51,7 +51,6 @@ export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false,
   const [attachedFiles, setAttachedFiles] = useState<MessageAttachment[]>([]);
   const [showFileUploader, setShowFileUploader] = useState(false);
   const { 
-    chats, 
     sendMessage, 
     markMessagesAsRead, 
     getChatById 
@@ -260,7 +259,7 @@ export function ChatWindow({ chatId = "chat-1", onClose, showBackButton = false,
               ref={textareaRef}
               value={message}
               onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Введите сообщение..."
               rows={1}
               className="w-full min-h-10 max-h-30 resize-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl px-3 py-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-gray-500"

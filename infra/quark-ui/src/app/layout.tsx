@@ -23,13 +23,10 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) {
   return (
     <html lang="ru">
-      <head>
-        <ColorModeScript initialColorMode="dark" />
-      </head>
       <body className={inter.className}>
         <Providers>
           {children}

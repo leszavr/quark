@@ -17,7 +17,7 @@ import { JwtConfigService } from "./config/jwt.config";
     TypeOrmModule.forRoot({
       type: "postgres",
       host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT ?? "") || 5432,
+  port: Number.parseInt(process.env.DB_PORT ?? "") || 5432,
       username: process.env.DB_USER || "quark",
       password: process.env.DB_PASSWORD || "quarkpass",
       database: process.env.DB_NAME || "quark_auth",

@@ -1,19 +1,20 @@
 "use client";
 
-import {
-  VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
-  Heading, Badge, Grid, Box, Select, Progress, Alert, AlertIcon,
-  useColorModeValue
-} from "@chakra-ui/react";
 import { useState } from "react";
+import { Card } from "@/shared/ui/card/Card";
+import { Badge } from "@/shared/ui/badge/Badge";
+import { Button } from "@/shared/ui/button/Button";
+import { Progress } from "@/shared/ui/progress/Progress";
+import { Alert } from "@/shared/ui/alert/Alert";
 import { 
-  Users, Activity, Monitor, Clock, TrendingUp, Play, Pause
+  Users, Activity, Clock, TrendingUp, Play, Pause
 } from "lucide-react";
 
 export function MonitoringContent() {
   const [timeRange, setTimeRange] = useState("24h");
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
 
+  // ⚠️ MOCK DATA - Remove when integrating with real monitoring API
   // Тестовые данные метрик
   const metrics = {
     systemHealth: {
@@ -39,271 +40,215 @@ export function MonitoringContent() {
   const alerts = [
     {
       id: 1,
-      type: "warning",
+      type: "warning" as const,
       message: "Высокое использование памяти на сервере app-01",
       timestamp: new Date().toLocaleString("ru-RU"),
       resolved: false
     },
     {
       id: 2,
-      type: "info",
+      type: "info" as const,
       message: "Завершено обновление модуля аутентификации",
       timestamp: new Date(Date.now() - 15*60000).toLocaleString("ru-RU"),
       resolved: true
     },
     {
       id: 3,
-      type: "error",
+      type: "error" as const,
       message: "Ошибка подключения к базе данных (временно)",
       timestamp: new Date(Date.now() - 45*60000).toLocaleString("ru-RU"),
       resolved: true
     }
   ];
 
+  const getProgressColor = (value: number, warning: number, danger: number) => {
+    if (value > danger) return "bg-red-500";
+    if (value > warning) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
   return (
-    <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center">
-        <VStack align="start" spacing={1}>
-          <Heading size="xl" fontFamily="Space Grotesk">Мониторинг системы</Heading>
-          <Text color="gray.500">Отслеживание производительности и состояния платформы</Text>
-        </VStack>
-        <HStack>
-          <Select 
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-4xl font-bold font-['Space_Grotesk']">Мониторинг системы</h1>
+          <p className="text-gray-500 dark:text-gray-400">Отслеживание производительности и состояния платформы</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select 
             value={timeRange} 
             onChange={(e) => setTimeRange(e.target.value)}
-            w="120px"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm w-[120px]"
           >
             <option value="1h">1 час</option>
             <option value="6h">6 часов</option>
             <option value="24h">24 часа</option>
             <option value="7d">7 дней</option>
-          </Select>
+          </select>
           <Button 
-            leftIcon={isAutoRefresh ? <Pause size={16} /> : <Play size={16} />}
             onClick={() => setIsAutoRefresh(!isAutoRefresh)}
-            colorScheme={isAutoRefresh ? "orange" : "green"}
             variant="outline"
+            className="flex items-center gap-2"
           >
+            {isAutoRefresh ? <Pause size={16} /> : <Play size={16} />}
             {isAutoRefresh ? "Пауза" : "Авто"}
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </div>
 
       {/* Системные метрики */}
-      <Grid templateColumns={{ base: "1fr", lg: "repeat(2, 1fr)" }} gap={6}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Здоровье системы */}
-        <Card>
-          <CardHeader>
-            <Heading size="md">Состояние системы</Heading>
-          </CardHeader>
-          <CardBody>
-            <VStack spacing={4}>
-              <Box w="full">
-                <Flex justify="space-between" mb={2}>
-                  <Text fontSize="sm">CPU</Text>
-                  <Text fontSize="sm" fontWeight="semibold">{metrics.systemHealth.cpu}%</Text>
-                </Flex>
-                <Progress 
-                  value={metrics.systemHealth.cpu} 
-                  colorScheme={metrics.systemHealth.cpu > 80 ? "red" : metrics.systemHealth.cpu > 60 ? "orange" : "green"}
-                  size="lg"
-                />
-              </Box>
-              
-              <Box w="full">
-                <Flex justify="space-between" mb={2}>
-                  <Text fontSize="sm">Память</Text>
-                  <Text fontSize="sm" fontWeight="semibold">{metrics.systemHealth.memory}%</Text>
-                </Flex>
-                <Progress 
-                  value={metrics.systemHealth.memory} 
-                  colorScheme={metrics.systemHealth.memory > 85 ? "red" : metrics.systemHealth.memory > 70 ? "orange" : "green"}
-                  size="lg"
-                />
-              </Box>
-              
-              <Box w="full">
-                <Flex justify="space-between" mb={2}>
-                  <Text fontSize="sm">Диск</Text>
-                  <Text fontSize="sm" fontWeight="semibold">{metrics.systemHealth.disk}%</Text>
-                </Flex>
-                <Progress 
-                  value={metrics.systemHealth.disk} 
-                  colorScheme={metrics.systemHealth.disk > 90 ? "red" : metrics.systemHealth.disk > 75 ? "orange" : "green"}
-                  size="lg"
-                />
-              </Box>
-              
-              <Box w="full">
-                <Flex justify="space-between" mb={2}>
-                  <Text fontSize="sm">Сеть</Text>
-                  <Text fontSize="sm" fontWeight="semibold">{metrics.systemHealth.network} Мбит/с</Text>
-                </Flex>
-                <Progress 
-                  value={(metrics.systemHealth.network / 100) * 100} 
-                  colorScheme="blue"
-                  size="lg"
-                />
-              </Box>
-            </VStack>
-          </CardBody>
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Состояние системы</h2>
+          <div className="flex flex-col gap-4">
+            <div className="w-full">
+              <div className="flex justify-between mb-2">
+                <p className="text-sm">CPU</p>
+                <p className="text-sm font-semibold">{metrics.systemHealth.cpu}%</p>
+              </div>
+              <Progress 
+                value={metrics.systemHealth.cpu} 
+                className={getProgressColor(metrics.systemHealth.cpu, 60, 80)}
+              />
+            </div>
+            
+            <div className="w-full">
+              <div className="flex justify-between mb-2">
+                <p className="text-sm">Память</p>
+                <p className="text-sm font-semibold">{metrics.systemHealth.memory}%</p>
+              </div>
+              <Progress 
+                value={metrics.systemHealth.memory} 
+                className={getProgressColor(metrics.systemHealth.memory, 70, 85)}
+              />
+            </div>
+            
+            <div className="w-full">
+              <div className="flex justify-between mb-2">
+                <p className="text-sm">Диск</p>
+                <p className="text-sm font-semibold">{metrics.systemHealth.disk}%</p>
+              </div>
+              <Progress 
+                value={metrics.systemHealth.disk} 
+                className={getProgressColor(metrics.systemHealth.disk, 75, 90)}
+              />
+            </div>
+            
+            <div className="w-full">
+              <div className="flex justify-between mb-2">
+                <p className="text-sm">Сеть</p>
+                <p className="text-sm font-semibold">{metrics.systemHealth.network} Мбит/с</p>
+              </div>
+              <Progress 
+                value={(metrics.systemHealth.network / 100) * 100} 
+                className="bg-blue-500"
+              />
+            </div>
+          </div>
         </Card>
 
         {/* Производительность */}
-        <Card>
-          <CardHeader>
-            <Heading size="md">Производительность</Heading>
-          </CardHeader>
-          <CardBody>
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-              <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                  {metrics.performance.responseTime}мс
-                </Text>
-                <Text fontSize="sm" color="gray.500">Время отклика</Text>
-              </Box>
-              
-              <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="green.500">
-                  {metrics.performance.throughput.toLocaleString()}
-                </Text>
-                <Text fontSize="sm" color="gray.500">Запросов/ч</Text>
-              </Box>
-              
-              <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="red.500">
-                  {metrics.performance.errorRate}%
-                </Text>
-                <Text fontSize="sm" color="gray.500">Ошибки</Text>
-              </Box>
-              
-              <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="purple.500">
-                  {metrics.performance.uptime}%
-                </Text>
-                <Text fontSize="sm" color="gray.500">Доступность</Text>
-              </Box>
-            </Grid>
-          </CardBody>
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Производительность</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-500">
+                {metrics.performance.responseTime}мс
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Время отклика</p>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-500">
+                {metrics.performance.throughput.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Запросов/ч</p>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-500">
+                {metrics.performance.errorRate}%
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Ошибки</p>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-500">
+                {metrics.performance.uptime}%
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Доступность</p>
+            </div>
+          </div>
         </Card>
-      </Grid>
+      </div>
 
       {/* Пользователи онлайн */}
-      <Card>
-        <CardHeader>
-          <Heading size="md">Активность пользователей</Heading>
-        </CardHeader>
-        <CardBody>
-          <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={6}>
-            <VStack>
-              <Box
-                w="16"
-                h="16"
-                borderRadius="full"
-                bg="green.100"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                _dark={{ bg: "green.900" }}
-              >
-                <Users size={24} color="green" />
-              </Box>
-              <Text fontSize="2xl" fontWeight="bold">{metrics.users.online}</Text>
-              <Text fontSize="sm" color="gray.500">Онлайн сейчас</Text>
-            </VStack>
-            
-            <VStack>
-              <Box
-                w="16"
-                h="16"
-                borderRadius="full"
-                bg="blue.100"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                _dark={{ bg: "blue.900" }}
-              >
-                <Activity size={24} color="blue" />
-              </Box>
-              <Text fontSize="2xl" fontWeight="bold">{metrics.users.active24h.toLocaleString()}</Text>
-              <Text fontSize="sm" color="gray.500">За 24 часа</Text>
-            </VStack>
-            
-            <VStack>
-              <Box
-                w="16"
-                h="16"
-                borderRadius="full"
-                bg="purple.100"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                _dark={{ bg: "purple.900" }}
-              >
-                <TrendingUp size={24} color="purple" />
-              </Box>
-              <Text fontSize="2xl" fontWeight="bold">{metrics.users.newToday}</Text>
-              <Text fontSize="sm" color="gray.500">Новых сегодня</Text>
-            </VStack>
-            
-            <VStack>
-              <Box
-                w="16"
-                h="16"
-                borderRadius="full"
-                bg="orange.100"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                _dark={{ bg: "orange.900" }}
-              >
-                <Clock size={24} color="orange" />
-              </Box>
-              <Text fontSize="2xl" fontWeight="bold">{metrics.users.sessionsAvg}</Text>
-              <Text fontSize="sm" color="gray.500">Мин/сессия</Text>
-            </VStack>
-          </Grid>
-        </CardBody>
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Активность пользователей</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+              <Users size={24} className="text-green-600 dark:text-green-400" />
+            </div>
+            <p className="text-2xl font-bold">{metrics.users.online}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Онлайн сейчас</p>
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+              <Activity size={24} className="text-blue-600 dark:text-blue-400" />
+            </div>
+            <p className="text-2xl font-bold">{metrics.users.active24h.toLocaleString()}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">За 24 часа</p>
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+              <TrendingUp size={24} className="text-purple-600 dark:text-purple-400" />
+            </div>
+            <p className="text-2xl font-bold">{metrics.users.newToday}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Новых сегодня</p>
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
+              <Clock size={24} className="text-orange-600 dark:text-orange-400" />
+            </div>
+            <p className="text-2xl font-bold">{metrics.users.sessionsAvg}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Мин/сессия</p>
+          </div>
+        </div>
       </Card>
 
       {/* Алерты */}
-      <Card>
-        <CardHeader>
-          <Flex justify="space-between" align="center">
-            <Heading size="md">Последние события</Heading>
-            <Badge colorScheme="orange">{alerts.filter(a => !a.resolved).length} активных</Badge>
-          </Flex>
-        </CardHeader>
-        <CardBody>
-          <VStack spacing={3} align="stretch">
-            {alerts.map((alert) => (
-              <Alert 
-                key={alert.id}
-                status={alert.type === "error" ? "error" : alert.type === "warning" ? "warning" : "info"}
-                borderRadius="md"
-                opacity={alert.resolved ? 0.7 : 1}
-              >
-                <AlertIcon />
-                <Box flex="1">
-                  <Flex justify="space-between" align="center">
-                    <Text fontSize="sm" fontWeight="semibold">
-                      {alert.message}
-                    </Text>
-                    <HStack spacing={2}>
-                      <Text fontSize="xs" color="gray.500">
-                        {alert.timestamp}
-                      </Text>
-                      {alert.resolved && (
-                        <Badge colorScheme="green" size="sm">Решено</Badge>
-                      )}
-                    </HStack>
-                  </Flex>
-                </Box>
-              </Alert>
-            ))}
-          </VStack>
-        </CardBody>
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Последние события</h2>
+          <Badge variant="secondary">{alerts.filter(a => !a.resolved).length} активных</Badge>
+        </div>
+        <div className="flex flex-col gap-3">
+          {alerts.map((alert) => (
+            <Alert 
+              key={alert.id}
+              variant={alert.type === "error" ? "destructive" : "default"}
+              className={`rounded-md ${alert.resolved ? "opacity-70" : ""}`}
+            >
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">{alert.message}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{alert.timestamp}</p>
+                    {alert.resolved && (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Решено</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Alert>
+          ))}
+        </div>
       </Card>
-    </VStack>
+    </div>
   );
 }

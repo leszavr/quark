@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { createServer, type Server } from "node:http";
 import { storage } from "./storage";
 import { insertMessageSchema, insertBlogPostSchema, insertCommentSchema } from "@shared/schema";
 import PluginHubJWTMiddleware, { UserContext } from "./jwtMiddleware";
@@ -23,7 +23,7 @@ function parseManifestYaml(yamlContent: string): any {
       const value = valueParts.join(":").trim();
       
       if (value) {
-        result[key.trim()] = value.replace(/['"]/g, "");
+        result[key.trim()] = value.replaceAll(/['"]/g, "");
       }
     }
   }
@@ -91,8 +91,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/manifest", async (req, res) => {
     try {
-      const fs = await import("fs");
-      const path = await import("path");
+      const fs = await import("node:fs");
+      const path = await import("node:path");
       
       const manifestPath = path.join(process.cwd(), "module-manifest.yaml");
       if (fs.existsSync(manifestPath)) {
@@ -118,6 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ 
         error: "Failed to load manifest",
         message: error instanceof Error ? error.message : String(error)
@@ -179,6 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
     } catch (error) {
+      console.error("Error in API route:", error);
       console.error("Registration proxy error:", error instanceof Error ? error.message : String(error));
       res.status(500).json({
         error: "Registration service unavailable",
@@ -248,6 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
     } catch (error) {
+      console.error("Error in API route:", error);
       console.error("Login proxy error:", error instanceof Error ? error.message : String(error));
       res.status(500).json({
         error: "Authentication service unavailable",
@@ -284,6 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   user: (req.user as UserContext).username
       });
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ 
         error: "Failed to fetch user posts",
         message: error instanceof Error ? error.message : String(error)
@@ -297,6 +301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const channels = await storage.getChannels();
       res.json(channels);
     } catch (error) {
+      console.error("Error in API route:", error);
+      console.error("Error fetching channels:", error);
       res.status(500).json({ error: "Failed to fetch channels" });
     }
   });
@@ -309,6 +315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(channel);
     } catch (error) {
+      console.error("Error in API route:", error);
+      console.error("Error fetching channel:", error);
       res.status(500).json({ error: "Failed to fetch channel" });
     }
   });
@@ -335,6 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(enrichedMessages);
     } catch (error) {
+      console.error("Error in API route:", error);
+      console.error("Error fetching messages:", error);
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
@@ -371,10 +381,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       };
       
-      // TODO: Re-enable WebSocket broadcasting when WebSocket is properly configured
+      // WebSocket broadcasting is disabled - will be configured in future sprint
       
       res.status(201).json(enrichedMessage);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to create message" });
     }
   });
@@ -382,7 +393,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Blog Posts API
   app.get("/api/posts", async (req, res) => {
     try {
-      const published = req.query.published === "true" ? true : req.query.published === "false" ? false : undefined;
+      let published: boolean | undefined;
+      if (req.query.published === "true") {
+        published = true;
+      } else if (req.query.published === "false") {
+        published = false;
+      }
       const posts = await storage.getBlogPosts(published);
       
       // Enrich posts with author data
@@ -402,6 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(enrichedPosts);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
@@ -428,6 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(enrichedPost);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to fetch post" });
     }
   });
@@ -443,6 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const post = await storage.createBlogPost(validation.data);
       res.status(201).json(post);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to create post" });
     }
   });
@@ -455,6 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(post);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to update post" });
     }
   });
@@ -467,6 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Post deleted successfully" });
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to delete post" });
     }
   });
@@ -493,6 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(enrichedComments);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to fetch comments" });
     }
   });
@@ -511,6 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comment = await storage.createComment(validation.data);
       res.status(201).json(comment);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to create comment" });
     }
   });
@@ -526,6 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password: _password, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to fetch user" });
     }
   });
@@ -541,6 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password: _, ...safeUser } = user;
       res.json(safeUser);
     } catch (error) {
+      console.error("Error in API route:", error);
       res.status(500).json({ error: "Failed to update user" });
     }
   });

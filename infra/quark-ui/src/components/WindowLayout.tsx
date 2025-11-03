@@ -14,7 +14,7 @@ const MotionBox = motion.div;
 const MotionFlex = motion.div;
 
 interface WindowLayoutProps {
-  onPostClick?: (postId: string) => void;
+  readonly onPostClick?: (postId: string) => void;
 }
 
 export function WindowLayout({ onPostClick }: WindowLayoutProps) {
@@ -26,18 +26,16 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
   const [showChatWindow, setShowChatWindow] = useState<boolean>(false); // показывать ли окно переписки в мобильном режиме
   
   // Определяем размер экрана для адаптивности
-  // Tailwind: используем window.matchMedia для адаптива
+  // Tailwind: используем globalThis.matchMedia для адаптива
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.matchMedia("(max-width: 768px)").matches);
-      setIsTablet(window.matchMedia("(min-width: 769px) and (max-width: 1024px)").matches);
+      setIsMobile(globalThis.matchMedia("(max-width: 768px)").matches);
     };
     handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    globalThis.addEventListener("resize", handleResize);
+    return () => globalThis.removeEventListener("resize", handleResize);
   }, []);
 
   // Дебаунсинг для плавного переключения режимов
@@ -106,7 +104,8 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
   }
 
   // Desktop version - full dual-stream layout
-  <div className="h-full p-4">
+  return (
+    <div className="h-full p-4">
       {/* Режимы с двумя окнами - используем ResizableSplitter */}
       {(viewMode === "both" || viewMode === "home") && blogWindow.isOpen && chatWindow.isOpen && (
         <ResizableSplitter
@@ -141,22 +140,7 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
                     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                   >
                     <AnimatePresence mode="wait">
-                      {!showChatWindow ? (
-                        <MotionBox
-                          key="chat-list-mobile"
-                          initial={{ x: 0, opacity: 1 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          exit={{ x: "-100%", opacity: 0 }}
-                          transition={{ type: "spring", stiffness: 300, damping: 30, opacity: { duration: 0.2 } }}
-                          className="absolute top-0 left-0 right-0 bottom-0"
-                        >
-                          <ChatList 
-                            onChatSelect={openChatWindow} 
-                            selectedChatId={selectedChatId}
-                            fullWidth={true}
-                          />
-                        </MotionBox>
-                      ) : (
+                      {showChatWindow ? (
                         <MotionBox
                           key="chat-window-mobile"
                           initial={{ x: "100%", opacity: 0 }}
@@ -169,6 +153,21 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
                             chatId={selectedChatId} 
                             showBackButton={true}
                             onBack={backToChatList}
+                          />
+                        </MotionBox>
+                      ) : (
+                        <MotionBox
+                          key="chat-list-mobile"
+                          initial={{ x: 0, opacity: 1 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          exit={{ x: "-100%", opacity: 0 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 30, opacity: { duration: 0.2 } }}
+                          className="absolute top-0 left-0 right-0 bottom-0"
+                        >
+                          <ChatList 
+                            onChatSelect={openChatWindow} 
+                            selectedChatId={selectedChatId}
+                            fullWidth={true}
                           />
                         </MotionBox>
                       )}
@@ -212,9 +211,10 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
       )}
 
       {/* Режимы с одним окном - используем старую логику */}
-      {viewMode === "blog-only" && blogWindow.isOpen && (
-        <AnimatePresence>
+      <AnimatePresence mode="wait">
+        {viewMode === "blog-only" && blogWindow.isOpen && (
           <MotionBox
+            key="blog-only"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
@@ -235,12 +235,11 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
               </div>
             </div>
           </MotionBox>
-        </AnimatePresence>
-      )}
+        )}
 
-      {viewMode === "chat-only" && chatWindow.isOpen && (
-        <AnimatePresence>
+        {viewMode === "chat-only" && chatWindow.isOpen && (
           <MotionBox
+            key="chat-only"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 50 }}
@@ -270,13 +269,13 @@ export function WindowLayout({ onPostClick }: WindowLayoutProps) {
               </div>
             </div>
           </MotionBox>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
       
       {/* Плавающая кнопка чата, когда мессенджер скрыт */}
       {(!chatWindow.isOpen || (viewMode === "blog-only")) && (
         <FloatingChatButton />
       )}
-  </div>
+    </div>
   );
 }

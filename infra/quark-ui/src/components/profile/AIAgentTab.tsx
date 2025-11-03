@@ -1,58 +1,23 @@
 "use client";
 
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  HStack,
-  Input,
-  Select,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
-  SliderMark,
-  Switch,
-  Textarea,
-  VStack,
-  Text,
-  useToast,
-  Badge,
-  Icon,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  Divider,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  useColorMode,
-} from "@chakra-ui/react";
+import { Card } from "@/shared/ui/card/Card";
+import { Button } from "@/shared/ui/button/Button";
+import { Switch } from "@/shared/ui/switch/Switch";
+import { Label } from "@/shared/ui/label/Label";
+import { Alert } from "@/shared/ui/alert/Alert";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs/Tabs";
+import { Slider } from "@/shared/ui/slider/Slider";
+import { useToast } from "@/hooks/useToast";
 import { useState, useEffect } from "react";
 import { 
-  FiSave, 
-  FiCpu, 
-  FiSettings,
-  FiZap,
-  FiTarget,
-  FiMessageSquare,
-  FiEdit3,
-  FiRefreshCw,
-  FiChevronRight
-} from "react-icons/fi";
+  Save, 
+  Cpu, 
+  Settings,
+  Zap,
+  Target,
+  MessageSquare,
+  RefreshCw
+} from "lucide-react";
 
 interface AISettings {
   // Основные настройки
@@ -85,13 +50,14 @@ interface AISettings {
   safetyLevel: string;
 }
 
+// ⚠️ MOCK DATA - Default configuration values (not test data, will persist to localStorage)
 const defaultSettings: AISettings = {
   model: "gpt-4-turbo",
   temperature: 0.7,
   maxTokens: 2048,
   topP: 0.9,
-  frequencyPenalty: 0.0,
-  presencePenalty: 0.0,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
   
   personality: "professional",
   writingStyle: "clear",
@@ -110,6 +76,7 @@ const defaultSettings: AISettings = {
   contentFiltering: true,
   safetyLevel: "moderate",
 };
+// ⚠️ END MOCK DATA
 
 const models = [
   { value: "gpt-4-turbo", label: "GPT-4 Turbo (Recommended)", description: "Самая мощная модель" },
@@ -153,8 +120,7 @@ export function AIAgentTab() {
   const [settings, setSettings] = useState<AISettings>(defaultSettings);
   const [isEditing, setIsEditing] = useState(false);
   const [originalSettings, setOriginalSettings] = useState<AISettings>(defaultSettings);
-  const { colorMode } = useColorMode();
-  const toast = useToast();
+  const { toast } = useToast();
 
   // Загружаем настройки из localStorage при монтировании
   useEffect(() => {
@@ -178,17 +144,12 @@ export function AIAgentTab() {
       toast({
         title: "Настройки AI сохранены",
         description: "Новые параметры агента будут применены для следующих запросов",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
       });
     } catch (error) {
+      console.error("Failed to save AI settings:", error);
       toast({
         title: "Ошибка сохранения",
         description: "Не удалось сохранить настройки AI",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     }
   };
@@ -209,9 +170,6 @@ export function AIAgentTab() {
     toast({
       title: "Настройки сброшены",
       description: "Все параметры AI агента восстановлены по умолчанию",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
     });
   };
 
@@ -220,27 +178,28 @@ export function AIAgentTab() {
   };
 
   return (
-    <VStack spacing={6} align="stretch">
+    <div className="flex flex-col gap-6">
       {/* Заголовок и действия */}
-      <HStack justify="space-between">
-        <HStack>
-          <Icon as={FiCpu} color="blue.500" />
-          <Text fontSize="lg" fontWeight="semibold">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Cpu size={20} className="text-blue-500" />
+          <h2 className="text-lg font-semibold">
             Настройки AI Агента
-          </Text>
-        </HStack>
-        <HStack>
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="ghost"
-            leftIcon={<FiRefreshCw />}
             onClick={handleReset}
-            isDisabled={isEditing}
+            disabled={isEditing}
+            className="flex items-center gap-2"
           >
+            <RefreshCw size={16} />
             Сбросить
           </Button>
           {isEditing ? (
-            <HStack>
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="ghost"
@@ -250,510 +209,504 @@ export function AIAgentTab() {
               </Button>
               <Button
                 size="sm"
-                colorScheme="blue"
-                leftIcon={<FiSave />}
                 onClick={handleSave}
+                className="flex items-center gap-2"
               >
+                <Save size={16} />
                 Сохранить
               </Button>
-            </HStack>
+            </div>
           ) : (
             <Button
               size="sm"
               variant="ghost"
-              leftIcon={<FiSettings />}
               onClick={handleEdit}
+              className="flex items-center gap-2"
             >
+              <Settings size={16} />
               Редактировать
             </Button>
           )}
-        </HStack>
-      </HStack>
+        </div>
+      </div>
 
       {/* Информация о текущих настройках */}
-      <Alert status="info" variant="subtle">
-        <AlertIcon as={FiCpu} />
-        <Box>
-          <AlertTitle fontSize="sm">
-            Текущая конфигурация AI агента
-          </AlertTitle>
-          <AlertDescription fontSize="xs">
-            Модель: {models.find(m => m.value === settings.model)?.label} • 
-            Температура: {settings.temperature} • 
-            Стиль: {personalities.find(p => p.value === settings.personality)?.label}
-          </AlertDescription>
-        </Box>
+      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <Cpu size={16} className="text-blue-600 dark:text-blue-400 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+              Текущая конфигурация AI агента
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              Модель: {models.find(m => m.value === settings.model)?.label} • 
+              Температура: {settings.temperature} • 
+              Стиль: {personalities.find(p => p.value === settings.personality)?.label}
+            </p>
+          </div>
+        </div>
       </Alert>
 
-      <Tabs variant="enclosed" colorScheme="blue">
-        <TabList>
-          <Tab fontSize="sm">
-            <Icon as={FiZap} mr={2} />
-            Модель и параметры
-          </Tab>
-          <Tab fontSize="sm">
-            <Icon as={FiTarget} mr={2} />
-            Персональность
-          </Tab>
-          <Tab fontSize="sm">
-            <Icon as={FiMessageSquare} mr={2} />
-            Промпты
-          </Tab>
-          <Tab fontSize="sm">
-            <Icon as={FiSettings} mr={2} />
-            Дополнительно
-          </Tab>
-        </TabList>
+      <Tabs defaultValue="model" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="model" className="flex items-center gap-2 text-sm">
+            <Zap size={16} />
+            <span>Модель и параметры</span>
+          </TabsTrigger>
+          <TabsTrigger value="personality" className="flex items-center gap-2 text-sm">
+            <Target size={16} />
+            <span>Персональность</span>
+          </TabsTrigger>
+          <TabsTrigger value="prompts" className="flex items-center gap-2 text-sm">
+            <MessageSquare size={16} />
+            <span>Промпты</span>
+          </TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center gap-2 text-sm">
+            <Settings size={16} />
+            <span>Дополнительно</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <TabPanels>
-          {/* Вкладка: Модель и параметры */}
-          <TabPanel px={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Модель AI */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Модель AI</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Select
-                      value={settings.model}
-                      onChange={(e) => setSettings({ ...settings, model: e.target.value })}
-                      isDisabled={!isEditing}
-                    >
-                      {models.map((model) => (
-                        <option key={model.value} value={model.value}>
-                          {model.label}
-                        </option>
-                      ))}
-                    </Select>
-                    <FormHelperText>
-                      {getModelDescription(settings.model)}
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
+        {/* Вкладка: Модель и параметры */}
+        <TabsContent value="model">
+          <div className="flex flex-col gap-4">
+            {/* Модель AI */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Модель AI</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ai-model">Выберите модель</Label>
+                  <select
+                    id="ai-model"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.model}
+                    onChange={(e) => setSettings({ ...settings, model: e.target.value })}
+                    disabled={!isEditing}
+                  >
+                    {models.map((model) => (
+                      <option key={model.value} value={model.value}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {getModelDescription(settings.model)}
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-              {/* Температура */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Креативность (Температура)</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Box px={3}>
-                      <Slider
-                        value={settings.temperature}
-                        onChange={(value) => setSettings({ ...settings, temperature: value })}
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        isDisabled={!isEditing}
-                      >
-                        <SliderMark value={0} mt={2} ml={-2} fontSize="xs">0</SliderMark>
-                        <SliderMark value={1} mt={2} ml={-2} fontSize="xs">1</SliderMark>
-                        <SliderMark value={2} mt={2} ml={-2} fontSize="xs">2</SliderMark>
-                        <SliderMark 
-                          value={settings.temperature} 
-                          textAlign="center" 
-                          bg="blue.500" 
-                          color="white" 
-                          mt="-10" 
-                          ml="-5" 
-                          w="12"
-                          borderRadius="md"
-                          fontSize="sm"
-                        >
-                          {settings.temperature}
-                        </SliderMark>
-                        <SliderTrack>
-                          <SliderFilledTrack />
-                        </SliderTrack>
-                        <SliderThumb />
-                      </Slider>
-                    </Box>
-                    <FormHelperText mt={4}>
-                      Низкие значения (0-0.3) - более предсказуемо, высокие (0.7-1.5) - более креативно
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
-
-              {/* Максимальные токены */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Максимальная длина ответа</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <NumberInput
-                      value={settings.maxTokens}
-                      onChange={(_, value) => setSettings({ ...settings, maxTokens: value || 1024 })}
-                      min={256}
-                      max={8192}
-                      step={256}
-                      isDisabled={!isEditing}
-                    >
-                      <NumberInputField />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                    <FormHelperText>
-                      Максимальное количество токенов в ответе (256-8192)
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
-
-              {/* Top P */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Top P (Nucleus Sampling)</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Box px={3}>
-                      <Slider
-                        value={settings.topP}
-                        onChange={(value) => setSettings({ ...settings, topP: value })}
-                        min={0.1}
-                        max={1}
-                        step={0.1}
-                        isDisabled={!isEditing}
-                      >
-                        <SliderMark value={0.1} mt={2} ml={-2} fontSize="xs">0.1</SliderMark>
-                        <SliderMark value={1} mt={2} ml={-2} fontSize="xs">1.0</SliderMark>
-                        <SliderMark 
-                          value={settings.topP} 
-                          textAlign="center" 
-                          bg="green.500" 
-                          color="white" 
-                          mt="-10" 
-                          ml="-5" 
-                          w="12"
-                          borderRadius="md"
-                          fontSize="sm"
-                        >
-                          {settings.topP}
-                        </SliderMark>
-                        <SliderTrack>
-                          <SliderFilledTrack bg="green.500" />
-                        </SliderTrack>
-                        <SliderThumb />
-                      </Slider>
-                    </Box>
-                    <FormHelperText mt={4}>
-                      Контролирует разнообразие ответов. Рекомендуется 0.9 для большинства задач
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
-            </VStack>
-          </TabPanel>
-
-          {/* Вкладка: Персональность */}
-          <TabPanel px={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Тип личности */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Тип личности агента</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Select
-                      value={settings.personality}
-                      onChange={(e) => setSettings({ ...settings, personality: e.target.value })}
-                      isDisabled={!isEditing}
-                    >
-                      {personalities.map((personality) => (
-                        <option key={personality.value} value={personality.value}>
-                          {personality.label}
-                        </option>
-                      ))}
-                    </Select>
-                    <FormHelperText>
-                      {personalities.find(p => p.value === settings.personality)?.description}
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
-
-              {/* Стиль письма */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Стиль написания</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Select
-                      value={settings.writingStyle}
-                      onChange={(e) => setSettings({ ...settings, writingStyle: e.target.value })}
-                      isDisabled={!isEditing}
-                    >
-                      {writingStyles.map((style) => (
-                        <option key={style.value} value={style.value}>
-                          {style.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </CardBody>
-              </Card>
-
-              {/* Тон общения */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Тон общения</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Select
-                      value={settings.tone}
-                      onChange={(e) => setSettings({ ...settings, tone: e.target.value })}
-                      isDisabled={!isEditing}
-                    >
-                      {tones.map((tone) => (
-                        <option key={tone.value} value={tone.value}>
-                          {tone.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </CardBody>
-              </Card>
-
-              {/* Язык */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Предпочитаемый язык</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Select
-                      value={settings.language}
-                      onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                      isDisabled={!isEditing}
-                    >
-                      <option value="ru">Русский</option>
-                      <option value="en">English</option>
-                      <option value="uk">Українська</option>
-                      <option value="kz">Қазақша</option>
-                    </Select>
-                  </FormControl>
-                </CardBody>
-              </Card>
-            </VStack>
-          </TabPanel>
-
-          {/* Вкладка: Промпты */}
-          <TabPanel px={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Системный промпт */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Системный промпт</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Textarea
-                      value={settings.systemPrompt}
-                      onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })}
-                      placeholder="Опишите роль и поведение AI агента..."
-                      minH="100px"
-                      isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
+            {/* Температура */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Креативность (Температура)</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="px-3">
+                    <Slider
+                      value={[settings.temperature]}
+                      onValueChange={(value: number[]) => setSettings({ ...settings, temperature: value[0] })}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      disabled={!isEditing}
                     />
-                    <FormHelperText>
-                      Базовые инструкции для AI агента, определяющие его роль и поведение
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0</span>
+                      <span className="font-semibold text-blue-600">{settings.temperature}</span>
+                      <span>2</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Низкие значения (0-0.3) - более предсказуемо, высокие (0.7-1.5) - более креативно
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-              {/* Промпт для постов */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Промпт для создания постов</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Textarea
-                      value={settings.postPrompt}
-                      onChange={(e) => setSettings({ ...settings, postPrompt: e.target.value })}
-                      placeholder="Инструкции для создания постов..."
-                      minH="80px"
-                      isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
+            {/* Максимальные токены */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Максимальная длина ответа</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="max-tokens">Токены</Label>
+                  <input
+                    id="max-tokens"
+                    type="number"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.maxTokens}
+                    onChange={(e) => setSettings({ ...settings, maxTokens: Number(e.target.value) })}
+                    min={256}
+                    max={8192}
+                    step={256}
+                    disabled={!isEditing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Максимальное количество токенов в ответе (256-8192)
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Top P */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Top P (Nucleus Sampling)</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="px-3">
+                    <Slider
+                      value={[settings.topP]}
+                      onValueChange={(value: number[]) => setSettings({ ...settings, topP: value[0] })}
+                      min={0.1}
+                      max={1}
+                      step={0.1}
+                      disabled={!isEditing}
                     />
-                    <FormHelperText>
-                      Специальные инструкции для генерации постов в социальных сетях
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0.1</span>
+                      <span className="font-semibold text-green-600">{settings.topP}</span>
+                      <span>1.0</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Контролирует разнообразие ответов. Рекомендуется 0.9 для большинства задач
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
 
-              {/* Промпт для чата */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Промпт для чата</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <FormControl>
-                    <Textarea
-                      value={settings.chatPrompt}
-                      onChange={(e) => setSettings({ ...settings, chatPrompt: e.target.value })}
-                      placeholder="Инструкции для общения в чате..."
-                      minH="80px"
-                      isReadOnly={!isEditing}
-                      bg={isEditing ? undefined : colorMode === "dark" ? "whiteAlpha.50" : "blackAlpha.50"}
+        {/* Вкладка: Персональность */}
+        <TabsContent value="personality">
+          <div className="flex flex-col gap-4">
+            {/* Тип личности */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Тип личности агента</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="personality">Выберите тип</Label>
+                  <select
+                    id="personality"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.personality}
+                    onChange={(e) => setSettings({ ...settings, personality: e.target.value })}
+                    disabled={!isEditing}
+                  >
+                    {personalities.map((personality) => (
+                      <option key={personality.value} value={personality.value}>
+                        {personality.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {personalities.find(p => p.value === settings.personality)?.description}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Стиль письма */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Стиль написания</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="writing-style">Выберите стиль</Label>
+                  <select
+                    id="writing-style"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.writingStyle}
+                    onChange={(e) => setSettings({ ...settings, writingStyle: e.target.value })}
+                    disabled={!isEditing}
+                  >
+                    {writingStyles.map((style) => (
+                      <option key={style.value} value={style.value}>
+                        {style.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            {/* Тон общения */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Тон общения</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="tone">Выберите тон</Label>
+                  <select
+                    id="tone"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.tone}
+                    onChange={(e) => setSettings({ ...settings, tone: e.target.value })}
+                    disabled={!isEditing}
+                  >
+                    {tones.map((tone) => (
+                      <option key={tone.value} value={tone.value}>
+                        {tone.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            {/* Язык */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Предпочитаемый язык</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="language">Выберите язык</Label>
+                  <select
+                    id="language"
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                    value={settings.language}
+                    onChange={(e) => setSettings({ ...settings, language: e.target.value })}
+                    disabled={!isEditing}
+                  >
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="uk">Українська</option>
+                    <option value="kz">Қазақша</option>
+                  </select>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Вкладка: Промпты */}
+        <TabsContent value="prompts">
+          <div className="flex flex-col gap-4">
+            {/* Системный промпт */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Системный промпт</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="system-prompt">Базовые инструкции</Label>
+                  <textarea
+                    id="system-prompt"
+                    className={`px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md ${
+                      isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-900"
+                    }`}
+                    value={settings.systemPrompt}
+                    onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })}
+                    placeholder="Опишите роль и поведение AI агента..."
+                    rows={4}
+                    readOnly={!isEditing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Базовые инструкции для AI агента, определяющие его роль и поведение
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Промпт для постов */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Промпт для создания постов</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="post-prompt">Инструкции для постов</Label>
+                  <textarea
+                    id="post-prompt"
+                    className={`px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md ${
+                      isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-900"
+                    }`}
+                    value={settings.postPrompt}
+                    onChange={(e) => setSettings({ ...settings, postPrompt: e.target.value })}
+                    placeholder="Инструкции для создания постов..."
+                    rows={3}
+                    readOnly={!isEditing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Специальные инструкции для генерации постов в социальных сетях
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Промпт для чата */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Промпт для чата</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="chat-prompt">Инструкции для чата</Label>
+                  <textarea
+                    id="chat-prompt"
+                    className={`px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md ${
+                      isEditing ? "bg-white dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-900"
+                    }`}
+                    value={settings.chatPrompt}
+                    onChange={(e) => setSettings({ ...settings, chatPrompt: e.target.value })}
+                    placeholder="Инструкции для общения в чате..."
+                    rows={3}
+                    readOnly={!isEditing}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Инструкции для ответов в чате и диалогах
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Вкладка: Дополнительные настройки */}
+        <TabsContent value="advanced">
+          <div className="flex flex-col gap-4">
+            {/* Контекст и память */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Контекст и память</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label htmlFor="use-context" className="text-sm">Использовать контекст предыдущих сообщений</Label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        AI будет помнить предыдущие части диалога
+                      </p>
+                    </div>
+                    <Switch
+                      id="use-context"
+                      checked={settings.useContext}
+                      onCheckedChange={(checked) => setSettings({ ...settings, useContext: checked })}
+                      disabled={!isEditing}
                     />
-                    <FormHelperText>
-                      Инструкции для ответов в чате и диалогах
-                    </FormHelperText>
-                  </FormControl>
-                </CardBody>
-              </Card>
-            </VStack>
-          </TabPanel>
+                  </div>
 
-          {/* Вкладка: Дополнительные настройки */}
-          <TabPanel px={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Контекст и память */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Контекст и память</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="use-context" mb={0} flex={1}>
-                        <Text fontSize="sm">Использовать контекст предыдущих сообщений</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          AI будет помнить предыдущие части диалога
-                        </Text>
-                      </FormLabel>
-                      <Switch
-                        id="use-context"
-                        isChecked={settings.useContext}
-                        onChange={(e) => setSettings({ ...settings, useContext: e.target.checked })}
-                        isDisabled={!isEditing}
-                      />
-                    </FormControl>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="max-context-length" className="text-sm">Максимальная длина контекста</Label>
+                    <input
+                      id="max-context-length"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={settings.maxContextLength}
+                      onChange={(e) => setSettings({ ...settings, maxContextLength: Number(e.target.value) })}
+                      min={1000}
+                      max={8000}
+                      step={500}
+                      disabled={!isEditing || !settings.useContext}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Количество символов контекста для запоминания
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-                    <FormControl>
-                      <FormLabel fontSize="sm">Максимальная длина контекста</FormLabel>
-                      <NumberInput
-                        value={settings.maxContextLength}
-                        onChange={(_, value) => setSettings({ ...settings, maxContextLength: value || 2000 })}
-                        min={1000}
-                        max={8000}
-                        step={500}
-                        isDisabled={!isEditing || !settings.useContext}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                      <FormHelperText>
-                        Количество символов контекста для запоминания
-                      </FormHelperText>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
+            {/* Поведение интерфейса */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Поведение интерфейса</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label htmlFor="streaming" className="text-sm">Потоковый вывод</Label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Показывать ответ по мере генерации
+                      </p>
+                    </div>
+                    <Switch
+                      id="streaming"
+                      checked={settings.streaming}
+                      onCheckedChange={(checked) => setSettings({ ...settings, streaming: checked })}
+                      disabled={!isEditing}
+                    />
+                  </div>
 
-              {/* Поведение интерфейса */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Поведение интерфейса</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="streaming" mb={0} flex={1}>
-                        <Text fontSize="sm">Потоковый вывод</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          Показывать ответ по мере генерации
-                        </Text>
-                      </FormLabel>
-                      <Switch
-                        id="streaming"
-                        isChecked={settings.streaming}
-                        onChange={(e) => setSettings({ ...settings, streaming: e.target.checked })}
-                        isDisabled={!isEditing}
-                      />
-                    </FormControl>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label htmlFor="auto-suggestions" className="text-sm">Автоподсказки</Label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Предлагать варианты продолжения текста
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-suggestions"
+                      checked={settings.autoSuggestions}
+                      onCheckedChange={(checked) => setSettings({ ...settings, autoSuggestions: checked })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="auto-suggestions" mb={0} flex={1}>
-                        <Text fontSize="sm">Автоподсказки</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          Предлагать варианты продолжения текста
-                        </Text>
-                      </FormLabel>
-                      <Switch
-                        id="auto-suggestions"
-                        isChecked={settings.autoSuggestions}
-                        onChange={(e) => setSettings({ ...settings, autoSuggestions: e.target.checked })}
-                        isDisabled={!isEditing}
-                      />
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
+            {/* Безопасность и модерация */}
+            <Card>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold">Безопасность и модерация</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Label htmlFor="content-filtering" className="text-sm">Фильтрация контента</Label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Автоматическая проверка на неподходящий контент
+                      </p>
+                    </div>
+                    <Switch
+                      id="content-filtering"
+                      checked={settings.contentFiltering}
+                      onCheckedChange={(checked) => setSettings({ ...settings, contentFiltering: checked })}
+                      disabled={!isEditing}
+                    />
+                  </div>
 
-              {/* Безопасность и модерация */}
-              <Card>
-                <CardHeader pb={2}>
-                  <Text fontWeight="semibold">Безопасность и модерация</Text>
-                </CardHeader>
-                <CardBody pt={0}>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="content-filtering" mb={0} flex={1}>
-                        <Text fontSize="sm">Фильтрация контента</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          Автоматическая проверка на неподходящий контент
-                        </Text>
-                      </FormLabel>
-                      <Switch
-                        id="content-filtering"
-                        isChecked={settings.contentFiltering}
-                        onChange={(e) => setSettings({ ...settings, contentFiltering: e.target.checked })}
-                        isDisabled={!isEditing}
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel fontSize="sm">Уровень безопасности</FormLabel>
-                      <Select
-                        value={settings.safetyLevel}
-                        onChange={(e) => setSettings({ ...settings, safetyLevel: e.target.value })}
-                        isDisabled={!isEditing || !settings.contentFiltering}
-                      >
-                        {safetyLevels.map((level) => (
-                          <option key={level.value} value={level.value}>
-                            {level.label}
-                          </option>
-                        ))}
-                      </Select>
-                      <FormHelperText>
-                        {safetyLevels.find(l => l.value === settings.safetyLevel)?.description}
-                      </FormHelperText>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </VStack>
-          </TabPanel>
-        </TabPanels>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="safety-level" className="text-sm">Уровень безопасности</Label>
+                    <select
+                      id="safety-level"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={settings.safetyLevel}
+                      onChange={(e) => setSettings({ ...settings, safetyLevel: e.target.value })}
+                      disabled={!isEditing || !settings.contentFiltering}
+                    >
+                      {safetyLevels.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {safetyLevels.find(l => l.value === settings.safetyLevel)?.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
-    </VStack>
+    </div>
   );
 }

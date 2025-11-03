@@ -3,43 +3,26 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
+import TiptapImage from "@tiptap/extension-image";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Node, mergeAttributes } from "@tiptap/core";
-import {
-  Box,
-  HStack,
-  Button,
-  IconButton,
-  Divider,
-  useColorMode,
-  Input,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  VStack,
-  Text,
-  Select,
-} from "@chakra-ui/react";
+import { Button } from "@/shared/ui/button/Button";
 import {
   Bold,
   Italic,
-  Underline,
   Strikethrough,
   Code,
-  Quote,
-  List,
-  ListOrdered,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Video as VideoIcon,
-  Undo,
-  Redo,
   Heading1,
   Heading2,
-  Heading3,
+  List,
+  ListOrdered,
+  Quote,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Undo,
+  Redo,
+  Video as VideoIcon,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { AIAssistant } from "./ai/AIAssistant";
@@ -47,19 +30,22 @@ import { AIAssistant } from "./ai/AIAssistant";
 // Функция для получения embed URL из различных видео платформ
 function getEmbedUrl(url: string): string | null {
   // YouTube
-  const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/;
+  const youtubeMatch = youtubeRegex.exec(url);
   if (youtubeMatch) {
     return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
   }
 
   // RuTube
-  const rutubeMatch = url.match(/rutube\.ru\/video\/([a-zA-Z0-9_-]+)/);
+  const rutubeRegex = /rutube\.ru\/video\/([a-zA-Z0-9_-]+)/;
+  const rutubeMatch = rutubeRegex.exec(url);
   if (rutubeMatch) {
     return `https://rutube.ru/play/embed/${rutubeMatch[1]}`;
   }
 
   // VK Video - поддержка vkvideo.ru и vk.com
-  const vkVideoMatch = url.match(/(?:vkvideo\.ru\/video|vk\.com\/video)(-?\d+_\d+)/);
+  const vkVideoRegex = /(?:vkvideo\.ru\/video|vk\.com\/video)(-?\d+_\d+)/;
+  const vkVideoMatch = vkVideoRegex.exec(url);
   if (vkVideoMatch) {
     const videoId = vkVideoMatch[1];
     const parts = videoId.split("_");
@@ -67,19 +53,22 @@ function getEmbedUrl(url: string): string | null {
   }
 
   // Платформа - поддержка plvideo.ru
-  const platformaMatch = url.match(/plvideo\.ru\/watch\?v=([a-zA-Z0-9_-]+)/);
+  const platformaRegex = /plvideo\.ru\/watch\?v=([a-zA-Z0-9_-]+)/;
+  const platformaMatch = platformaRegex.exec(url);
   if (platformaMatch) {
     return `https://plvideo.ru/embed/${platformaMatch[1]}`;
   }
 
   // Smotrim.ru (Первый канал)
-  const smotrimMatch = url.match(/smotrim\.ru\/.*?(\d+)/);
+  const smotrimRegex = /smotrim\.ru\/.*?(\d+)/;
+  const smotrimMatch = smotrimRegex.exec(url);
   if (smotrimMatch) {
     return url; // Smotrim использует прямые ссылки
   }
 
   // Dzen (бывший Яндекс.Дзен)
-  const dzenMatch = url.match(/dzen\.ru\/video\/watch\/([a-zA-Z0-9_-]+)/);
+  const dzenRegex = /dzen\.ru\/video\/watch\/([a-zA-Z0-9_-]+)/;
+  const dzenMatch = dzenRegex.exec(url);
   if (dzenMatch) {
     return `https://dzen.ru/embed/${dzenMatch[1]}`;
   }
@@ -117,17 +106,17 @@ const Video = Node.create({
       {
         tag: "iframe[src]",
         getAttrs: (element) => ({
-          src: (element as HTMLElement).getAttribute("src"),
-          width: (element as HTMLElement).getAttribute("width") || "100%",
-          height: (element as HTMLElement).getAttribute("height") || "315",
+          src: element.getAttribute("src"),
+          width: element.getAttribute("width") || "100%",
+          height: element.getAttribute("height") || "315",
         }),
       },
       {
         tag: "video[src]",
         getAttrs: (element) => ({
-          src: (element as HTMLElement).getAttribute("src"),
-          width: (element as HTMLElement).getAttribute("width") || "100%",
-          height: (element as HTMLElement).getAttribute("height") || "315",
+          src: element.getAttribute("src"),
+          width: element.getAttribute("width") || "100%",
+          height: element.getAttribute("height") || "315",
         }),
       },
     ];
@@ -151,23 +140,23 @@ const Video = Node.create({
       style: "width: 100%; max-width: 560px; height: 315px; border-radius: 8px;",
     }, HTMLAttributes)];
   },
-
-
 });
 
 interface TiptapEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  height?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly height?: string;
 }
 
 export function TiptapEditor({ value, onChange, placeholder = "Начните писать...", height = "400px" }: TiptapEditorProps) {
-  const { colorMode } = useColorMode();
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [isVideoUrlMode, setIsVideoUrlMode] = useState(true);
+  const [showLinkPopover, setShowLinkPopover] = useState(false);
+  const [showImagePopover, setShowImagePopover] = useState(false);
+  const [showVideoPopover, setShowVideoPopover] = useState(false);
   
   const editor = useEditor({
     immediatelyRender: false,
@@ -188,7 +177,7 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
           class: "text-blue-500 underline",
         },
       }),
-      Image.configure({
+      TiptapImage.configure({
         HTMLAttributes: {
           class: "max-w-full h-auto rounded-lg",
         },
@@ -221,6 +210,7 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
       editor.chain().focus().setLink({ href: linkUrl }).run();
     }
     setLinkUrl("");
+    setShowLinkPopover(false);
   }, [editor, linkUrl]);
 
   const addImage = useCallback(() => {
@@ -228,12 +218,12 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
     
     editor.chain().focus().setImage({ src: imageUrl }).run();
     setImageUrl("");
+    setShowImagePopover(false);
   }, [editor, imageUrl]);
 
   const addVideo = useCallback(() => {
     if (!editor || !videoUrl) return;
     
-    // Используем команду напрямую через editor
     const embedUrl = getEmbedUrl(videoUrl);
     if (embedUrl) {
       editor.chain().focus().insertContent({
@@ -244,6 +234,7 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
       }).run();
     }
     setVideoUrl("");
+    setShowVideoPopover(false);
   }, [editor, videoUrl]);
 
   const handleVideoFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,268 +261,214 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
 
     // Очищаем input
     event.target.value = "";
+    setShowVideoPopover(false);
   }, [editor]);
 
   if (!editor) {
-    return <Box h={height} bg="gray.50" _dark={{ bg: "gray.800" }} borderRadius="md" />;
+    return <div style={{ height, backgroundColor: "rgb(243 244 246)", borderRadius: "0.375rem" }} />;
   }
 
   return (
-    <Box
-      border="1px solid"
-      borderColor="gray.200"
-      borderRadius="md"
-      bg="white"
-      _dark={{ borderColor: "gray.600", bg: "gray.900" }}
-    >
+    <div className="border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900">
       {/* Toolbar */}
-      <HStack
-        p={2}
-        borderBottom="1px solid"
-        borderColor="gray.200"
-        _dark={{ borderColor: "gray.600" }}
-        wrap="wrap"
-        spacing={1}
-      >
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-600">
         {/* Text Formatting */}
-        <IconButton
-          size="sm"
-          icon={<Bold size={16} />}
+        <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive("bold")}
-          variant={editor.isActive("bold") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("bold") ? "blue" : "gray"}
-          aria-label="Bold"
-        />
-        <IconButton
-          size="sm"
-          icon={<Italic size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("bold") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Bold"
+        >
+          <Bold size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive("italic")}
-          variant={editor.isActive("italic") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("italic") ? "blue" : "gray"}
-          aria-label="Italic"
-        />
-        <IconButton
-          size="sm"
-          icon={<Strikethrough size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("italic") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Italic"
+        >
+          <Italic size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          isActive={editor.isActive("strike")}
-          variant={editor.isActive("strike") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("strike") ? "blue" : "gray"}
-          aria-label="Strikethrough"
-        />
-        <IconButton
-          size="sm"
-          icon={<Code size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("strike") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Strikethrough"
+        >
+          <Strikethrough size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleCode().run()}
-          isActive={editor.isActive("code")}
-          variant={editor.isActive("code") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("code") ? "blue" : "gray"}
-          aria-label="Code"
-        />
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("code") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Code"
+        >
+          <Code size={16} />
+        </button>
 
-        <Divider orientation="vertical" h={6} />
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
         {/* Headings */}
-        <IconButton
-          size="sm"
-          icon={<Heading1 size={16} />}
+        <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={editor.isActive("heading", { level: 1 })}
-          variant={editor.isActive("heading", { level: 1 }) ? "solid" : "ghost"}
-          colorScheme={editor.isActive("heading", { level: 1 }) ? "blue" : "gray"}
-          aria-label="Heading 1"
-        />
-        <IconButton
-          size="sm"
-          icon={<Heading2 size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("heading", { level: 1 }) ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Heading 1"
+        >
+          <Heading1 size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive("heading", { level: 2 })}
-          variant={editor.isActive("heading", { level: 2 }) ? "solid" : "ghost"}
-          colorScheme={editor.isActive("heading", { level: 2 }) ? "blue" : "gray"}
-          aria-label="Heading 2"
-        />
-        <IconButton
-          size="sm"
-          icon={<Heading3 size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("heading", { level: 2 }) ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Heading 2"
+        >
+          <Heading2 size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive("heading", { level: 3 })}
-          variant={editor.isActive("heading", { level: 3 }) ? "solid" : "ghost"}
-          colorScheme={editor.isActive("heading", { level: 3 }) ? "blue" : "gray"}
-          aria-label="Heading 3"
-        />
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("heading", { level: 3 }) ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Heading 3"
+        >
+          <Heading2 size={16} />
+        </button>
 
-        <Divider orientation="vertical" h={6} />
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
         {/* Lists */}
-        <IconButton
-          size="sm"
-          icon={<List size={16} />}
+        <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive("bulletList")}
-          variant={editor.isActive("bulletList") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("bulletList") ? "blue" : "gray"}
-          aria-label="Bullet List"
-        />
-        <IconButton
-          size="sm"
-          icon={<ListOrdered size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("bulletList") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Bullet List"
+        >
+          <List size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive("orderedList")}
-          variant={editor.isActive("orderedList") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("orderedList") ? "blue" : "gray"}
-          aria-label="Ordered List"
-        />
-        <IconButton
-          size="sm"
-          icon={<Quote size={16} />}
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("orderedList") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Ordered List"
+        >
+          <ListOrdered size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive("blockquote")}
-          variant={editor.isActive("blockquote") ? "solid" : "ghost"}
-          colorScheme={editor.isActive("blockquote") ? "blue" : "gray"}
-          aria-label="Blockquote"
-        />
+          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("blockquote") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+          title="Blockquote"
+        >
+          <Quote size={16} />
+        </button>
 
-        <Divider orientation="vertical" h={6} />
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
-        {/* Link */}
-        <Popover>
-          <PopoverTrigger>
-            <IconButton
-              size="sm"
-              icon={<LinkIcon size={16} />}
-              isActive={editor.isActive("link")}
-              variant={editor.isActive("link") ? "solid" : "ghost"}
-              colorScheme={editor.isActive("link") ? "blue" : "gray"}
-              aria-label="Add Link"
-            />
-          </PopoverTrigger>
-          <PopoverContent>
-            <PopoverBody>
-              <VStack spacing={3}>
-                <Text fontSize="sm" fontWeight="medium">Добавить ссылку</Text>
-                <Input
-                  placeholder="https://example.com"
-                  size="sm"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                />
-                <Button size="sm" colorScheme="blue" onClick={setLink} w="full">
-                  Добавить ссылку
-                </Button>
-              </VStack>
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
+        {/* Link Popover */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLinkPopover(!showLinkPopover)}
+            className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${editor.isActive("link") ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}`}
+            title="Add Link"
+          >
+            <LinkIcon size={16} />
+          </button>
+          {showLinkPopover && (
+            <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 w-64">
+              <p className="text-sm font-medium mb-2">Добавить ссылку</p>
+              <input
+                type="text"
+                placeholder="https://example.com"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-sm mb-2"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+              />
+              <Button size="sm" onClick={setLink} className="w-full">
+                Добавить ссылку
+              </Button>
+            </div>
+          )}
+        </div>
 
-        {/* Image */}
-        <Popover>
-          <PopoverTrigger>
-            <IconButton
-              size="sm"
-              icon={<ImageIcon size={16} />}
-              aria-label="Add Image"
-              variant="ghost"
-            />
-          </PopoverTrigger>
-          <PopoverContent>
-            <PopoverBody>
-              <VStack spacing={3}>
-                <Text fontSize="sm" fontWeight="medium">Добавить изображение</Text>
-                <Input
-                  placeholder="https://example.com/image.jpg"
-                  size="sm"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-                <Button size="sm" colorScheme="blue" onClick={addImage} w="full">
-                  Добавить изображение
-                </Button>
-              </VStack>
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
+        {/* Image Popover */}
+        <div className="relative">
+          <button
+            onClick={() => setShowImagePopover(!showImagePopover)}
+            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            title="Add Image"
+          >
+            <ImageIcon size={16} />
+          </button>
+          {showImagePopover && (
+            <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 w-64">
+              <p className="text-sm font-medium mb-2">Добавить изображение</p>
+              <input
+                type="text"
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-sm mb-2"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+              <Button size="sm" onClick={addImage} className="w-full">
+                Добавить изображение
+              </Button>
+            </div>
+          )}
+        </div>
 
-        {/* Video */}
-        <Popover>
-          <PopoverTrigger>
-            <IconButton
-              size="sm"
-              icon={<VideoIcon size={16} />}
-              aria-label="Add Video"
-              variant="ghost"
-            />
-          </PopoverTrigger>
-          <PopoverContent>
-            <PopoverBody>
-              <VStack spacing={3}>
-                <Text fontSize="sm" fontWeight="medium">Добавить видео</Text>
-                
-                {/* Переключатель между URL и файлом */}
-                <HStack spacing={2} w="full">
-                  <Button
-                    size="xs"
-                    variant={isVideoUrlMode ? "solid" : "outline"}
-                    colorScheme={isVideoUrlMode ? "blue" : "gray"}
-                    onClick={() => setIsVideoUrlMode(true)}
-                    flex={1}
-                  >
-                    По ссылке
+        {/* Video Popover */}
+        <div className="relative">
+          <button
+            onClick={() => setShowVideoPopover(!showVideoPopover)}
+            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+            title="Add Video"
+          >
+            <VideoIcon size={16} />
+          </button>
+          {showVideoPopover && (
+            <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 w-80">
+              <p className="text-sm font-medium mb-2">Добавить видео</p>
+              
+              {/* Переключатель между URL и файлом */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => setIsVideoUrlMode(true)}
+                  className={`flex-1 px-3 py-1 text-xs rounded ${isVideoUrlMode ? "bg-blue-500 text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                >
+                  По ссылке
+                </button>
+                <button
+                  onClick={() => setIsVideoUrlMode(false)}
+                  className={`flex-1 px-3 py-1 text-xs rounded ${isVideoUrlMode ? "bg-gray-200 dark:bg-gray-700" : "bg-blue-500 text-white"}`}
+                >
+                  Загрузить файл
+                </button>
+              </div>
+
+              {isVideoUrlMode ? (
+                <>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Поддерживаются: YouTube, RuTube, VK Video, Smotrim, Dzen, Платформа
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="https://plvideo.ru/watch?v=... или https://vkvideo.ru/video..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-sm mb-2"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                  />
+                  <Button size="sm" onClick={addVideo} className="w-full">
+                    Добавить видео
                   </Button>
-                  <Button
-                    size="xs"
-                    variant={!isVideoUrlMode ? "solid" : "outline"}
-                    colorScheme={!isVideoUrlMode ? "blue" : "gray"}
-                    onClick={() => setIsVideoUrlMode(false)}
-                    flex={1}
-                  >
-                    Загрузить файл
-                  </Button>
-                </HStack>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Поддерживаются: MP4, AVI, WebM, MOV (до 100MB)
+                  </p>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoFileUpload}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-sm"
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
-                {isVideoUrlMode ? (
-                  <>
-                    <Text fontSize="xs" color="gray.500">
-                      Поддерживаются: YouTube, RuTube, VK Video, Smotrim, Dzen, Платформа
-                    </Text>
-                    <Input
-                      placeholder="https://plvideo.ru/watch?v=... или https://vkvideo.ru/video..."
-                      size="sm"
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                    />
-                    <Button size="sm" colorScheme="blue" onClick={addVideo} w="full">
-                      Добавить видео
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Text fontSize="xs" color="gray.500">
-                      Поддерживаются: MP4, AVI, WebM, MOV (до 100MB)
-                    </Text>
-                    <Box w="full">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleVideoFileUpload}
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          border: "1px solid #ccc",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                        }}
-                      />
-                    </Box>
-                  </>
-                )}
-              </VStack>
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
-
-        <Divider orientation="vertical" h={6} />
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
         {/* AI Assistant */}
         <AIAssistant
@@ -539,7 +476,6 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
           currentContent={editor.getText()}
           onGenerate={(content) => {
             if (content.trim()) {
-              // Если есть выделение, заменяем его, иначе добавляем в конец
               if (editor.state.selection.empty) {
                 editor.chain().focus().insertContent(content).run();
               } else {
@@ -550,104 +486,103 @@ export function TiptapEditor({ value, onChange, placeholder = "Начните п
           placeholder="Опишите какой пост вы хотите создать (тема, стиль, ключевые моменты)..."
         />
 
-        <Divider orientation="vertical" h={6} />
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
         {/* Undo/Redo */}
-        <IconButton
-          size="sm"
-          icon={<Undo size={16} />}
+        <button
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().chain().focus().undo().run()}
-          aria-label="Undo"
-          variant="ghost"
-        />
-        <IconButton
-          size="sm"
-          icon={<Redo size={16} />}
+          className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Undo"
+        >
+          <Undo size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().chain().focus().redo().run()}
-          aria-label="Redo"
-          variant="ghost"
-        />
-      </HStack>
+          className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Redo"
+        >
+          <Redo size={16} />
+        </button>
+      </div>
 
       {/* Editor Content */}
-      <Box
-        h={height}
-        maxH={height}
-        p={4}
-        bg="white"
-        _dark={{ bg: "gray.900" }}
-        overflowY="auto"
-        sx={{
-          ".ProseMirror": {
-            outline: "none",
-            minHeight: `calc(${height} - 2rem)`,
-            maxHeight: `calc(${height} - 2rem)`,
-            overflowY: "auto",
-            "& p": {
-              margin: "0.5em 0",
-            },
-            "& h1, & h2, & h3": {
-              marginTop: "1em",
-              marginBottom: "0.5em",
-              fontWeight: "bold",
-            },
-            "& h1": {
-              fontSize: "1.5em",
-            },
-            "& h2": {
-              fontSize: "1.3em",
-            },
-            "& h3": {
-              fontSize: "1.1em",
-            },
-            "& ul, & ol": {
-              paddingLeft: "1.5em",
-            },
-            "& blockquote": {
-              borderLeft: "4px solid #ddd",
-              paddingLeft: "1em",
-              fontStyle: "italic",
-              margin: "1em 0",
-            },
-            "& code": {
-              backgroundColor: colorMode === "dark" ? "#374151" : "#f3f4f6",
-              padding: "0.2em 0.4em",
-              borderRadius: "0.25em",
-              fontSize: "0.9em",
-            },
-            "& a": {
-              color: "#3b82f6",
-              textDecoration: "underline",
-            },
-            "& img": {
-              maxWidth: "100%",
-              height: "auto",
-              borderRadius: "0.5em",
-              margin: "1em 0",
-            },
-            "& iframe": {
-              width: "100%",
-              maxWidth: "560px",
-              height: "315px",
-              borderRadius: "0.5em",
-              margin: "1em 0",
-              border: "none",
-            },
-            "& video": {
-              width: "100%",
-              maxWidth: "560px",
-              height: "auto",
-              borderRadius: "0.5em",
-              margin: "1em 0",
-              backgroundColor: "#000",
-            },
-          },
-        }}
+      <div
+        style={{ height, maxHeight: height }}
+        className="p-4 bg-white dark:bg-gray-900 overflow-y-auto"
       >
+        <style dangerouslySetInnerHTML={{__html: `
+          .ProseMirror {
+            outline: none;
+            min-height: calc(${height} - 2rem);
+            max-height: calc(${height} - 2rem);
+            overflow-y: auto;
+          }
+          .ProseMirror p {
+            margin: 0.5em 0;
+          }
+          .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+          }
+          .ProseMirror h1 {
+            font-size: 1.5em;
+          }
+          .ProseMirror h2 {
+            font-size: 1.3em;
+          }
+          .ProseMirror h3 {
+            font-size: 1.1em;
+          }
+          .ProseMirror ul, .ProseMirror ol {
+            padding-left: 1.5em;
+          }
+          .ProseMirror blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 1em;
+            font-style: italic;
+            margin: 1em 0;
+          }
+          .ProseMirror code {
+            background-color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25em;
+            font-size: 0.9em;
+          }
+          .dark .ProseMirror code {
+            background-color: #374151;
+          }
+          .ProseMirror a {
+            color: #3b82f6;
+            text-decoration: underline;
+          }
+          .ProseMirror img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5em;
+            margin: 1em 0;
+          }
+          .ProseMirror iframe {
+            width: 100%;
+            max-width: 560px;
+            height: 315px;
+            border-radius: 0.5em;
+            margin: 1em 0;
+            border: none;
+          }
+          .ProseMirror video {
+            width: 100%;
+            max-width: 560px;
+            height: auto;
+            border-radius: 0.5em;
+            margin: 1em 0;
+            background-color: #000;
+          }
+        `}} />
         <EditorContent editor={editor} />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

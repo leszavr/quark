@@ -1,7 +1,5 @@
 "use client";
 
-
-
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { readonly children: React.ReactNode }) {
   return <>{children}</>;
 }

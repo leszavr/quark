@@ -1,31 +1,16 @@
 "use client";
 
-import {
-  Box,
-  HStack,
-  Text,
-  IconButton,
-  Avatar,
-  useColorMode,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuDivider,
-  Badge,
-} from "@chakra-ui/react";
 import { Home, Moon, Sun, Settings, LogOut, User, Zap, MessageSquare, MessageSquareOff } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAppStore } from "@/stores/appStore";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/shared/ui/dropdown-menu/DropdownMenu";
+import { Button } from "@/shared/ui/button/Button";
 
 interface HeaderProps {
-  showHomeButton?: boolean;
+  readonly showHomeButton?: boolean;
 }
 
 export function Header({ showHomeButton = false }: HeaderProps) {
-  const { colorMode, toggleColorMode } = useColorMode();
-  const pathname = usePathname();
   const { viewMode, setViewMode, chatWindow, setChatWindow } = useAppStore();
   
   const isChatVisible = chatWindow.isOpen && (viewMode === "both" || viewMode === "chat-only" || viewMode === "home");
@@ -42,145 +27,102 @@ export function Header({ showHomeButton = false }: HeaderProps) {
     }
   };
 
-  const headerBg = colorMode === "dark" ? "gray.800" : "white";
-  const borderColor = colorMode === "dark" ? "gray.700" : "gray.200";
-
   return (
-    <Box
-      as="header"
-      w="full"
-      borderBottom="1px solid"
-      borderColor={borderColor}
-      px={6}
-      py={3}
-      position="sticky"
-      top={0}
-      zIndex={1000}
-      backdropFilter="blur(10px)"
-      bg={colorMode === "dark" 
-        ? "rgba(26, 32, 44, 0.8)" 
-        : "rgba(255, 255, 255, 0.8)"
-      }
-    >
-      <HStack justify="space-between" align="center">
+    <header className="sticky top-0 z-[1000] w-full border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-6 py-3">
+      <div className="flex items-center justify-between">
         {/* Левая часть - Логотип и домой (если нужно) */}
-        <HStack spacing={4}>
+        <div className="flex items-center gap-4">
           {showHomeButton && (
             <Link href="/">
-              <IconButton
-                aria-label="На главную"
-                icon={<Home size={20} />}
-                variant="ghost"
-                size="md"
-                _hover={{ 
-                  bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
-                }}
-              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Home size={20} />
+              </Button>
             </Link>
           )}
           
           <Link href="/">
-            <HStack spacing={3} cursor="pointer" _hover={{ opacity: 0.8 }}>
+            <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
               {/* Логотип */}
-              <Box
-                w={10}
-                h={10}
-                borderRadius="lg"
-                bg={colorMode === "dark" ? "#00f0ff" : "#1a202c"}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                boxShadow={colorMode === "dark" ? "0 4px 8px rgba(0, 240, 255, 0.3)" : "0 4px 8px rgba(26, 32, 44, 0.3)"}
-              >
-                <Zap size={20} color={colorMode === "dark" ? "black" : "white"} />
-              </Box>
+              <div className="w-10 h-10 rounded-lg bg-gray-900 dark:bg-cyan-400 flex items-center justify-center shadow-lg shadow-gray-900/30 dark:shadow-cyan-400/30">
+                <Zap size={20} className="text-white dark:text-black" />
+              </div>
               
-              <Text 
-                fontSize="2xl" 
-                fontWeight="bold" 
-                fontFamily="Space Grotesk"
-                color={colorMode === "dark" ? "#00f0ff" : "#1a202c"}
-              >
+              <span className="text-2xl font-bold font-['Space_Grotesk'] text-gray-900 dark:text-cyan-400">
                 Quark
-              </Text>
-            </HStack>
+              </span>
+            </div>
           </Link>
-        </HStack>
+        </div>
 
         {/* Правая часть - Управление чатом, переключатель темы и профиль */}
-        <HStack spacing={3}>
+        <div className="flex items-center gap-3">
           {/* Переключатель мессенджера */}
-          <IconButton
-            aria-label={isChatVisible ? "Скрыть мессенджер" : "Показать мессенджер"}
-            icon={isChatVisible ? <MessageSquareOff size={20} /> : <MessageSquare size={20} />}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={toggleChat}
-            variant="ghost"
-            size="md"
-            _hover={{ 
-              bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
-            }}
-          />
+            className="hover:bg-gray-50 dark:hover:bg-gray-800"
+            aria-label={isChatVisible ? "Скрыть мессенджер" : "Показать мессенджер"}
+          >
+            {isChatVisible ? <MessageSquareOff size={20} /> : <MessageSquare size={20} />}
+          </Button>
 
           {/* Переключатель темы */}
-          <IconButton
-            aria-label="Переключить тему"
-            icon={colorMode === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            onClick={toggleColorMode}
-            variant="ghost"
-            size="md"
-            _hover={{ 
-              bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const html = document.documentElement;
+              html.classList.toggle('dark');
             }}
-          />
+            className="hover:bg-gray-50 dark:hover:bg-gray-800"
+            aria-label="Переключить тему"
+          >
+            <Moon size={20} className="hidden dark:block" />
+            <Sun size={20} className="block dark:hidden" />
+          </Button>
 
           {/* Меню профиля */}
-          <Menu>
-            <MenuButton>
-              <HStack 
-                spacing={2} 
-                cursor="pointer"
-                p={2}
-                borderRadius="lg"
-                _hover={{ 
-                  bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50" 
-                }}
-                transition="all 0.2s"
-              >
-                <Avatar 
-                  size="sm" 
-                  name="Иван Петров"
-                />
-                <Box display={{ base: "none", md: "block" }}>
-                  <Text fontSize="sm" fontWeight="medium">
-                    Иван Петров
-                  </Text>
-                  <Text fontSize="xs" color="gray.500">
-                    @ivanpetrov
-                  </Text>
-                </Box>
-              </HStack>
-            </MenuButton>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                  <User size={16} />
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium">Иван Петров</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">@ivanpetrov</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
             
-            <MenuList>
+            <DropdownMenuContent align="end" className="w-48">
               <Link href="/profile">
-                <MenuItem icon={<User size={16} />}>
-                  Профиль
-                </MenuItem>
+                <DropdownMenuItem>
+                  <User size={16} />
+                  <span>Профиль</span>
+                </DropdownMenuItem>
               </Link>
               
-              <MenuItem icon={<Settings size={16} />}>
-                Настройки
-              </MenuItem>
+              <DropdownMenuItem>
+                <Settings size={16} />
+                <span>Настройки</span>
+              </DropdownMenuItem>
               
-              <MenuDivider />
+              <DropdownMenuSeparator />
               
-              <MenuItem icon={<LogOut size={16} />} color="red.500">
-                Выйти
-              </MenuItem>
-            </MenuList>
-          </Menu>
-        </HStack>
-      </HStack>
-    </Box>
+              <DropdownMenuItem className="text-red-500">
+                <LogOut size={16} />
+                <span>Выйти</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
   );
 }

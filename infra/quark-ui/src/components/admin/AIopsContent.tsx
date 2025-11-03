@@ -1,17 +1,15 @@
 "use client";
 
-import {
-  VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
-  Heading, Badge, Stat, StatNumber, StatLabel, Grid, Box,
-  useColorModeValue, useDisclosure, Modal, ModalOverlay, ModalContent, 
-  ModalHeader, ModalBody, ModalFooter, ModalCloseButton, IconButton,
-  Tooltip, Progress, Alert, AlertIcon, AlertTitle, AlertDescription,
-  Divider, useColorMode
-} from "@chakra-ui/react";
 import { useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Card } from "@/shared/ui/card/Card";
+import { Button } from "@/shared/ui/button/Button";
+import { Badge } from "@/shared/ui/badge/Badge";
+import { Progress } from "@/shared/ui/progress/Progress";
+import { Alert, AlertTitle, AlertDescription } from "@/shared/ui/alert/Alert";
 import { 
   Brain, Settings, CheckCircle, XCircle, Clock, Target,
-  TrendingUp, Activity, Palette, Shield, Code, AlertTriangle
+  TrendingUp, Activity, Palette, Shield, Code, AlertTriangle, X
 } from "lucide-react";
 
 interface Proposal {
@@ -28,6 +26,33 @@ interface Proposal {
   confidence?: number;
   impact?: string;
   suggestedChanges?: string;
+}
+
+// Helper functions for consistent label formatting
+function getProposalTypeLabel(type: Proposal['type']): string {
+  if (type === "performance") return "Производительность";
+  if (type === "ui_ux") return "UI/UX";
+  if (type === "security") return "Безопасность";
+  return "Качество кода";
+}
+
+function getProposalImpactLabel(impact: string | undefined): string {
+  if (!impact) return "Низкий";
+  if (impact === "high") return "Высокий";
+  if (impact === "medium") return "Средний";
+  return "Низкий";
+}
+
+function getProposalStatusColor(status: Proposal['status']): string {
+  if (status === "approved") return "green";
+  if (status === "pending") return "yellow";
+  return "red";
+}
+
+function getProposalStatusLabel(status: Proposal['status']): string {
+  if (status === "approved") return "Одобрено";
+  if (status === "pending") return "На рассмотрении";
+  return "Отклонено";
 }
 
 export function AIopsContent() {
@@ -101,22 +126,20 @@ function getCachedApiData(key) {
   ]);
 
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { colorMode } = useColorMode();
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
-  const proposalBgLight = (type: Proposal["type"] | undefined) => `${getTypeColor(type)}.50`;
-  const proposalBgDark = (type: Proposal["type"] | undefined) => `${getTypeColor(type)}.900`;
-  const boxBgLight = useColorModeValue("gray.50", "gray.900");
-  const boxBorderLight = useColorModeValue("gray.200", "gray.600");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const getTypeColor = (type: Proposal["type"] | undefined) => {
-    switch (type) {
-      case "performance": return "blue";
-      case "ui_ux": return "purple";
-      case "security": return "red";
-      case "code_quality": return "green";
-      default: return "gray";
-    }
+  const getTypeColorClass = (type: Proposal["type"] | undefined): string => {
+    if (type === 'performance') return 'bg-blue-50 text-blue-500';
+    if (type === 'ui_ux') return 'bg-purple-50 text-purple-500';
+    if (type === 'security') return 'bg-red-50 text-red-500';
+    if (type === 'code_quality') return 'bg-green-50 text-green-500';
+    return 'bg-gray-50 text-gray-500';
+  };
+
+  const getBadgeVariant = (status: Proposal['status']): "default" | "secondary" | "destructive" => {
+    if (status === "approved") return "default";
+    if (status === "pending") return "secondary";
+    return "destructive";
   };
 
   const getTypeIcon = (type: Proposal["type"] | undefined) => {
@@ -130,15 +153,6 @@ function getCachedApiData(key) {
       case "optimization": return TrendingUp;
       case "refactor": return Code;
       default: return AlertTriangle;
-    }
-  };
-
-  const getImpactColor = (impact: Proposal["impact"] | undefined) => {
-    switch (impact) {
-      case "high": return "red";
-      case "medium": return "orange";
-      case "low": return "green";
-      default: return "gray";
     }
   };
 
@@ -156,316 +170,276 @@ function getCachedApiData(key) {
 
   const approvedCount = proposals.filter(p => p.status === "approved").length;
   const pendingCount = proposals.filter(p => p.status === "pending").length;
-  const rejectedCount = proposals.filter(p => p.status === "rejected").length;
+
+  const openProposalDialog = (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+    setIsDialogOpen(true);
+  };
 
   return (
-    <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center">
-        <VStack align="start" spacing={1}>
-          <Heading size="xl" fontFamily="Space Grotesk">AI Ops Console</Heading>
-          <Text color="gray.500">Управление предложениями искусственного интеллекта</Text>
-        </VStack>
-        <HStack>
-          <Button leftIcon={<Brain size={18} />} colorScheme="purple" variant="outline">
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-4xl font-bold font-space-grotesk">AI Ops Console</h1>
+          <p className="text-gray-500">Управление предложениями искусственного интеллекта</p>
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline">
+            <Brain className="w-4 h-4 mr-2" />
             Запустить анализ
           </Button>
-          <Button leftIcon={<Settings size={18} />} variant="outline">
+          <Button variant="outline">
+            <Settings className="w-4 h-4 mr-2" />
             Настройки ИИ
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </div>
 
       {/* Статистика предложений */}
-      <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={4}>
-        <Card>
-          <CardBody textAlign="center">
-            <VStack spacing={2}>
-              <Brain size={32} color="purple" />
-              <Stat>
-                <StatNumber>{proposals.length}</StatNumber>
-                <StatLabel>Всего предложений</StatLabel>
-              </Stat>
-            </VStack>
-          </CardBody>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <Brain size={32} className="text-purple-500" />
+            <div>
+              <div className="text-3xl font-bold">{proposals.length}</div>
+              <div className="text-sm text-gray-500">Всего предложений</div>
+            </div>
+          </div>
         </Card>
-        <Card>
-          <CardBody textAlign="center">
-            <VStack spacing={2}>
-              <CheckCircle size={32} color="green" />
-              <Stat>
-                <StatNumber>{approvedCount}</StatNumber>
-                <StatLabel>Одобрено</StatLabel>
-              </Stat>
-            </VStack>
-          </CardBody>
+        <Card className="p-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <CheckCircle size={32} className="text-green-500" />
+            <div>
+              <div className="text-3xl font-bold">{approvedCount}</div>
+              <div className="text-sm text-gray-500">Одобрено</div>
+            </div>
+          </div>
         </Card>
-        <Card>
-          <CardBody textAlign="center">
-            <VStack spacing={2}>
-              <Clock size={32} color="orange" />
-              <Stat>
-                <StatNumber>{pendingCount}</StatNumber>
-                <StatLabel>На рассмотрении</StatLabel>
-              </Stat>
-            </VStack>
-          </CardBody>
+        <Card className="p-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <Clock size={32} className="text-orange-500" />
+            <div>
+              <div className="text-3xl font-bold">{pendingCount}</div>
+              <div className="text-sm text-gray-500">На рассмотрении</div>
+            </div>
+          </div>
         </Card>
-        <Card>
-          <CardBody textAlign="center">
-            <VStack spacing={2}>
-              <TrendingUp size={32} color="blue" />
-              <Stat>
-                <StatNumber>87%</StatNumber>
-                <StatLabel>Ср. точность</StatLabel>
-              </Stat>
-            </VStack>
-          </CardBody>
+        <Card className="p-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <TrendingUp size={32} className="text-blue-500" />
+            <div>
+              <div className="text-3xl font-bold">87%</div>
+              <div className="text-sm text-gray-500">Ср. точность</div>
+            </div>
+          </div>
         </Card>
-      </Grid>
+      </div>
 
       {/* Список предложений */}
-      <Card>
-        <CardHeader>
-          <HStack justify="space-between">
-            <Heading size="md">Предложения ИИ</Heading>
-            <HStack>
-              <Badge colorScheme="orange">{pendingCount} ожидает</Badge>
-              <Badge colorScheme="green">{approvedCount} одобрено</Badge>
-            </HStack>
-          </HStack>
-        </CardHeader>
-        <CardBody p={0}>
-          <VStack spacing={0} divider={<Divider />}>
-            {proposals.map((proposal) => {
-              const TypeIcon = getTypeIcon(proposal.type);
-              return (
-                <Box 
-                  key={proposal.id} 
-                  p={6} 
-                  w="full"
-                  _hover={{ bg: hoverBg }}
-                  cursor="pointer"
-                  onClick={() => {
-                    setSelectedProposal(proposal);
-                    onOpen();
-                  }}
-                >
-                  <HStack justify="space-between" align="start">
-                    <HStack align="start" spacing={4} flex={1}>
-                      <Box
-                        p={2}
-                        borderRadius="lg"
-                        bg={colorMode === "light" ? proposalBgLight(proposal.type) : proposalBgDark(proposal.type)}
-                        color={`${getTypeColor(proposal.type)}.500`}
-                      >
-                        <TypeIcon size={20} />
-                      </Box>
-                      <VStack align="start" spacing={2} flex={1}>
-                        <HStack wrap="wrap" spacing={2}>
-                          <Text fontWeight="semibold" fontSize="lg">
-                            {proposal.title}
-                          </Text>
-                          <Badge colorScheme={getTypeColor(proposal.type)} variant="subtle">
-                            {proposal.type === "performance" ? "Производительность" :
-                             proposal.type === "ui_ux" ? "UI/UX" :
-                             proposal.type === "security" ? "Безопасность" : "Качество кода"}
-                          </Badge>
-                          <Badge colorScheme={getImpactColor(proposal.impact)} variant="outline">
-                            {proposal.impact === "high" ? "Высокий" :
-                             proposal.impact === "medium" ? "Средний" : "Низкий"} приоритет
-                          </Badge>
-                        </HStack>
-                        <Text color="gray.600" _dark={{ color: "gray.300" }}>
-                          {proposal.description}
-                        </Text>
-                        <HStack spacing={4} fontSize="sm" color="gray.500">
-                          <HStack>
-                            <Target size={14} />
-                            <Text>Точность: {proposal.confidence}%</Text>
-                          </HStack>
-                          <HStack>
-                            <Clock size={14} />
-                            <Text>~{proposal.estimatedTime}</Text>
-                          </HStack>
-                          <Text>{new Date(proposal.createdAt).toLocaleDateString("ru-RU")}</Text>
-                        </HStack>
-                      </VStack>
-                    </HStack>
-                    <VStack spacing={2}>
-                      <Badge 
-                        colorScheme={
-                          proposal.status === "approved" ? "green" :
-                          proposal.status === "pending" ? "yellow" : "red"
-                        }
-                        variant="solid"
-                      >
-                        {proposal.status === "approved" ? "Одобрено" :
-                         proposal.status === "pending" ? "На рассмотрении" : "Отклонено"}
-                      </Badge>
-                      {proposal.status === "pending" && (
-                        <HStack spacing={1}>
-                          <Tooltip label="Одобрить">
-                            <IconButton
-                              aria-label="Одобрить"
-                              icon={<CheckCircle size={14} />}
-                              size="sm"
-                              colorScheme="green"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveProposal(proposal.id);
-                              }}
-                            />
-                          </Tooltip>
-                          <Tooltip label="Отклонить">
-                            <IconButton
-                              aria-label="Отклонить"
-                              icon={<XCircle size={14} />}
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRejectProposal(proposal.id, "Отклонено администратором");
-                              }}
-                            />
-                          </Tooltip>
-                        </HStack>
-                      )}
-                    </VStack>
-                  </HStack>
-                </Box>
-              );
-            })}
-          </VStack>
-        </CardBody>
+      <Card className="overflow-hidden">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Предложения ИИ</h2>
+            <div className="flex gap-2">
+              <Badge variant="default" className="bg-orange-100 text-orange-700">{pendingCount} ожидает</Badge>
+              <Badge variant="default" className="bg-green-100 text-green-700">{approvedCount} одобрено</Badge>
+            </div>
+          </div>
+        </div>
+        <div className="divide-y">
+          {proposals.map((proposal) => {
+            const TypeIcon = getTypeIcon(proposal.type);
+            const typeColorClass = getTypeColorClass(proposal.type);
+            
+            return (
+              <button 
+                key={proposal.id} 
+                type="button"
+                className="w-full text-left p-6 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-0 bg-transparent"
+                onClick={() => openProposalDialog(proposal)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className={`p-2 rounded-lg ${typeColorClass}`}>
+                      <TypeIcon size={20} />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="flex flex-wrap gap-2">
+                        <h3 className="font-semibold text-lg">
+                          {proposal.title}
+                        </h3>
+                        <Badge variant="secondary">
+                          {getProposalTypeLabel(proposal.type)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {getProposalImpactLabel(proposal.impact)} приоритет
+                        </Badge>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        {proposal.description}
+                      </p>
+                      <div className="flex gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Target size={14} />
+                          <span>Точность: {proposal.confidence}%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} />
+                          <span>~{proposal.estimatedTime}</span>
+                        </div>
+                        <span>{new Date(proposal.createdAt).toLocaleDateString("ru-RU")}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Badge variant={getBadgeVariant(proposal.status)}>
+                      {getProposalStatusLabel(proposal.status)}
+                    </Badge>
+                    {proposal.status === "pending" && (
+                      <div className="flex gap-1">
+                        <button
+                          className="p-1 text-green-500 hover:bg-green-50 rounded"
+                          title="Одобрить"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveProposal(proposal.id);
+                          }}
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                        <button
+                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          title="Отклонить"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRejectProposal(proposal.id, "Отклонено администратором");
+                          }}
+                        >
+                          <XCircle size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </Card>
 
       {/* Модальное окно с деталями предложения */}
-      <Modal isOpen={isOpen} onClose={onClose} size="4xl">
-        <ModalOverlay />
-        <ModalContent maxH="90vh" overflow="hidden">
-          <ModalHeader>
-            <HStack>
-              <Brain size={24} color="purple" />
-              <VStack align="start" spacing={0}>
-                <Text>{selectedProposal?.title}</Text>
-                <HStack>
-                  <Badge colorScheme={getTypeColor(selectedProposal?.type ?? undefined)} variant="subtle">
-                    {selectedProposal?.type === "performance" ? "Производительность" :
-                     selectedProposal?.type === "ui_ux" ? "UI/UX" :
-                     selectedProposal?.type === "security" ? "Безопасность" : "Качество кода"}
-                  </Badge>
-                  <Badge colorScheme={getImpactColor(selectedProposal?.impact || "")} variant="outline">
-                    {selectedProposal?.impact === "high" ? "Высокий" :
-                     selectedProposal?.impact === "medium" ? "Средний" : "Низкий"}
-                  </Badge>
-                </HStack>
-              </VStack>
-            </HStack>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody overflow="auto">
-            {selectedProposal && (
-              <VStack align="stretch" spacing={6}>
-                <Box>
-                  <Text fontWeight="semibold" mb={2}>Описание</Text>
-                  <Text>{selectedProposal.description}</Text>
-                </Box>
+      <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl max-h-[90vh] w-full overflow-hidden flex flex-col z-50">
+            <div className="p-6 border-b">
+              <div className="flex items-start gap-3">
+                <Brain size={24} className="text-purple-500" />
+                <div className="flex flex-col gap-2 flex-1">
+                  <Dialog.Title className="text-xl font-semibold">
+                    {selectedProposal?.title}
+                  </Dialog.Title>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary">
+                      {getProposalTypeLabel(selectedProposal?.type ?? 'code_quality')}
+                    </Badge>
+                    <Badge variant="outline">
+                      {getProposalImpactLabel(selectedProposal?.impact)}
+                    </Badge>
+                  </div>
+                </div>
+                <Dialog.Close className="rounded-sm opacity-70 hover:opacity-100">
+                  <X className="h-4 w-4" />
+                </Dialog.Close>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              {selectedProposal && (
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <h3 className="font-semibold mb-2">Описание</h3>
+                    <p>{selectedProposal.description}</p>
+                  </div>
 
-                <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
-                  <Box>
-                    <Text fontWeight="semibold" mb={2}>Уверенность ИИ</Text>
-                    <HStack>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Уверенность ИИ</h3>
+                    <div className="flex items-center gap-2">
                       <Progress 
                         value={selectedProposal.confidence || 0} 
-                        colorScheme={(selectedProposal.confidence || 0) > 80 ? "green" : "yellow"}
-                        size="lg"
-                        flex={1}
+                        className={`flex-1 h-3 ${(selectedProposal.confidence || 0) > 80 ? 'bg-green-200' : 'bg-yellow-200'}`}
                       />
-                      <Text fontWeight="bold">{selectedProposal.confidence || 0}%</Text>
-                    </HStack>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="semibold" mb={2}>Время реализации</Text>
-                    <Text>{selectedProposal.estimatedTime}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="semibold" mb={2}>Создано</Text>
-                    <Text>{new Date(selectedProposal.createdAt).toLocaleString("ru-RU")}</Text>
-                  </Box>
-                </Grid>
+                      <span className="font-bold">{selectedProposal.confidence || 0}%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">Время реализации</h3>
+                    <p>{selectedProposal.estimatedTime}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">Создано</h3>
+                    <p>{new Date(selectedProposal.createdAt).toLocaleString("ru-RU")}</p>
+                  </div>
+                </div>
 
-                <Box>
-                  <Text fontWeight="semibold" mb={3}>Предлагаемые изменения</Text>
-                  <Box
-                    bg={boxBgLight}
-                    p={4}
-                    borderRadius="md"
-                    border="1px solid"
-                    borderColor={boxBorderLight}
-                  >
-                    <pre style={{ 
-                      fontFamily: "Monaco, Menlo, \"Ubuntu Mono\", monospace",
-                      fontSize: "14px",
-                      lineHeight: "1.4",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word"
-                    }}>
+                <div>
+                  <h3 className="font-semibold mb-3">Предлагаемые изменения</h3>
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md border border-gray-200 dark:border-gray-600">
+                    <pre className="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {selectedProposal.suggestedChanges}
                     </pre>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {selectedProposal.status === "rejected" && selectedProposal.rejectionReason && (
-                  <Alert status="warning">
-                    <AlertIcon />
-                    <Box>
+                  <Alert variant="warning">
+                    <AlertTriangle className="w-4 h-4" />
+                    <div>
                       <AlertTitle>Причина отклонения:</AlertTitle>
                       <AlertDescription>{selectedProposal.rejectionReason}</AlertDescription>
-                    </Box>
+                    </div>
                   </Alert>
                 )}
-              </VStack>
+              </div>
             )}
-          </ModalBody>
-          <ModalFooter>
-            <HStack spacing={3}>
-              {selectedProposal?.status === "pending" && (
-                <>
-                  <Button 
-                    colorScheme="green" 
-                    leftIcon={<CheckCircle size={16} />}
-                    onClick={() => {
-                      handleApproveProposal(selectedProposal.id);
-                      onClose();
-                    }}
-                  >
-                    Одобрить
-                  </Button>
-                  <Button 
-                    colorScheme="red" 
-                    variant="outline"
-                    leftIcon={<XCircle size={16} />}
-                    onClick={() => {
-                      const reason = prompt("Причина отклонения:");
-                      if (reason) {
-                        handleRejectProposal(selectedProposal.id, reason);
-                        onClose();
-                      }
-                    }}
-                  >
-                    Отклонить
-                  </Button>
-                </>
-              )}
-              <Button variant="ghost" onClick={onClose}>
-                Закрыть
-              </Button>
-            </HStack>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </VStack>
+          </div>
+          <div className="p-6 border-t flex justify-end gap-3">
+            {selectedProposal?.status === "pending" && (
+              <>
+                <Button 
+                  variant="default"
+                  className="bg-green-500 hover:bg-green-600"
+                  onClick={() => {
+                    handleApproveProposal(selectedProposal.id);
+                    setIsDialogOpen(false);
+                  }}
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Одобрить
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="text-red-500 border-red-500 hover:bg-red-50"
+                  onClick={() => {
+                    const reason = prompt("Причина отклонения:");
+                    if (reason) {
+                      handleRejectProposal(selectedProposal.id, reason);
+                      setIsDialogOpen(false);
+                    }
+                  }}
+                >
+                  <XCircle size={16} className="mr-2" />
+                  Отклонить
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Закрыть
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+      </Dialog.Root>
+    </div>
   );
 }

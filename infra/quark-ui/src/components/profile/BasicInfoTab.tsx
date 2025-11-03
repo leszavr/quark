@@ -101,7 +101,7 @@ export function BasicInfoTab() {
         <div className="flex flex-col gap-6">
           {/* Секция аватара */}
           <div>
-            <label className="block text-sm font-semibold mb-3">Фотография профиля</label>
+            <div className="block text-sm font-semibold mb-3">Фотография профиля</div>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Avatar
@@ -124,20 +124,21 @@ export function BasicInfoTab() {
                 <div className="flex flex-col gap-2">
                   <Button
                     size="sm"
-                    leftIcon={<Upload size={16} />}
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
+                    className="flex items-center gap-2"
                   >
+                    <Upload size={16} />
                     Загрузить фото
                   </Button>
                   {editProfile.avatar && (
                     <Button
                       size="sm"
-                      leftIcon={<X size={16} />}
                       onClick={handleRemoveAvatar}
                       variant="ghost"
-                      colorScheme="red"
+                      className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
+                      <X size={16} />
                       Удалить
                     </Button>
                   )}
@@ -159,8 +160,9 @@ export function BasicInfoTab() {
           {/* Основные поля */}
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-semibold mb-1">Полное имя</label>
+              <label htmlFor="fullName" className="block text-sm font-semibold mb-1">Полное имя</label>
               <Input
+                id="fullName"
                 value={isEditing ? editProfile.fullName : profile.fullName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => isEditing && setEditProfile(prev => ({ ...prev, fullName: e.target.value }))}
                 placeholder="Введите ваше полное имя"
@@ -169,8 +171,9 @@ export function BasicInfoTab() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1">Email адрес</label>
+              <label htmlFor="email" className="block text-sm font-semibold mb-1">Email адрес</label>
               <Input
+                id="email"
                 type="email"
                 value={isEditing ? editProfile.email : profile.email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => isEditing && setEditProfile(prev => ({ ...prev, email: e.target.value }))}
@@ -180,8 +183,9 @@ export function BasicInfoTab() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1">О себе</label>
+              <label htmlFor="bio" className="block text-sm font-semibold mb-1">О себе</label>
               <Textarea
+                id="bio"
                 value={isEditing ? editProfile.bio : profile.bio}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => isEditing && setEditProfile(prev => ({ ...prev, bio: e.target.value }))}
                 placeholder="Расскажите о себе..."

@@ -1,7 +1,7 @@
 
 "use client";
 // Chakra UI удалён, используем стандартные элементы и Tailwind
-import { Home, MessageSquare, User, Puzzle, Settings, BookOpen, LayoutGrid, Zap } from "lucide-react";
+import { Home, MessageSquare, Puzzle, Settings, BookOpen, LayoutGrid, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 import Link from "next/link";
 
@@ -20,7 +20,6 @@ export function AppSidebar() {
     { title: "Settings", icon: Settings },
   ];
 
-  const sidebarBg = "bg-gray-50 dark:bg-gray-800";
   const itemHoverBg = "hover:bg-black/5 dark:hover:bg-white/10";
 
   return (

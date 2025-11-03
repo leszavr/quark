@@ -5,7 +5,7 @@ import {
   type BlogPost, type InsertBlogPost,
   type Comment, type InsertComment
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 // Storage interface with all CRUD methods
 export interface IStorage {
@@ -41,11 +41,11 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private channels: Map<string, Channel>;
-  private messages: Map<string, Message>;
-  private blogPosts: Map<string, BlogPost>;
-  private comments: Map<string, Comment>;
+  private readonly users: Map<string, User>;
+  private readonly channels: Map<string, Channel>;
+  private readonly messages: Map<string, Message>;
+  private readonly blogPosts: Map<string, BlogPost>;
+  private readonly comments: Map<string, Comment>;
 
   constructor() {
     this.users = new Map();
@@ -53,9 +53,13 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.blogPosts = new Map();
     this.comments = new Map();
-    
-    // Initialize with demo data
-    this.initDemoData();
+  }
+
+  /**
+   * Initialize demo data. Must be called after construction.
+   */
+  public async initialize(): Promise<void> {
+    await this.initDemoData();
   }
 
   private async initDemoData() {
@@ -66,7 +70,7 @@ export class MemStorage implements IStorage {
       { id: "3", username: "igor", password: "igor", firstName: "Игорь", lastName: "Петров", role: "user", avatar: "/assets/avatar-igor.jpg" },
     ];
     
-    users.forEach(user => {
+    for (const user of users) {
       const fullUser: User = {
         ...user,
         firstName: user.firstName,
@@ -78,7 +82,7 @@ export class MemStorage implements IStorage {
         role: user.role
       };
       this.users.set(user.id, fullUser);
-    });
+    }
 
     // Create demo channels
     const generalChannel: Channel = {
@@ -98,14 +102,14 @@ export class MemStorage implements IStorage {
       { id: "3", channelId: "general", authorId: "1", content: "Добро пожаловать в наш мессенджер! 👋", messageType: "text" },
     ];
     
-    messages.forEach(msg => {
+    for (const msg of messages) {
       const fullMessage: Message = {
         ...msg,
         attachments: null,
         createdAt: new Date()
       };
       this.messages.set(msg.id, fullMessage);
-    });
+    }
 
     // Create demo blog posts
     const posts = [
@@ -113,14 +117,14 @@ export class MemStorage implements IStorage {
       { id: "2", title: "Настройка TypeScript проекта", content: "Пошаговое руководство по настройке TypeScript...", excerpt: "Полное руководство по TypeScript", authorId: "3", published: true, commentsEnabled: true },
     ];
     
-    posts.forEach(post => {
+    for (const post of posts) {
       const fullPost: BlogPost = {
         ...post,
         createdAt: new Date(),
         updatedAt: new Date()
       };
       this.blogPosts.set(post.id, fullPost);
-    });
+    }
   }
 
   // Users methods

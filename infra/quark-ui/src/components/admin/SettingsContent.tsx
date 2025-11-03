@@ -1,24 +1,25 @@
 "use client";
 
-import {
-  VStack, HStack, Flex, Text, Button, Card, CardBody, CardHeader,
-  Heading, Badge, Grid, Box, Switch, FormControl, FormLabel,
-  Input, Select, Textarea, Divider, Alert, AlertIcon,
-  Tabs, TabList, TabPanels, Tab, TabPanel, useColorModeValue,
-  NumberInput, NumberInputField, NumberInputStepper,
-  NumberIncrementStepper, NumberDecrementStepper, IconButton,
-  Tooltip, useToast
-} from "@chakra-ui/react";
+import { Card } from "@/shared/ui/card/Card";
+import { Button } from "@/shared/ui/button/Button";
+import { Switch } from "@/shared/ui/switch/Switch";
+import { Label } from "@/shared/ui/label/Label";
+import { Alert } from "@/shared/ui/alert/Alert";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs/Tabs";
+import { useToast } from "@/hooks/useToast";
 import { useState } from "react";
 import { 
-  Settings, Database, Mail, Globe, Palette, Bell,
-  Save, RefreshCw, Upload, Download, Server, Code,
-  Shield, Key, Clock, Zap, FileText, Archive
+  Settings, Database, Mail, Zap,
+  Save, Upload, Download, Code,
+  FileText, Archive
 } from "lucide-react";
 
 export function SettingsContent() {
-  const toast = useToast();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // ⚠️ MOCK DATA - Configuration values (not test data, will be loaded from backend)
+  // API endpoint: GET /api/admin/settings - Expected format: SettingsConfig
   
   // Общие настройки
   const [siteName, setSiteName] = useState("Quark UI Platform");
@@ -57,25 +58,23 @@ export function SettingsContent() {
   const [maxBackups, setMaxBackups] = useState(7);
   const [dbOptimization, setDbOptimization] = useState(false);
 
+  // ⚠️ END MOCK DATA
+
   const handleSave = async (section: string) => {
     setIsLoading(true);
     try {
-      // Имитация сохранения
+      // ⚠️ MOCK: Replace with actual API call
+      // await fetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
         title: "Настройки сохранены",
         description: `Раздел "${section}" успешно обновлен`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
       });
     } catch (error) {
+      console.error("Failed to save settings:", error);
       toast({
         title: "Ошибка сохранения",
         description: "Не удалось сохранить настройки",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     } finally {
       setIsLoading(false);
@@ -83,546 +82,515 @@ export function SettingsContent() {
   };
 
   return (
-    <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center">
-        <VStack align="start" spacing={1}>
-          <Heading size="xl" fontFamily="Space Grotesk">Настройки системы</Heading>
-          <Text color="gray.500">Конфигурация и управление параметрами платформы</Text>
-        </VStack>
-        <HStack>
-          <Button leftIcon={<Upload size={18} />} variant="outline">
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-4xl font-bold font-['Space_Grotesk']">Настройки системы</h1>
+          <p className="text-gray-500 dark:text-gray-400">Конфигурация и управление параметрами платформы</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Upload size={18} />
             Импорт настроек
           </Button>
-          <Button leftIcon={<Download size={18} />} variant="outline">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Download size={18} />
             Экспорт настроек
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </div>
 
-      <Tabs variant="enclosed" colorScheme="blue">
-        <TabList>
-          <Tab>
-            <HStack>
-              <Settings size={16} />
-              <Text>Общие</Text>
-            </HStack>
-          </Tab>
-          <Tab>
-            <HStack>
-              <Mail size={16} />
-              <Text>Уведомления</Text>
-            </HStack>
-          </Tab>
-          <Tab>
-            <HStack>
-              <Zap size={16} />
-              <Text>Производительность</Text>
-            </HStack>
-          </Tab>
-          <Tab>
-            <HStack>
-              <Code size={16} />
-              <Text>API</Text>
-            </HStack>
-          </Tab>
-          <Tab>
-            <HStack>
-              <Database size={16} />
-              <Text>База данных</Text>
-            </HStack>
-          </Tab>
-        </TabList>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Settings size={16} />
+            <span>Общие</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Mail size={16} />
+            <span>Уведомления</span>
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <Zap size={16} />
+            <span>Производительность</span>
+          </TabsTrigger>
+          <TabsTrigger value="api" className="flex items-center gap-2">
+            <Code size={16} />
+            <span>API</span>
+          </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database size={16} />
+            <span>База данных</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <TabPanels>
-          {/* Общие настройки */}
-          <TabPanel>
-            <VStack spacing={6} align="stretch">
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Основная информация</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl>
-                      <FormLabel>Название сайта</FormLabel>
-                      <Input 
-                        value={siteName} 
-                        onChange={(e) => setSiteName(e.target.value)}
-                        placeholder="Название вашего сайта"
+        {/* Общие настройки */}
+        <TabsContent value="general">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Основная информация</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="site-name">Название сайта</Label>
+                    <input
+                      id="site-name"
+                      type="text"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={siteName}
+                      onChange={(e) => setSiteName(e.target.value)}
+                      placeholder="Название вашего сайта"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="site-description">Описание</Label>
+                    <textarea
+                      id="site-description"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={siteDescription}
+                      onChange={(e) => setSiteDescription(e.target.value)}
+                      placeholder="Краткое описание платформы"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="maintenance-mode">Режим обслуживания</Label>
+                      <Switch
+                        id="maintenance-mode"
+                        checked={maintenanceMode}
+                        onCheckedChange={setMaintenanceMode}
                       />
-                    </FormControl>
+                    </div>
 
-                    <FormControl>
-                      <FormLabel>Описание</FormLabel>
-                      <Textarea 
-                        value={siteDescription}
-                        onChange={(e) => setSiteDescription(e.target.value)}
-                        placeholder="Краткое описание платформы"
-                        rows={3}
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="registration-enabled">Регистрация новых пользователей</Label>
+                      <Switch
+                        id="registration-enabled"
+                        checked={registrationEnabled}
+                        onCheckedChange={setRegistrationEnabled}
                       />
-                    </FormControl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel htmlFor="maintenance" mb="0" flex="1">
-                          Режим обслуживания
-                        </FormLabel>
-                        <Switch 
-                          id="maintenance" 
-                          isChecked={maintenanceMode}
-                          onChange={(e) => setMaintenanceMode(e.target.checked)}
-                          colorScheme="orange"
-                        />
-                      </FormControl>
-
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel htmlFor="registration" mb="0" flex="1">
-                          Регистрация новых пользователей
-                        </FormLabel>
-                        <Switch 
-                          id="registration" 
-                          isChecked={registrationEnabled}
-                          onChange={(e) => setRegistrationEnabled(e.target.checked)}
-                          colorScheme="green"
-                        />
-                      </FormControl>
-                    </Grid>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              {maintenanceMode && (
-                <Alert status="warning">
-                  <AlertIcon />
+            {maintenanceMode && (
+              <Alert variant="destructive">
+                <p className="text-sm font-semibold">
                   Внимание! Режим обслуживания активен. Пользователи не смогут получить доступ к системе.
-                </Alert>
-              )}
+                </p>
+              </Alert>
+            )}
 
-              <Flex justify="end">
-                <Button 
-                  colorScheme="blue" 
-                  leftIcon={<Save size={18} />}
-                  onClick={() => handleSave("Общие настройки")}
-                  isLoading={isLoading}
-                >
-                  Сохранить изменения
-                </Button>
-              </Flex>
-            </VStack>
-          </TabPanel>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSave("Общие настройки")}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save size={18} />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
 
-          {/* Уведомления */}
-          <TabPanel>
-            <VStack spacing={6} align="stretch">
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Email настройки</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                      <FormControl>
-                        <FormLabel>SMTP хост</FormLabel>
-                        <Input 
-                          value={smtpHost}
-                          onChange={(e) => setSmtpHost(e.target.value)}
-                        />
-                      </FormControl>
-
-                      <FormControl>
-                        <FormLabel>SMTP порт</FormLabel>
-                        <NumberInput value={smtpPort} onChange={(value) => setSmtpPort(Number(value))}>
-                          <NumberInputField />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                      </FormControl>
-                    </Grid>
-
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                      <FormControl>
-                        <FormLabel>SMTP пользователь</FormLabel>
-                        <Input 
-                          value={smtpUser}
-                          onChange={(e) => setSmtpUser(e.target.value)}
-                        />
-                      </FormControl>
-
-                      <FormControl>
-                        <FormLabel>SMTP пароль</FormLabel>
-                        <Input 
-                          type="password"
-                          value={smtpPassword}
-                          onChange={(e) => setSmtpPassword(e.target.value)}
-                          placeholder="••••••••"
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <FormControl>
-                      <FormLabel>От кого (From)</FormLabel>
-                      <Input 
-                        value={emailFrom}
-                        onChange={(e) => setEmailFrom(e.target.value)}
+        {/* Уведомления */}
+        <TabsContent value="notifications">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Email настройки</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="smtp-host">SMTP хост</Label>
+                      <input
+                        id="smtp-host"
+                        type="text"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={smtpHost}
+                        onChange={(e) => setSmtpHost(e.target.value)}
                       />
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
+                    </div>
 
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Настройки уведомлений</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel htmlFor="email-notifications" mb="0" flex="1">
-                          Email уведомления
-                        </FormLabel>
-                        <Switch 
-                          id="email-notifications" 
-                          isChecked={emailNotifications}
-                          onChange={(e) => setEmailNotifications(e.target.checked)}
-                        />
-                      </FormControl>
-
-                      <FormControl display="flex" alignItems="center">
-                        <FormLabel htmlFor="push-notifications" mb="0" flex="1">
-                          Push уведомления
-                        </FormLabel>
-                        <Switch 
-                          id="push-notifications" 
-                          isChecked={pushNotifications}
-                          onChange={(e) => setPushNotifications(e.target.checked)}
-                        />
-                      </FormControl>
-                    </Grid>
-
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="newsletter" mb="0" flex="1">
-                        Рассылка новостей
-                      </FormLabel>
-                      <Switch 
-                        id="newsletter" 
-                        isChecked={newsletterEnabled}
-                        onChange={(e) => setNewsletterEnabled(e.target.checked)}
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="smtp-port">SMTP порт</Label>
+                      <input
+                        id="smtp-port"
+                        type="number"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={smtpPort}
+                        onChange={(e) => setSmtpPort(Number(e.target.value))}
                       />
-                    </FormControl>
+                    </div>
+                  </div>
 
-                    <FormControl>
-                      <FormLabel>Хранение уведомлений (дни)</FormLabel>
-                      <NumberInput 
-                        value={notificationRetention} 
-                        onChange={(value) => setNotificationRetention(Number(value))}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="smtp-user">SMTP пользователь</Label>
+                      <input
+                        id="smtp-user"
+                        type="text"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={smtpUser}
+                        onChange={(e) => setSmtpUser(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="smtp-password">SMTP пароль</Label>
+                      <input
+                        id="smtp-password"
+                        type="password"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={smtpPassword}
+                        onChange={(e) => setSmtpPassword(e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="email-from">От кого (From)</Label>
+                    <input
+                      id="email-from"
+                      type="text"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={emailFrom}
+                      onChange={(e) => setEmailFrom(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Настройки уведомлений</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="email-notifications">Email уведомления</Label>
+                      <Switch
+                        id="email-notifications"
+                        checked={emailNotifications}
+                        onCheckedChange={setEmailNotifications}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="push-notifications">Push уведомления</Label>
+                      <Switch
+                        id="push-notifications"
+                        checked={pushNotifications}
+                        onCheckedChange={setPushNotifications}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="newsletter">Рассылка новостей</Label>
+                    <Switch
+                      id="newsletter"
+                      checked={newsletterEnabled}
+                      onCheckedChange={setNewsletterEnabled}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="notification-retention">Хранение уведомлений (дни)</Label>
+                    <input
+                      id="notification-retention"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={notificationRetention}
+                      onChange={(e) => setNotificationRetention(Number(e.target.value))}
+                      min={1}
+                      max={365}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSave("Уведомления")}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save size={18} />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Производительность */}
+        <TabsContent value="performance">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Кеширование</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="cache-enabled">Включить кеширование</Label>
+                    <Switch
+                      id="cache-enabled"
+                      checked={cacheEnabled}
+                      onCheckedChange={setCacheEnabled}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="cache-timeout">Время жизни кеша (секунды)</Label>
+                    <input
+                      id="cache-timeout"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={cacheTimeout}
+                      onChange={(e) => setCacheTimeout(Number(e.target.value))}
+                      min={60}
+                      max={86400}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Оптимизация</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="compression">Сжатие данных (gzip)</Label>
+                    <Switch
+                      id="compression"
+                      checked={compressionEnabled}
+                      onCheckedChange={setCompressionEnabled}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="max-file-size">Максимальный размер файла (МБ)</Label>
+                    <input
+                      id="max-file-size"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={maxFileSize}
+                      onChange={(e) => setMaxFileSize(Number(e.target.value))}
+                      min={1}
+                      max={1000}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSave("Производительность")}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save size={18} />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* API настройки */}
+        <TabsContent value="api">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Ограничения API</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="api-rate-limit">Лимит запросов в час</Label>
+                    <input
+                      id="api-rate-limit"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={apiRateLimit}
+                      onChange={(e) => setApiRateLimit(Number(e.target.value))}
+                      min={100}
+                      max={10000}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="api-timeout">Таймаут запроса (секунды)</Label>
+                    <input
+                      id="api-timeout"
+                      type="number"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={apiTimeout}
+                      onChange={(e) => setApiTimeout(Number(e.target.value))}
+                      min={5}
+                      max={120}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">CORS настройки</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="cors-enabled">Включить CORS</Label>
+                    <Switch
+                      id="cors-enabled"
+                      checked={corsEnabled}
+                      onCheckedChange={setCorsEnabled}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="allowed-origins">Разрешенные домены</Label>
+                    <textarea
+                      id="allowed-origins"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                      value={allowedOrigins}
+                      onChange={(e) => setAllowedOrigins(e.target.value)}
+                      placeholder="https://example.com, https://app.example.com"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSave("API")}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save size={18} />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* База данных */}
+        <TabsContent value="database">
+          <div className="flex flex-col gap-6">
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Резервное копирование</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-backup">Автоматическое резервное копирование</Label>
+                    <Switch
+                      id="auto-backup"
+                      checked={autoBackup}
+                      onCheckedChange={setAutoBackup}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="backup-interval">Интервал копирования (часы)</Label>
+                      <input
+                        id="backup-interval"
+                        type="number"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={backupInterval}
+                        onChange={(e) => setBackupInterval(Number(e.target.value))}
                         min={1}
-                        max={365}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Flex justify="end">
-                <Button 
-                  colorScheme="blue" 
-                  leftIcon={<Save size={18} />}
-                  onClick={() => handleSave("Уведомления")}
-                  isLoading={isLoading}
-                >
-                  Сохранить изменения
-                </Button>
-              </Flex>
-            </VStack>
-          </TabPanel>
-
-          {/* Производительность */}
-          <TabPanel>
-            <VStack spacing={6} align="stretch">
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Кеширование</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="cache-enabled" mb="0" flex="1">
-                        Включить кеширование
-                      </FormLabel>
-                      <Switch 
-                        id="cache-enabled" 
-                        isChecked={cacheEnabled}
-                        onChange={(e) => setCacheEnabled(e.target.checked)}
+                        max={168}
                       />
-                    </FormControl>
+                    </div>
 
-                    <FormControl>
-                      <FormLabel>Время жизни кеша (секунды)</FormLabel>
-                      <NumberInput 
-                        value={cacheTimeout}
-                        onChange={(value) => setCacheTimeout(Number(value))}
-                        min={60}
-                        max={86400}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Оптимизация</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="compression" mb="0" flex="1">
-                        Сжатие данных (gzip)
-                      </FormLabel>
-                      <Switch 
-                        id="compression" 
-                        isChecked={compressionEnabled}
-                        onChange={(e) => setCompressionEnabled(e.target.checked)}
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel>Максимальный размер файла (МБ)</FormLabel>
-                      <NumberInput 
-                        value={maxFileSize}
-                        onChange={(value) => setMaxFileSize(Number(value))}
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="max-backups">Максимум копий</Label>
+                      <input
+                        id="max-backups"
+                        type="number"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800"
+                        value={maxBackups}
+                        onChange={(e) => setMaxBackups(Number(e.target.value))}
                         min={1}
-                        max={1000}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Flex justify="end">
-                <Button 
-                  colorScheme="blue" 
-                  leftIcon={<Save size={18} />}
-                  onClick={() => handleSave("Производительность")}
-                  isLoading={isLoading}
-                >
-                  Сохранить изменения
-                </Button>
-              </Flex>
-            </VStack>
-          </TabPanel>
-
-          {/* API настройки */}
-          <TabPanel>
-            <VStack spacing={6} align="stretch">
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Ограничения API</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl>
-                      <FormLabel>Лимит запросов в час</FormLabel>
-                      <NumberInput 
-                        value={apiRateLimit}
-                        onChange={(value) => setApiRateLimit(Number(value))}
-                        min={100}
-                        max={10000}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel>Таймаут запроса (секунды)</FormLabel>
-                      <NumberInput 
-                        value={apiTimeout}
-                        onChange={(value) => setApiTimeout(Number(value))}
-                        min={5}
-                        max={120}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <Heading size="md">CORS настройки</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="cors-enabled" mb="0" flex="1">
-                        Включить CORS
-                      </FormLabel>
-                      <Switch 
-                        id="cors-enabled" 
-                        isChecked={corsEnabled}
-                        onChange={(e) => setCorsEnabled(e.target.checked)}
+                        max={30}
                       />
-                    </FormControl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-                    <FormControl>
-                      <FormLabel>Разрешенные домены</FormLabel>
-                      <Textarea 
-                        value={allowedOrigins}
-                        onChange={(e) => setAllowedOrigins(e.target.value)}
-                        placeholder="https://example.com, https://app.example.com"
-                        rows={3}
-                      />
-                    </FormControl>
-                  </VStack>
-                </CardBody>
-              </Card>
+            <Card>
+              <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">Обслуживание БД</h2>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="db-optimization">Автоматическая оптимизация</Label>
+                    <Switch
+                      id="db-optimization"
+                      checked={dbOptimization}
+                      onCheckedChange={setDbOptimization}
+                    />
+                  </div>
 
-              <Flex justify="end">
-                <Button 
-                  colorScheme="blue" 
-                  leftIcon={<Save size={18} />}
-                  onClick={() => handleSave("API")}
-                  isLoading={isLoading}
-                >
-                  Сохранить изменения
-                </Button>
-              </Flex>
-            </VStack>
-          </TabPanel>
+                  <div className="flex items-center gap-3">
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Database size={18} />
+                      Оптимизировать сейчас
+                    </Button>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Archive size={18} />
+                      Создать резервную копию
+                    </Button>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <FileText size={18} />
+                      Просмотреть логи
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-          {/* База данных */}
-          <TabPanel>
-            <VStack spacing={6} align="stretch">
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Резервное копирование</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="auto-backup" mb="0" flex="1">
-                        Автоматическое резервное копирование
-                      </FormLabel>
-                      <Switch 
-                        id="auto-backup" 
-                        isChecked={autoBackup}
-                        onChange={(e) => setAutoBackup(e.target.checked)}
-                      />
-                    </FormControl>
-
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                      <FormControl>
-                        <FormLabel>Интервал копирования (часы)</FormLabel>
-                        <NumberInput 
-                          value={backupInterval}
-                          onChange={(value) => setBackupInterval(Number(value))}
-                          min={1}
-                          max={168}
-                        >
-                          <NumberInputField />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                      </FormControl>
-
-                      <FormControl>
-                        <FormLabel>Максимум копий</FormLabel>
-                        <NumberInput 
-                          value={maxBackups}
-                          onChange={(value) => setMaxBackups(Number(value))}
-                          min={1}
-                          max={30}
-                        >
-                          <NumberInputField />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                      </FormControl>
-                    </Grid>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Обслуживание БД</Heading>
-                </CardHeader>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <FormControl display="flex" alignItems="center">
-                      <FormLabel htmlFor="db-optimization" mb="0" flex="1">
-                        Автоматическая оптимизация
-                      </FormLabel>
-                      <Switch 
-                        id="db-optimization" 
-                        isChecked={dbOptimization}
-                        onChange={(e) => setDbOptimization(e.target.checked)}
-                      />
-                    </FormControl>
-
-                    <HStack>
-                      <Button leftIcon={<Database size={18} />} variant="outline">
-                        Оптимизировать сейчас
-                      </Button>
-                      <Button leftIcon={<Archive size={18} />} variant="outline">
-                        Создать резервную копию
-                      </Button>
-                      <Button leftIcon={<FileText size={18} />} variant="outline">
-                        Просмотреть логи
-                      </Button>
-                    </HStack>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Flex justify="end">
-                <Button 
-                  colorScheme="blue" 
-                  leftIcon={<Save size={18} />}
-                  onClick={() => handleSave("База данных")}
-                  isLoading={isLoading}
-                >
-                  Сохранить изменения
-                </Button>
-              </Flex>
-            </VStack>
-          </TabPanel>
-        </TabPanels>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSave("База данных")}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save size={18} />
+                Сохранить изменения
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
-    </VStack>
+    </div>
   );
 }

@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import axios, { AxiosInstance } from "axios";
-import * as https from "https";
+import * as https from "node:https";
 import Redis from "ioredis";
-import rateLimit from "express-rate-limit";
 import { v4 as uuidv4 } from "uuid";
 import vault from "node-vault";
 
@@ -84,8 +83,8 @@ export class EnterpriseJWTMiddleware {
   private authServiceClient!: AxiosInstance;
   
   // Multi-level caching
-  private memoryCache = new Map<string, { context: UserContext; timestamp: number; accessCount: number }>();
-  private circuitBreakerState: CircuitBreakerState = {
+  private readonly memoryCache = new Map<string, { context: UserContext; timestamp: number; accessCount: number }>();
+  private readonly circuitBreakerState: CircuitBreakerState = {
     failures: 0,
     lastFailureTime: 0,
     state: "CLOSED",
@@ -93,7 +92,7 @@ export class EnterpriseJWTMiddleware {
   };
 
   // Metrics for monitoring
-  private metrics = {
+  private readonly metrics = {
     totalRequests: 0,
     cacheHits: { memory: 0, redis: 0 },
     authServiceCalls: 0,
@@ -101,11 +100,14 @@ export class EnterpriseJWTMiddleware {
     circuitBreakerTrips: 0
   };
 
-  constructor(private config: EnterpriseJWTConfig) {
-    this.initializeComponents();
+  constructor(private readonly config: EnterpriseJWTConfig) {
+    // Synchronous initialization only - call initialize() after construction
   }
 
-  private async initializeComponents(): Promise<void> {
+  /**
+   * Initialize async components. Must be called after construction.
+   */
+  public async initialize(): Promise<void> {
     console.log("🚀 Initializing Enterprise JWT Middleware...");
     
     // Initialize Redis
@@ -474,7 +476,7 @@ export class EnterpriseJWTMiddleware {
   }
 
   private hashToken(token: string): string {
-    const crypto = require("crypto");
+    const crypto = require("node:crypto");
     return crypto.createHash("sha256").update(token).digest("hex").substring(0, 16);
   }
 

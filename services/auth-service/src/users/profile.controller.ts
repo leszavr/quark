@@ -28,9 +28,9 @@ import {
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(
-    private usersService: UsersService,
-    private deviceService: DeviceService,
-    private twoFactorService: TwoFactorService,
+    private readonly usersService: UsersService,
+    private readonly deviceService: DeviceService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   /**

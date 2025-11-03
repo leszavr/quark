@@ -2,19 +2,19 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 const vault = require("node-vault");
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 import { JwtSecretRotatedEvent } from "./events/jwt-secret-rotated.event";
 
 @Injectable()
 export class VaultService implements OnModuleInit {
   private readonly logger = new Logger(VaultService.name);
-  private vault: any;
+  private readonly vault: any;
   private jwtSecret: string = "";
   private lastSecretUpdate: Date = new Date();
 
   constructor(
-    private configService: ConfigService,
-    private eventEmitter: EventEmitter2
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2
   ) {
     this.vault = vault({
       apiVersion: "v1",
@@ -211,6 +211,7 @@ export class VaultService implements OnModuleInit {
         status
       };
     } catch (error) {
+      this.logger.error("Failed to get vault health", error);
       return {
         vault_connected: false,
         jwt_secret_age_minutes: -1,

@@ -17,8 +17,8 @@ const cardVariants = cva(
 );
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {
-  className?: string;
-  variant?: "default" | "outline" | null | undefined;
+  readonly className?: string;
+  readonly variant?: "default" | "outline" | null;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(

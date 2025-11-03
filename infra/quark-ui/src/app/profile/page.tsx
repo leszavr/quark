@@ -71,16 +71,23 @@ export default function ProfilePage() {
           <p className="text-gray-600 dark:text-gray-400">Управляйте своим аккаунтом и персональными настройками</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-2 mb-6 overflow-x-auto flex flex-wrap md:flex-nowrap gap-2">
-          {tabs.map((tab, index) => (
-            <button
-              key={tab.id}
-              className={`min-w-[200px] px-4 py-3 rounded-md transition-all text-sm font-medium flex items-center gap-2 ${tabIndex === index ? `bg-${tab.color}-500 text-white dark:bg-${tab.color}-600` : `bg-${tab.color}-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-${tab.color}-100 dark:hover:bg-gray-600`}`}
-              onClick={() => setTabIndex(index)}
-            >
-              {React.createElement(tab.icon, { size: 16 })}
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab, index) => {
+            const isActive = tabIndex === index;
+            const activeClasses = `bg-${tab.color}-500 text-white dark:bg-${tab.color}-600`;
+            const inactiveClasses = `bg-${tab.color}-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-${tab.color}-100 dark:hover:bg-gray-600`;
+            const buttonClasses = `min-w-[200px] px-4 py-3 rounded-md transition-all text-sm font-medium flex items-center gap-2 ${isActive ? activeClasses : inactiveClasses}`;
+            
+            return (
+              <button
+                key={tab.id}
+                className={buttonClasses}
+                onClick={() => setTabIndex(index)}
+              >
+                {React.createElement(tab.icon, { size: 16 })}
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
         <div>
           {tabIndex === 0 && <BasicInfoTab />}

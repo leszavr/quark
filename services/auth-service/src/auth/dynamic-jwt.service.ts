@@ -57,7 +57,7 @@ export class DynamicJwtService {
             this.logger.warn("✅ Token verified with previous secret - consider refreshing token");
             return payload;
           } catch (previousSecretError) {
-            this.logger.error("❌ Token verification failed with both current and previous secrets");
+            this.logger.error("❌ Token verification failed with both current and previous secrets", previousSecretError);
             throw currentSecretError; // Возвращаем оригинальную ошибку
           }
         } else {

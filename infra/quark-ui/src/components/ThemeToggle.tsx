@@ -1,15 +1,12 @@
 
 "use client";
 import React from "react";
-
-import { IconButton } from "../../button";
-
 import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
   // Tailwind dark mode toggle
   const [colorMode, setColorMode] = React.useState(
-    typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    globalThis.window !== undefined && globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   );
 
   const toggleColorMode = () => {
@@ -17,17 +14,18 @@ export function ThemeToggle() {
     setColorMode(newMode);
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("dark", newMode === "dark");
-      window.localStorage.setItem("theme", newMode);
+      globalThis.localStorage.setItem("theme", newMode);
     }
   };
 
   return (
-    <IconButton
+    <button
+      type="button"
       aria-label="Переключить тему"
-      icon={colorMode === "light" ? <Moon size={18} /> : <Sun size={18} />}
       onClick={toggleColorMode}
-      className="bg-transparent hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200"
-      size="sm"
-    />
+      className="bg-transparent hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200 p-2 rounded-md"
+    >
+      {colorMode === "light" ? <Moon size={18} /> : <Sun size={18} />}
+    </button>
   );
 }

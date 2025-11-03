@@ -12,10 +12,10 @@ export interface FileAttachment {
 }
 
 interface FileUploaderProps {
-  onFilesChange: (files: FileAttachment[]) => void;
-  maxFiles?: number;
-  maxSizeInMB?: number;
-  acceptedTypes?: string[];
+  readonly onFilesChange: (files: FileAttachment[]) => void;
+  readonly maxFiles?: number;
+  readonly maxSizeInMB?: number;
+  readonly acceptedTypes?: string[];
 }
 
 const getFileType = (file: File): FileAttachment["type"] => {
@@ -39,7 +39,7 @@ const formatFileSize = (bytes: number): string => {
   const k = 1024;
   const sizes = ["Б", "КБ", "МБ", "ГБ"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
 export function FileUploader({ 
@@ -49,11 +49,28 @@ export function FileUploader({
   acceptedTypes = ["image/*", "video/*", "audio/*", "application/pdf", "text/*"]
 }: FileUploaderProps) {
   // Tailwind dark mode
-  const isDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = globalThis.window !== undefined && globalThis.matchMedia("(prefers-color-scheme: dark)").matches;
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const updateAttachment = (attachmentId: string, updates: Partial<FileAttachment>) => {
+    setAttachments(prev => 
+      prev.map(a => a.id === attachmentId ? { ...a, ...updates } : a)
+    );
+  };
+
+  const loadImagePreview = (attachmentId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      const previewUrl = e.target?.result as string;
+      if (previewUrl) {
+        updateAttachment(attachmentId, { preview: previewUrl });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files) return;
@@ -86,14 +103,7 @@ export function FileUploader({
       
       // Создаем preview для изображений
       if (fileType === "image") {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          attachment.preview = e.target?.result as string;
-          setAttachments(prev => 
-            prev.map(a => a.id === attachment.id ? attachment : a)
-          );
-        };
-        reader.readAsDataURL(file);
+        loadImagePreview(attachment.id, file);
       }
       
       newAttachments.push(attachment);
@@ -108,7 +118,7 @@ export function FileUploader({
   };
 
   const simulateUpload = (files: FileAttachment[]) => {
-    files.forEach((attachment) => {
+    for (const attachment of files) {
       let progress = 0;
       const interval = setInterval(() => {
         progress += Math.random() * 30;
@@ -117,15 +127,9 @@ export function FileUploader({
           clearInterval(interval);
         }
         
-        setAttachments(prev =>
-          prev.map(a => 
-            a.id === attachment.id 
-              ? { ...a, uploadProgress: progress }
-              : a
-          )
-        );
+        updateAttachment(attachment.id, { uploadProgress: progress });
       }, 200);
-    });
+    }
   };
 
   const removeAttachment = (id: string) => {
@@ -255,12 +259,19 @@ export function FileUploader({
       )}
 
       {/* Зона drag & drop */}
-      <div
-        className={`mt-2 p-4 border-2 rounded-md text-center cursor-pointer transition-all ${dragOver ? "border-primary-500 bg-primary-50 dark:bg-primary-900" : isDark ? "border-gray-600" : "border-gray-300"}`}
+      <button
+        type="button"
+        className={(() => {
+          const baseClasses = "mt-2 p-4 border-2 rounded-md text-center cursor-pointer transition-all w-full";
+          if (dragOver) return `${baseClasses} border-primary-500 bg-primary-50 dark:bg-primary-900`;
+          if (isDark) return `${baseClasses} border-gray-600`;
+          return `${baseClasses} border-gray-300`;
+        })()}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        aria-label="Загрузить файлы"
       >
         <div className="flex flex-col items-center gap-2">
           <Paperclip 
@@ -274,7 +285,7 @@ export function FileUploader({
             Максимум {maxFiles} файлов по {maxSizeInMB}МБ
           </span>
         </div>
-      </div>
+      </button>
     </div>
   );
 }

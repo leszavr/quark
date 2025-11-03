@@ -10,7 +10,7 @@ import { Setup2FAResponseDto } from "../common/dto/profile.dto";
 export class TwoFactorService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async generateTwoFactorSecret(userId: string): Promise<Setup2FAResponseDto> {
@@ -50,7 +50,7 @@ export class TwoFactorService {
 
   async enableTwoFactor(userId: string, token: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user || !user.twoFactorSecret) {
+    if (!user?.twoFactorSecret) {
       throw new BadRequestException("2FA setup not initiated");
     }
 
