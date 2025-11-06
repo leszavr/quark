@@ -119,11 +119,14 @@ show_help() {
     echo -e "    ${YELLOW}-v, --verbose${NC}   Подробный вывод"
     echo -e "    ${YELLOW}--skip-outdated-check${NC}   Пропустить проверку версий пакетов"
     echo -e "    ${YELLOW}--skip-structure-check${NC}  Пропустить проверку структуры проекта"
+    echo -e "    ${YELLOW}--skip-env-check${NC}        Пропустить проверку .env файла"
     echo -e "    ${YELLOW}-h, --help${NC}      Показать эту справку"
     echo ""
     echo -e "${WHITE}ПРИМЕРЫ:${NC}"
     echo -e "    ${CYAN}./quark-manager.sh start${NC}                    # Запустить все сервисы"
     echo -e "    ${CYAN}./quark-manager.sh start plugin-hub redis${NC}   # Запустить только указанные"
+    echo -e "    ${CYAN}./quark-manager.sh spec:new messaging-service${NC} # Создать новую спецификацию"
+    echo -e "    ${CYAN}./quark-manager.sh spec:validate 001${NC}        # Валидировать спецификацию 001"
     echo ""
 }
 
@@ -266,6 +269,95 @@ check_project_structure() {
         print_log "$YELLOW" "WARN" "⚠️  Node.js не установлен, пропускаем проверку структуры"
         return 0
     fi
+}
+
+# Функция создания новой спецификации
+spec_new() {
+    local service_name="$1"
+    
+    if [[ -z "$service_name" ]]; then
+        print_log "$CYAN" "INFO" "📝 Введите название сервиса (например: messaging-service):"
+        read -r service_name
+    fi
+    
+    # Определить следующий номер спецификации
+    local next_num=$(find "$SCRIPT_DIR/specs/" -maxdepth 1 -type d -name "[0-9]*" 2>/dev/null | wc -l)
+    next_num=$((next_num + 1))
+    local spec_num=$(printf "%03d" $next_num)
+    local spec_dir="$SCRIPT_DIR/specs/$spec_num-$service_name"
+    
+    print_log "$PURPLE" "INFO" "🆕 Создание новой спецификации: $spec_dir"
+    
+    # Создать структуру
+    mkdir -p "$spec_dir/contracts"
+    
+    # Скопировать шаблоны
+    if [[ -f "$SCRIPT_DIR/.specify/templates/spec-template.md" ]]; then
+        cp "$SCRIPT_DIR/.specify/templates/spec-template.md" "$spec_dir/spec.md"
+    else
+        print_log "$YELLOW" "WARN" "⚠️  Шаблон spec-template.md не найден"
+    fi
+    
+    if [[ -f "$SCRIPT_DIR/.specify/templates/plan-template.md" ]]; then
+        cp "$SCRIPT_DIR/.specify/templates/plan-template.md" "$spec_dir/plan.md"
+    else
+        print_log "$YELLOW" "WARN" "⚠️  Шаблон plan-template.md не найден"
+    fi
+    
+    # Копировать шаблоны контрактов из примера
+    if [[ -d "$SCRIPT_DIR/specs/001-user-service/contracts" ]]; then
+        cp "$SCRIPT_DIR/specs/001-user-service/contracts/openapi.yaml" "$spec_dir/contracts/" 2>/dev/null || true
+        cp "$SCRIPT_DIR/specs/001-user-service/contracts/asyncapi.yaml" "$spec_dir/contracts/" 2>/dev/null || true
+        cp "$SCRIPT_DIR/specs/001-user-service/contracts/module-manifest.yaml" "$spec_dir/contracts/" 2>/dev/null || true
+    fi
+    
+    # Заменить placeholders если файлы существуют
+    if [[ -f "$spec_dir/spec.md" ]]; then
+        sed -i "s/user-service/$service_name/g" "$spec_dir/spec.md"
+        sed -i "s/User Service/${service_name^}/g" "$spec_dir/spec.md"
+        sed -i "s/001-user-service/$spec_num-$service_name/g" "$spec_dir/spec.md"
+    fi
+    
+    print_log "$GREEN" "SUCCESS" "✅ Спецификация создана: $spec_dir"
+    print_log "$CYAN" "INFO" "📝 Следующие шаги:"
+    print_log "$CYAN" "INFO" "  1. Отредактируйте $spec_dir/spec.md"
+    print_log "$CYAN" "INFO" "  2. Отредактируйте $spec_dir/plan.md"
+    print_log "$CYAN" "INFO" "  3. Обновите контракты в $spec_dir/contracts/"
+    print_log "$CYAN" "INFO" "  4. Запустите: ./quark-manager.sh spec:validate $spec_num"
+}
+
+# Функция валидации спецификаций
+spec_validate() {
+    local spec_dir="${1:-specs}"
+    print_log "$CYAN" "INFO" "🔍 Валидация спецификаций в $spec_dir..."
+    
+    # Проверить наличие Docker
+    if ! command -v docker &> /dev/null; then
+        print_log "$RED" "ERROR" "❌ Docker не установлен. Необходим для валидации спецификаций."
+        return 1
+    fi
+    
+    # Найти все OpenAPI файлы
+    find "$SCRIPT_DIR/$spec_dir" -name "openapi.yaml" -o -name "openapi.yml" 2>/dev/null | while read -r file; do
+        print_log "$CYAN" "INFO" "📄 Проверка OpenAPI: $file"
+        if docker run --rm -v "$SCRIPT_DIR:/specs" stoplight/spectral lint "/specs/${file#$SCRIPT_DIR/}" 2>/dev/null; then
+            print_log "$GREEN" "SUCCESS" "✅ OpenAPI валидация пройдена: $file"
+        else
+            print_log "$RED" "ERROR" "❌ OpenAPI валидация не пройдена: $file"
+        fi
+    done
+    
+    # Найти все AsyncAPI файлы
+    find "$SCRIPT_DIR/$spec_dir" -name "asyncapi.yaml" -o -name "asyncapi.yml" 2>/dev/null | while read -r file; do
+        print_log "$CYAN" "INFO" "📄 Проверка AsyncAPI: $file"
+        if docker run --rm -v "$SCRIPT_DIR:/specs" asyncapi/cli validate "/specs/${file#$SCRIPT_DIR/}" 2>/dev/null; then
+            print_log "$GREEN" "SUCCESS" "✅ AsyncAPI валидация пройдена: $file"
+        else
+            print_log "$RED" "ERROR" "❌ AsyncAPI валидация не пройдена: $file"
+        fi
+    done
+    
+    print_log "$GREEN" "SUCCESS" "✅ Валидация завершена"
 }
 
 # Функция запуска сервисов
@@ -479,7 +571,13 @@ main() {
         check:structure)
             check_project_structure
             ;;
-        vault:init|security:check|ui:dev|ui:build|ui:start|ui:open|spec:new|spec:validate|spec:types|spec:mock|spec:generate-tests)
+        spec:new)
+            spec_new "${services[@]}"
+            ;;
+        spec:validate)
+            spec_validate "${services[@]}"
+            ;;
+        vault:init|security:check|ui:dev|ui:build|ui:start|ui:open|spec:types|spec:mock|spec:generate-tests)
             print_log "$YELLOW" "WARN" "⚠️  Команда $command еще не реализована в этой версии"
             print_log "$CYAN" "INFO" "💡 Обратитесь к документации или используйте --help"
             ;;

@@ -149,6 +149,12 @@ quark/
 
 # Health check всех API
 ./quark-manager.sh health
+
+# Создать новую спецификацию сервиса
+./quark-manager.sh spec:new my-service
+
+# Валидировать спецификацию
+./quark-manager.sh spec:validate 001-my-service
 ```
 
 ### 🛠️ Ручной запуск (для разработки):
@@ -381,9 +387,11 @@ cat specs/001-user-service/plan.md     # Техплан
 ls specs/001-user-service/contracts/   # API контракты
 
 # 3. Создать новый сервис
-mkdir -p specs/002-my-service/contracts
-cp .specify/templates/spec-template.md specs/002-my-service/spec.md
+./quark-manager.sh spec:new my-service # Создать новую спецификацию
 # Заполнить spec.md → сгенерировать plan.md → создать контракты
+
+# 4. Валидировать спецификацию
+./quark-manager.sh spec:validate 002-my-service
 ```
 
 ### 📚 Документация SDD
