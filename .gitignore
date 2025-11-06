@@ -19,7 +19,11 @@ SONARQUBE_*.md
 README_SONARQUBE.md
 README_TYPEGUARD.md
 depcheck-report.json
-agents/typeguard/
+
+# Local development files
+.env
+.env.local
+.env.*.local
 
 # Node.js
 node_modules/
@@ -44,9 +48,7 @@ plugin-hub.log
 # Environment файлы
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
 # Docker override (содержит локальные настройки и credentials)
 docker-compose.override.yml

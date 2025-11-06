@@ -1,38 +1,63 @@
-# Dockerfile for Quark UI (Next.js 15, React 19, TypeScript, Chakra UI, Tailwind CSS)
-
-# 1. Use official Node.js image
-FROM node:20-alpine AS builder
-
-# 2. Set working directory
+# syntax=docker/dockerfile:1.4
+# Quark UI - Next.js 13 + React 18 + TypeScript
+FROM node:20-alpine AS base
 WORKDIR /app
+RUN npm install -g pnpm@latest
 
-# 3. Install dependencies
-COPY package*.json ./
-RUN npm install --frozen-lockfile
+# --- Builder stage ---
+FROM base AS builder
 
-# 4. Copy source code
-COPY . .
+# Build argument для registry с fallback на npmjs.org
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 
-# 5. Build Next.js app
-RUN npm run build
+# Копируем конфигурацию workspace
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY infra/quark-ui/package.json ./infra/quark-ui/
 
-# 6. Production image
-FROM node:20-alpine AS runner
-WORKDIR /app
+# BuildKit cache mount для pnpm store
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
-# 7. Install production dependencies only
-COPY package*.json ./
-RUN npm install --omit=dev --frozen-lockfile
+# Копируем исходники quark-ui
+COPY infra/quark-ui ./infra/quark-ui
 
-# 8. Copy built files from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Собираем Next.js приложение
+WORKDIR /app/infra/quark-ui
+RUN pnpm run build
 
-# 9. Expose port 3101
+# --- Production stage ---
+FROM base AS production
+WORKDIR /app/infra/quark-ui
+
+# Build argument для registry (повторно объявляем для production stage)
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+
+# Копируем package.json
+COPY --from=builder /app/infra/quark-ui/package.json ./
+
+# Копируем workspace конфигурацию
+COPY --from=builder /app/pnpm-workspace.yaml /app/
+COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/package.json /app/
+
+# Устанавливаем prod dependencies с кешированием
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    cd /app && \
+    pnpm install --prod --frozen-lockfile && \
+    cd /app/infra/quark-ui
+
+# Копируем собранное Next.js приложение
+COPY --from=builder /app/infra/quark-ui/.next ./.next
+COPY --from=builder /app/infra/quark-ui/public ./public
+
+# Открываем порт
 EXPOSE 3101
 
-# 10. Set port and start Next.js app
+# Environment
 ENV PORT=3101
-CMD ["npm", "start"]
+ENV NODE_ENV=production
+
+# Запускаем Next.js
+CMD ["pnpm", "start"]

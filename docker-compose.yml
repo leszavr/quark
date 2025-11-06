@@ -29,17 +29,22 @@ services:
     image: postgres:16
     container_name: quark-postgres
     environment:
-      POSTGRES_DB: quark_dev
-      POSTGRES_USER: quark
-      POSTGRES_PASSWORD: quarkpass
+      POSTGRES_USER: ${POSTGRES_USER:-quark_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quark_password}
+      POSTGRES_DB: ${POSTGRES_DB:-quark_auth}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
-    restart: unless-stopped
     networks:
       - quark-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
 
   # Redis - кэширование и сессии
   redis:
@@ -50,23 +55,34 @@ services:
     restart: unless-stopped
     networks:
       - quark-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # MinIO - объектное хранилище для медиа
   minio:
     image: minio/minio
     container_name: quark-minio
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio_data:/data
-    restart: unless-stopped
     networks:
       - quark-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
   # NATS - Event Bus для межсервисного взаимодействия
   nats:
@@ -80,12 +96,25 @@ services:
     networks:
       - quark-network
 
+  # Verdaccio - локальный npm registry для кеширования пакетов
+  verdaccio:
+    image: verdaccio/verdaccio:5
+    container_name: quark-verdaccio
+    ports:
+      - "4873:4873"
+    volumes:
+      - verdaccio_storage:/verdaccio/storage
+      - ./infra/verdaccio/conf:/verdaccio/conf
+    restart: unless-stopped
+    networks:
+      - quark-network
+
   # HashiCorp Vault - управление секретами
   vault:
     image: hashicorp/vault:1.15
     container_name: quark-vault
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: myroot
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-myroot}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     ports:
       - "8200:8200"
@@ -94,6 +123,12 @@ services:
     restart: unless-stopped
     networks:
       - quark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Plugin Hub - центральный узел управления модулями
   plugin-hub:
@@ -102,10 +137,15 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-quark_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-quark_password}
+      - DB_NAME=quark_plugin_hub
       - REDIS_URL=redis://redis:6379
       - NATS_URL=nats://nats:4222
       - VAULT_URL=http://vault:8200
-      - VAULT_TOKEN=myroot
+      - VAULT_TOKEN=${VAULT_DEV_ROOT_TOKEN_ID:-myroot}
     ports:
       - "3000:3000"
     labels:
@@ -117,31 +157,48 @@ services:
       - "traefik.http.middlewares.plugin-hub-stripprefix.stripprefix.prefixes=/hub"
       - "traefik.http.services.plugin-hub.loadbalancer.server.port=3000"
     depends_on:
-      - redis
-      - nats
-      - vault
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      vault:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - quark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
 
   # Auth Service - JWT Authentication with Vault Integration
   auth-service:
-    build: ./services/auth-service
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+      network: host
+      args:
+        NPM_REGISTRY: http://localhost:4873
     container_name: quark-auth
     environment:
       - NODE_ENV=development
       - PORT=3001
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=quark
-      - DB_PASSWORD=quarkpass
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=quark_auth
       - REDIS_URL=redis://redis:6379
       - VAULT_URL=http://vault:8200
-      - VAULT_TOKEN=myroot
+      - VAULT_TOKEN=${VAULT_DEV_ROOT_TOKEN_ID}
       - PLUGIN_HUB_URL=http://plugin-hub:3000
       - SERVICE_URL=http://auth-service:3001
       - CORS_ORIGIN=*
+      - NPM_REGISTRY=http://localhost:4873
     ports:
       - "3001:3001"
     labels:
@@ -161,13 +218,25 @@ services:
       - "traefik.http.middlewares.auth-jwt.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.auth-jwt.forwardauth.authResponseHeaders=X-User-Id,X-Subject,X-User-Roles,X-Token-Type,X-User-Permissions,X-Service-Id,X-Service-Name"
     depends_on:
-      - postgres
-      - redis
-      - vault
-      - plugin-hub
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      plugin-hub:
+        condition: service_healthy
+      verdaccio:
+        condition: service_started
     restart: unless-stopped
     networks:
       - quark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/auth/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
 
 
@@ -186,16 +255,21 @@ services:
       - "traefik.http.routers.monitoring.rule=Host(`monitor.quark.local`)"
       - "traefik.http.services.monitoring.loadbalancer.server.port=3900"
     depends_on:
-      - plugin-hub
+      plugin-hub:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - quark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3900/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   # Quark Platform UI - модульный административный интерфейс
   quark-ui:
-    build: 
-      context: ./infra/quark-ui
-      dockerfile: Dockerfile
+    image: quark-quark-ui:latest
     container_name: quark-ui
     environment:
       - NODE_ENV=production
@@ -209,17 +283,20 @@ services:
       - "traefik.http.routers.quark-ui.rule=Host(`admin.quark.local`) || Host(`localhost`)"
       - "traefik.http.services.quark-ui.loadbalancer.server.port=3101"
     depends_on:
-      - auth-service
-      - plugin-hub
-      - monitoring
+      auth-service:
+        condition: service_healthy
+      plugin-hub:
+        condition: service_healthy
+      monitoring:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - quark-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3101"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3101"]
       interval: 30s
-      timeout: 3s
-      start_period: 10s
+      timeout: 5s
+      start_period: 60s
       retries: 3
 
   # Blog Service - Interface Integration (Blog + Messaging)
@@ -227,11 +304,14 @@ services:
     build:
       context: .
       dockerfile: ./services/blog-service/Dockerfile
+      network: host
+      args:
+        NPM_REGISTRY: http://localhost:4873
     container_name: quark-blog-service
     environment:
       - NODE_ENV=production
       - PORT=3004
-      - DATABASE_URL=${DATABASE_URL:-postgresql://quark:quarkpass@postgres:5432/quark_dev} # NOSONAR - development default, override via env
+      - DATABASE_URL=postgresql://quark:quarkpass@postgres:5432/quark_dev
       - AUTH_SERVICE_URL=http://auth-service:3001
       - PLUGIN_HUB_URL=http://plugin-hub:3000
       - NATS_URL=nats://nats:4222
@@ -246,10 +326,16 @@ services:
       - "traefik.http.middlewares.blog-stripprefix.stripprefix.prefixes=/blog"
       - "traefik.http.services.blog.loadbalancer.server.port=3004"
     depends_on:
-      - postgres
-      - auth-service
-      - plugin-hub
-      - nats
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      plugin-hub:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      verdaccio:
+        condition: service_started
     restart: unless-stopped
     networks:
       - quark-network
@@ -307,6 +393,7 @@ services:
       - "traefik.http.routers.landing.entrypoints=web"
       - "traefik.http.routers.landing.priority=1"
       - "traefik.http.services.landing.loadbalancer.server.port=3000"
+      - "QUARK_LOCAL_HOST=quark.local"
     restart: unless-stopped
     networks:
       - quark-network
@@ -327,3 +414,4 @@ volumes:
   postgres_data:
   minio_data:
   nats_data:
+  verdaccio_storage:

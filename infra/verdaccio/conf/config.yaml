@@ -1,0 +1,74 @@
+# Verdaccio Configuration
+# Локальный npm registry для кеширования пакетов
+
+storage: /verdaccio/storage/data
+plugins: /verdaccio/plugins
+
+# Web UI
+web:
+  title: Quark NPM Registry
+  # logo: logo.png
+  primary_color: "#4b5cc4"
+  gravatar: true
+  scope: "@quark"
+  darkMode: false
+  favicon: favicon.ico
+  
+# Аутентификация
+auth:
+  htpasswd:
+    file: /verdaccio/storage/htpasswd
+    # Максимальное количество пользователей
+    max_users: 1000
+    # Разрешить регистрацию (sign up)
+    # algorithm: bcrypt # Используйте bcrypt для безопасности
+    # rounds: 10
+
+# Uplinks - откуда брать пакеты
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    maxage: 24h
+    timeout: 60s
+    max_fails: 5
+    fail_timeout: 5m
+
+# Пакеты - правила доступа и проксирования
+packages:
+  # Scope packages для Quark
+  '@quark/*':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+  # Все остальные пакеты
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+# Логирование
+logs:
+  - { type: stdout, format: pretty, level: info }
+
+# Безопасность
+security:
+  api:
+    jwt:
+      sign:
+        expiresIn: 7d
+
+# Server
+listen: 0.0.0.0:4873
+
+# Максимальный размер body для publish
+max_body_size: 100mb
+
+# Эксперименты
+experiments:
+  # Поддержка token
+  token: false
+  # Поддержка search
+  search: true

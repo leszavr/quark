@@ -88,4 +88,4 @@ async function registerWithPluginHub(port: number) {
   }
 }
 
-await bootstrap();
+bootstrap();

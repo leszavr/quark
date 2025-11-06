@@ -1,60 +1,57 @@
 # syntax=docker/dockerfile:1.4
-# Multi-stage build для Blog Service в pnpm workspace
-FROM node:20-alpine AS builder
-
-WORKDIR /workspace
-
-# Устанавливаем pnpm
+# Blog Service - Express + Drizzle ORM + TypeScript
+FROM node:20-alpine AS base
+WORKDIR /app
 RUN npm install -g pnpm@latest
 
-# Копируем workspace конфигурацию
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc* ./
+# --- Builder stage ---
+FROM base AS builder
 
-# Копируем все package.json файлы для правильного разрешения зависимостей workspace
+# Build argument для registry с fallback на npmjs.org
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+
+# Копируем конфигурацию workspace
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc* ./
 COPY services/blog-service/package.json ./services/blog-service/
-COPY infra/*/package.json ./infra/
 
-# Устанавливаем ВСЕ зависимости workspace (это важно для pnpm workspaces!)
-RUN pnpm install --no-frozen-lockfile || pnpm install
+# BuildKit cache mount для pnpm store
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Копируем исходники blog-service
 COPY services/blog-service ./services/blog-service
 
-# Собираем blog-service
-WORKDIR /workspace/services/blog-service
+# Собираем приложение
+WORKDIR /app/services/blog-service
 RUN pnpm run build
 
-# Production stage
-FROM node:20-alpine
+# --- Production stage ---
+FROM base AS production
+WORKDIR /app/services/blog-service
 
-WORKDIR /app
+# Build argument для registry (повторно объявляем для production stage)
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 
-# Копируем package.json для metadata
-COPY --from=builder /workspace/services/blog-service/package.json ./
+# Копируем package.json
+COPY --from=builder /app/services/blog-service/package.json ./
 
-# Копируем node_modules из workspace root (pnpm workspace хранит все зависимости там)
-COPY --from=builder /workspace/node_modules ./node_modules
+# Копируем workspace конфигурацию
+COPY --from=builder /app/pnpm-workspace.yaml /app/
+COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/package.json /app/
 
-# Fix: создаём отсутствующие симлинки для зависимостей blog-service
-# pnpm workspace иногда не создаёт симлинки для всех зависимостей
-WORKDIR /app/node_modules
-RUN if [ ! -e drizzle-zod ] && [ -d .pnpm ]; then \
-        DRIZZLE_ZOD_PATH=$(find .pnpm -maxdepth 1 -name "drizzle-zod@*" -type d | head -1); \
-        if [ -n "$DRIZZLE_ZOD_PATH" ]; then \
-            ln -sf "$DRIZZLE_ZOD_PATH/node_modules/drizzle-zod" drizzle-zod; \
-        fi; \
-    fi
+# Устанавливаем prod dependencies с кешированием
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    cd /app && \
+    pnpm install --prod --frozen-lockfile && \
+    cd /app/services/blog-service
 
-WORKDIR /app
-
-# Копируем собранное приложение из builder
-COPY --from=builder /workspace/services/blog-service/dist ./dist
-COPY --from=builder /workspace/services/blog-service/server ./server
-COPY --from=builder /workspace/services/blog-service/shared ./shared
-COPY --from=builder /workspace/services/blog-service/module-manifest.yaml ./module-manifest.yaml
-
-# Копируем Drizzle конфигурацию для миграций
-COPY --from=builder /workspace/services/blog-service/drizzle.config.ts ./
+# Копируем собранное приложение и необходимые runtime файлы
+COPY --from=builder /app/services/blog-service/dist ./dist
+COPY --from=builder /app/services/blog-service/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/services/blog-service/module-manifest.yaml ./module-manifest.yaml
 
 # Создаем директорию для uploads
 RUN mkdir -p uploads

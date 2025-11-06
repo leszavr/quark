@@ -88,13 +88,19 @@ export function ChatList({ onChatSelect, selectedChatId, fullWidth = false }: Ch
               >
                 <div className="flex gap-3 items-start">
                   <div className="relative w-12 h-12">
-                    <Image
-                      fill
-                      className="rounded-full object-cover"
-                      src={chat.user.avatar}
-                      alt={chat.user.name}
-                      sizes="48px"
-                    />
+                    {chat.user.avatar.startsWith('http') ? (
+                      <Image
+                        fill
+                        className="rounded-full object-cover"
+                        src={chat.user.avatar}
+                        alt={chat.user.name}
+                        sizes="48px"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-2xl">
+                        {chat.user.avatar}
+                      </div>
+                    )}
                     {chat.user.isOnline && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
                     )}

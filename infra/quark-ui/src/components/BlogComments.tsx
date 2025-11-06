@@ -117,13 +117,19 @@ export function BlogComments({
       <div className="flex flex-col gap-3">
         <div className="flex gap-3 items-start">
           <div className="relative w-8 h-8 flex-shrink-0">
-            <Image
-              src={comment.author.avatar || "/avatar.png"}
-              alt={comment.author.name}
-              fill
-              className="rounded-full object-cover"
-              sizes="32px"
-            />
+            {comment.author.avatar?.startsWith('http') || comment.author.avatar?.startsWith('/') ? (
+              <Image
+                src={comment.author.avatar || "/avatar.png"}
+                alt={comment.author.name}
+                fill
+                className="rounded-full object-cover"
+                sizes="32px"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg">
+                {comment.author.avatar || '👤'}
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-2 flex-1">
             <div className="flex justify-between items-start">

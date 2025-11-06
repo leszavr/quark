@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// Используем локальные шрифты вместо Google Fonts (не блокируются)
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
 import { Providers } from "./providers";
 import "./globals.css";
 import "./fonts.css";
-
-const inter = Inter({ 
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
-});
 
 export const metadata: Metadata = {
   title: "Quark - Цифровая вселенная для самовыражения",
@@ -22,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className={inter.className}>
+      <body style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
         <Providers>
           {children}
         </Providers>

@@ -8,7 +8,12 @@
     "start:dev": "ts-node src/main.ts",
     "start:debug": "ts-node --inspect src/main.ts",
     "test": "echo \"Tests coming soon\"",
-    "lint": "echo \"Linting coming soon\""
+    "lint": "echo \"Linting coming soon\"",
+    "typeorm": "typeorm-ts-node-commonjs -d src/config/data-source.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts src/migration/$npm_config_name",
+    "migration:create": "typeorm-ts-node-commonjs migration:create src/migration/$npm_config_name",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts"
   },
   "keywords": [],
   "author": "",

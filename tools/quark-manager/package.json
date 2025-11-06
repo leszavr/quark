@@ -5,12 +5,18 @@
   "type": "module",
   "bin": {
     "quark-check-packages": "./dist/check-packages.js",
-    "quark-health": "./dist/health-check.js"
+    "quark-vault-init": "./dist/vault-init.js",
+    "quark-security-check": "./dist/security-check.js",
+    "quark-project-validate": "./dist/project-validate.js",
+    "quark-check-structure": "./dist/check-structure.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "check-packages": "node --loader ts-node/esm src/check-packages.ts",
+    "vault-init": "node --loader ts-node/esm src/vault-init.ts",
+    "security-check": "node --loader ts-node/esm src/security-check.ts",
+    "check-structure": "node --loader ts-node/esm src/check-structure.ts",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
@@ -19,7 +25,8 @@
     "commander": "^12.1.0",
     "ora": "^8.1.1",
     "cli-progress": "^3.12.0",
-    "execa": "^9.5.2"
+    "execa": "^9.5.2",
+    "node-vault": "^0.10.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

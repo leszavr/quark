@@ -1,64 +1,71 @@
 # syntax=docker/dockerfile:1.4
-# Multi-stage build for production
-FROM node:20-alpine AS builder
-
+# Auth Service - NestJS + TypeORM + PostgreSQL
+FROM node:20-alpine AS base
 WORKDIR /app
+RUN npm install -g pnpm@latest
 
-# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
-RUN npm install -g npm@11.6.1
+# --- Builder stage ---
+FROM base AS builder
 
-# Copy package files
-COPY package*.json ./
+# Build argument для registry с fallback на npmjs.org
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 
-# Install dependencies for production first
-RUN npm ci --omit=dev
+# Копируем конфигурацию workspace
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY services/auth-service/package.json ./services/auth-service/
 
-# Копируем исходный код
-COPY tsconfig.json ./
-COPY src/ ./src/
+# BuildKit cache mount для pnpm store
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install
 
-# Устанавливаем dev зависимости для сборки
-RUN npm ci
+# Копируем исходники auth-service
+COPY services/auth-service ./services/auth-service
 
 # Собираем приложение
-RUN npm run build
+WORKDIR /app/services/auth-service
+RUN pnpm run build
 
-# Production stage
-FROM node:20-alpine AS production
+# --- Production stage ---
+FROM base AS production
+WORKDIR /app/services/auth-service
 
-WORKDIR /app
+# Build argument для registry (повторно объявляем для production stage)
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 
-# Обновляем npm до последней версии - ЗОЛОТОЕ ПРАВИЛО
-RUN npm install -g npm@11.6.1
+# Копируем package.json
+COPY --from=builder /app/services/auth-service/package.json ./
 
-# Создаем пользователя для безопасности
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S quark -u 1001
+# Копируем workspace конфигурацию для правильной установки зависимостей
+COPY --from=builder /app/pnpm-workspace.yaml /app/
+COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/package.json /app/
 
-# Копируем package files
-COPY package*.json ./
-
-# Устанавливаем только production зависимости
-RUN npm ci --omit=dev
+# Устанавливаем prod dependencies с кешированием
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    cd /app && \
+    pnpm install --prod && \
+    cd /app/services/auth-service
 
 # Копируем собранное приложение
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/services/auth-service/dist ./dist
 
-# Меняем владельца файлов
-RUN chown -R quark:nodejs /app
+# Создаем пользователя для безопасности
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S quark -u 1001 && \
+    chown -R quark:nodejs /app
 
-# Переключаемся на пользователя
 USER quark
 
 # Открываем порт
 EXPOSE 3001
 
-# Устанавливаем environment
+# Environment
 ENV NODE_ENV=production
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "const http = require('http'); http.get('http://localhost:3001/auth/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Запускаем приложение

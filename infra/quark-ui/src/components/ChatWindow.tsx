@@ -148,15 +148,26 @@ export function ChatWindow({ chatId = "chat-1", onClose: _onClose, showBackButto
               </button>
             )}
             <div className="relative w-8 h-8">
-              <Image
-                fill
-                className="rounded-full object-cover"
-                src={user?.avatar || "/avatar-placeholder.png"}
-                alt={user?.name || "Пользователь"}
-                sizes="32px"
-              />
-              {user?.isOnline && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
+              {user?.avatar?.startsWith('http') || user?.avatar?.startsWith('/') ? (
+                <>
+                  <Image
+                    fill
+                    className="rounded-full object-cover"
+                    src={user.avatar}
+                    alt={user?.name || "Пользователь"}
+                    sizes="32px"
+                  />
+                  {user?.isOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
+                  )}
+                </>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xl relative">
+                  {user?.avatar || '👤'}
+                  {user?.isOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
+                  )}
+                </div>
               )}
             </div>
             <div>
