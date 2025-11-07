@@ -244,26 +244,165 @@ show_status() {
     echo ""
 }
 
+# Функция проверки доступности verdaccio с таймаутом
+check_verdaccio_availability() {
+    local timeout_duration=60  # 1 минута
+    local start_time=$(date +%s)
+    local end_time=$((start_time + timeout_duration))
+    
+    print_log "$CYAN" "INFO" "🔍 Проверка доступности verdaccio (таймаут: 1 минута)..."
+    
+    while [[ $(date +%s) -lt $end_time ]]; do
+        if curl -s --fail http://localhost:4873 &>/dev/null; then
+            print_log "$GREEN" "SUCCESS" "✅ Verdaccio доступен"
+            return 0
+        fi
+        sleep 2
+    done
+    
+    print_log "$YELLOW" "WARN" "⚠️  Verdaccio недоступен после 1 минуты ожидания"
+    return 1
+}
+
+# Функция временного переключения на онлайн реестр
+switch_to_online_registry() {
+    local manager_dir="$SCRIPT_DIR/tools/quark-manager"
+    local npmrc_path="$manager_dir/.npmrc"
+    local pnpmrc_path="$manager_dir/.pnpmrc"
+    
+    # Сохраняем оригинальные файлы, если они существуют
+    if [[ -f "$npmrc_path" ]]; then
+        cp "$npmrc_path" "$npmrc_path.backup"
+    fi
+    
+    if [[ -f "$pnpmrc_path" ]]; then
+        cp "$pnpmrc_path" "$pnpmrc_path.backup"
+    fi
+    
+    # Создаем временные файлы с онлайн реестром
+    echo "registry=https://registry.npmjs.org/" > "$npmrc_path"
+    echo "registry=https://registry.npmjs.org/" > "$pnpmrc_path"
+    
+    print_log "$CYAN" "INFO" "🔄 Переключено на онлайн реестр пакетов"
+}
+
+# Функция восстановления оригинальной конфигурации реестра
+restore_registry_config() {
+    local manager_dir="$SCRIPT_DIR/tools/quark-manager"
+    local npmrc_path="$manager_dir/.npmrc"
+    local pnpmrc_path="$manager_dir/.pnpmrc"
+    
+    # Восстанавливаем оригинальные файлы из бэкапа
+    if [[ -f "$npmrc_path.backup" ]]; then
+        mv "$npmrc_path.backup" "$npmrc_path"
+        print_log "$CYAN" "INFO" "🔄 Восстановлена оригинальная конфигурация .npmrc"
+    else
+        # Если бэкапа нет, удаляем временные файлы
+        rm -f "$npmrc_path"
+    fi
+    
+    if [[ -f "$pnpmrc_path.backup" ]]; then
+        mv "$pnpmrc_path.backup" "$pnpmrc_path"
+        print_log "$CYAN" "INFO" "🔄 Восстановлена оригинальная конфигурация .pnpmrc"
+    else
+        # Если бэкапа нет, удаляем временные файлы
+        rm -f "$pnpmrc_path"
+    fi
+}
+
 # Функция проверки структуры проекта
 check_project_structure() {
     print_log "$CYAN" "INFO" "🔍 Проверка структуры проекта..."
     
     if command -v node &> /dev/null; then
         local tool_path="$SCRIPT_DIR/tools/quark-manager/dist/check-structure.js"
+        local dist_dir="$SCRIPT_DIR/tools/quark-manager/dist"
+        local src_dir="$SCRIPT_DIR/tools/quark-manager/src"
+        local package_json="$SCRIPT_DIR/tools/quark-manager/package.json"
         
-        if [[ -f "$tool_path" ]]; then
-            if node "$tool_path" --root "$SCRIPT_DIR" --quiet; then
-                print_log "$GREEN" "SUCCESS" "✅ Структура проекта корректна"
-                return 0
-            else
-                print_log "$RED" "ERROR" "❌ Обнаружены нарушения структуры проекта!"
-                print_log "$YELLOW" "INFO" "💡 Запустите: ./quark-manager.sh check:structure"
-                print_log "$YELLOW" "INFO" "💡 Для пропуска проверки используйте: --skip-structure-check"
+        # Проверяем наличие каталога dist и файла check-structure.js
+        if [[ ! -f "$tool_path" ]]; then
+            print_log "$YELLOW" "WARN" "🔧 Каталог tools/quark-manager/dist/ не найден, выполняем автоматическую установку..."
+            
+            # Проверяем наличие Node.js
+            if ! command -v node &> /dev/null; then
+                print_log "$RED" "ERROR" "❌ Node.js не установлен"
                 return 1
             fi
-        else
-            print_log "$YELLOW" "WARN" "⚠️  Инструмент check-structure.js не найден, пропускаем проверку"
+            
+            # Проверяем наличие исходных файлов TypeScript
+            if [[ ! -d "$src_dir" ]] || [[ -z "$(ls -A "$src_dir")" ]]; then
+                print_log "$RED" "ERROR" "❌ Исходные файлы TypeScript не найдены в $src_dir"
+                return 1
+            fi
+            
+            # Проверяем наличие package.json
+            if [[ ! -f "$package_json" ]]; then
+                print_log "$RED" "ERROR" "❌ Файл package.json не найден в $package_dir"
+                return 1
+            fi
+            
+            # Создаем каталог dist если он не существует
+            if [[ ! -d "$dist_dir" ]]; then
+                print_log "$CYAN" "INFO" "🏗️ Создаем каталог dist..."
+                mkdir -p "$dist_dir"
+            fi
+            
+            # Проверяем доступность verdaccio и при необходимости переключаемся на онлайн реестр
+            local use_online_registry=false
+            if ! check_verdaccio_availability; then
+                switch_to_online_registry
+                use_online_registry=true
+            fi
+            
+            # Выполняем сборку TypeScript файлов в JavaScript
+            print_log "$CYAN" "INFO" "📦 Устанавливаем зависимости и собираем инструменты..."
+            (
+                cd "$SCRIPT_DIR/tools/quark-manager"
+                if command -v pnpm &> /dev/null; then
+                    pnpm install && pnpm run build
+                elif command -v npm &> /dev/null; then
+                    npm install && npm run build
+                else
+                    print_log "$RED" "ERROR" "❌ Не найден менеджер пакетов (pnpm или npm)"
+                    # Восстанавливаем конфигурацию реестра в случае ошибки
+                    if [[ "$use_online_registry" = true ]]; then
+                        restore_registry_config
+                    fi
+                    return 1
+                fi
+            )
+            local build_result=$?
+            
+            # Восстанавливаем оригинальную конфигурацию реестра
+            if [[ "$use_online_registry" = true ]]; then
+                restore_registry_config
+            fi
+            
+            # Проверяем, что сборка прошла успешно
+            if [[ $build_result -ne 0 ]]; then
+                print_log "$RED" "ERROR" "❌ Ошибка при сборке инструментов"
+                return 1
+            fi
+            
+            # Проверяем, что файл check-structure.js теперь существует
+            if [[ ! -f "$tool_path" ]]; then
+                print_log "$RED" "ERROR" "❌ Файл check-structure.js не был создан после сборки"
+                return 1
+            fi
+            
+            print_log "$GREEN" "SUCCESS" "✅ Автоматическая установка завершена успешно"
+        fi
+        
+        # Запускаем проверку структуры проекта
+        if node "$tool_path" --root "$SCRIPT_DIR" --quiet; then
+            print_log "$GREEN" "SUCCESS" "✅ Структура проекта корректна"
             return 0
+        else
+            print_log "$RED" "ERROR" "❌ Обнаружены нарушения структуры проекта!"
+            print_log "$YELLOW" "INFO" "💡 Запустите: ./quark-manager.sh check:structure"
+            print_log "$YELLOW" "INFO" "💡 Для пропуска проверки используйте: --skip-structure-check"
+            return 1
         fi
     else
         print_log "$YELLOW" "WARN" "⚠️  Node.js не установлен, пропускаем проверку структуры"
@@ -363,6 +502,12 @@ spec_validate() {
 # Функция запуска сервисов
 start_services() {
     local services=("$@")
+    
+    # Проверяем структуру проекта и выполняем автоматическую установку при необходимости
+    check_project_structure || {
+        print_log "$RED" "ERROR" "❌ Не удалось выполнить проверку структуры проекта или автоматическую установку"
+        return 1
+    }
     
     if [[ ${#services[@]} -eq 0 ]]; then
         print_log "$GREEN" "INFO" "🚀 Запуск всех сервисов МКС..."
@@ -501,7 +646,12 @@ main() {
     
     # Проверка структуры проекта для команд, которые это требуют
     if [[ "$command" != "help" ]] && [[ "$command" != "--help" ]] && [[ -z "$SKIP_STRUCTURE_CHECK" ]]; then
-        check_project_structure || true  # Не останавливаем выполнение при ошибке
+        # Для команды start делаем проверку обязательной, для остальных не останавливаем выполнение при ошибке
+        if [[ "$command" == "start" ]]; then
+            check_project_structure  # Останавливаем выполнение при ошибке для команды start
+        else
+            check_project_structure || true  # Не останавливаем выполнение при ошибке для других команд
+        fi
     fi
     
     # Выполнение команд

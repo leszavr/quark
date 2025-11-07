@@ -104,3 +104,7 @@ vault-data/
 # Kubernetes секреты
 k8s-secrets/
 *.kubeconfig
+
+# Исключение для tools/quark-manager/dist - скомпиллированных файлов инструментов Quark Manager
+!tools/quark-manager/dist/
+!tools/quark-manager/dist/**
